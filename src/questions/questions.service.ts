@@ -41,7 +41,7 @@ export class QuestionsService {
                 },
                 tags: true,
                 _count: {
-                    select: { answers: true, votes: true },
+                    select: { answers: true, ratings: true },
                 },
             },
         });
@@ -64,7 +64,7 @@ export class QuestionsService {
                 answers: {
                     include: {
                         author: { select: { id: true, name: true, role: true, avatar: true, reputation: true } },
-                        _count: { select: { votes: true } },
+                        _count: { select: { ratings: true } },
                     },
                     orderBy: [
                         { isAccepted: 'desc' },
@@ -72,7 +72,7 @@ export class QuestionsService {
                     ],
                 },
                 _count: {
-                    select: { votes: true },
+                    select: { ratings: true },
                 },
             },
         });

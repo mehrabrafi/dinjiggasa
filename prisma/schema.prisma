@@ -24,12 +24,12 @@ model User {
   password  String
   avatar    String?
   role      Role     @default(USER)
-  reputation Int     @default(0) // Based on upvotes received
+  reputation Float   @default(0) // Based on average ratings received
 
   // Relations
   questions Question[]
   answers   Answer[]
-  votes     Vote[]
+  ratings   Rating[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -49,7 +49,7 @@ model Question {
   // Content relations
   answers   Answer[]
   tags      Tag[]
-  votes     Vote[]
+  ratings   Rating[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -68,28 +68,22 @@ model Answer {
   questionId String
   question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
-  votes      Vote[]
+  ratings    Rating[]
 
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
 
-// Vote Type
-enum VoteType {
-  UPVOTE
-  DOWNVOTE
-}
-
-// Vote Model (Polymorphic-like structure for both questions and answers)
-model Vote {
+// Rating Model (Polymorphic-like structure for both questions and answers)
+model Rating {
   id         String   @id @default(uuid())
-  type       VoteType
+  value      Int      // 1 to 5 scale
 
-  // Who voted
+  // Who rated
   userId     String
   user       User     @relation(fields: [userId], references: [id])
 
-  // What they voted on (Either Question OR Answer)
+  // What they rated on (Either Question OR Answer)
   questionId String?
   question   Question? @relation(fields: [questionId], references: [id], onDelete: Cascade)
   
@@ -98,7 +92,7 @@ model Vote {
 
   createdAt  DateTime @default(now())
 
-  // A user can only vote once per question or answer
+  // A user can only rate once per question or answer
   @@unique([userId, questionId])
   @@unique([userId, answerId])
 }
