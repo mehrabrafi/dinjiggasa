@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle2, Eye, Search } from "lucide-react"
+import Link from "next/link"
 
 export default function Home() {
   return (
@@ -15,7 +16,7 @@ export default function Home() {
                 <path d="M4 19V5C4 3.89543 4.89543 3 6 3H19.4C19.7314 3 20 3.26863 20 3.6V16.7173C20 17.0917 19.6582 17.3736 19.2908 17.3103L6.03846 15.0276C5.46782 14.9293 4.89543 14.8954 4.3411 14.8954C4.15175 14.8954 4 15.0471 4 15.2365V19Z" fill="currentColor" />
               </svg>
             </div>
-            <span className="font-bold text-xl tracking-tight">IlmBoard</span>
+            <span className="font-bold text-xl tracking-tight">দ্বীন জিজ্ঞাসা</span>
           </div>
 
           <nav className="hidden md:flex items-center gap-8 font-medium text-sm text-zinc-600">
@@ -26,9 +27,11 @@ export default function Home() {
           </nav>
 
           <div className="flex items-center gap-4">
-            <Button variant="ghost" className="font-semibold text-zinc-600">
-              Log In
-            </Button>
+            <Link href="/login">
+              <Button variant="ghost" className="font-semibold text-zinc-600">
+                Log In
+              </Button>
+            </Link>
             <Button className="font-semibold rounded-full px-6 shadow-sm">
               Ask Question
             </Button>
@@ -235,7 +238,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t py-10 mt-12 bg-white text-center">
         <p className="text-zinc-500 text-sm font-medium mb-4">
-          © 2023 IlmBoard. Knowledge for everyone.
+          © 2026 দ্বীন জিজ্ঞাসা. Knowledge for everyone.
         </p>
         <div className="flex justify-center gap-6 text-xs text-zinc-400 font-medium">
           <a href="#" className="hover:text-zinc-600 transition-colors">Privacy Policy</a>
