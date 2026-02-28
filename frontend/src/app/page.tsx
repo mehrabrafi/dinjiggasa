@@ -191,7 +191,6 @@ export default function Dashboard() {
 
           {/* Card 3 - Text Post */}
           <div className={styles.card}>
-            <img src="https://images.unsplash.com/photo-1584281720492-48bd18dca3fc?q=80&w=1000&auto=format&fit=crop" alt="Ramadan" className={styles.cardImage} />
             <div className={styles.cardBody}>
               <div className={styles.cardTags}>
                 <span className={styles.tagPrimaryDark}>Ramadan Preparation</span>
