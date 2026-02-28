@@ -74,14 +74,52 @@ export default function Dashboard() {
         {/* Feed */}
         <main className={styles.feedContent}>
 
-          {/* Card 1 - Live */}
-          <div className={`${styles.card} ${styles.liveCard}`}>
-            <div className={styles.liveBadge}>LIVE SESSION</div>
-            <h2 className={styles.liveTitle}>Mastering Quranic Arabic</h2>
-            <p className={styles.liveSubtitle}>Join Sheikh Omar Suleiman for an exclusive live deep-dive into the linguistic miracles of Juz Amma...</p>
-            <button className={styles.listenButton}>
-              <PlayCircle size={18} /> Listen Now
-            </button>
+          {/* Card 1 - Live Carousel */}
+          <div className={styles.carouselContainer}>
+            {/* Slide 1 */}
+            <div className={`${styles.card} ${styles.liveCard} ${styles.carouselItem}`}>
+              <div className={styles.liveBadge}>LIVE SESSION</div>
+              <h2 className={styles.liveTitle}>Mastering Quranic Arabic</h2>
+              <p className={styles.liveSubtitle}>Join Sheikh Omar Suleiman for an exclusive live deep-dive into the linguistic miracles of Juz Amma...</p>
+              <button className={styles.listenButton}>
+                <PlayCircle size={18} /> Listen Now
+              </button>
+              <div className={styles.carouselDots}>
+                <div className={`${styles.dot} ${styles.dotActive}`}></div>
+                <div className={styles.dot}></div>
+                <div className={styles.dot}></div>
+              </div>
+            </div>
+
+            {/* Slide 2 */}
+            <div className={`${styles.card} ${styles.liveCard} ${styles.carouselItem}`} style={{ backgroundImage: "linear-gradient(to right, rgba(0,0,0,0.8), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1588775005893-6629cb8c156f?q=80&w=1000&auto=format&fit=crop')" }}>
+              <div className={styles.liveBadge} style={{ backgroundColor: '#FF5C5C' }}>UPCOMING</div>
+              <h2 className={styles.liveTitle}>Fiqh of Finance</h2>
+              <p className={styles.liveSubtitle}>Dr. Yasin Malik explains the complexities of modern Zakat calculation in this upcoming detailed workshop...</p>
+              <button className={styles.listenButton}>
+                <Bell size={18} /> Set Reminder
+              </button>
+              <div className={styles.carouselDots}>
+                <div className={styles.dot}></div>
+                <div className={`${styles.dot} ${styles.dotActive}`}></div>
+                <div className={styles.dot}></div>
+              </div>
+            </div>
+
+            {/* Slide 3 */}
+            <div className={`${styles.card} ${styles.liveCard} ${styles.carouselItem}`} style={{ backgroundImage: "linear-gradient(to right, rgba(0,0,0,0.8), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1564683214965-3619addd900d?q=80&w=1000&auto=format&fit=crop')" }}>
+              <div className={styles.liveBadge} style={{ backgroundColor: '#3b82f6' }}>Q&A</div>
+              <h2 className={styles.liveTitle}>Ask Me Anything: Youth Issues</h2>
+              <p className={styles.liveSubtitle}>Open session with various scholars addressing contemporary challenges faced by Muslim youth...</p>
+              <button className={styles.listenButton}>
+                <MessageSquare size={18} /> Join Session
+              </button>
+              <div className={styles.carouselDots}>
+                <div className={styles.dot}></div>
+                <div className={styles.dot}></div>
+                <div className={`${styles.dot} ${styles.dotActive}`}></div>
+              </div>
+            </div>
           </div>
 
           {/* Card 2 - Voice Answer */}
