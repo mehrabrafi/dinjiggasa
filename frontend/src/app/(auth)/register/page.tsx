@@ -6,6 +6,7 @@ import { useState } from "react"
 import { authService } from "@/services/auth.service"
 import { useRouter } from "next/navigation"
 import toast from "react-hot-toast"
+import styles from "../auth.module.css"
 
 export default function RegisterPage() {
     const [formData, setFormData] = useState({
@@ -38,64 +39,64 @@ export default function RegisterPage() {
     }
 
     return (
-        <div className="w-full">
-            <h2 className="text-3xl font-extrabold font-sans uppercase mb-10 text-gray-900 tracking-wide text-left">
+        <div className={styles.fullWidth}>
+            <h2 className={styles.heading}>
                 Sign Up
             </h2>
 
-            <form className="space-y-6" onSubmit={handleSubmit}>
-                <div className="space-y-2">
-                    <label className="text-sm font-bold uppercase tracking-wider text-gray-900">
-                        Full Name <span className="text-red-500">*</span>
+            <form className={styles.formGroup} onSubmit={handleSubmit}>
+                <div className={styles.field}>
+                    <label className={styles.label}>
+                        Full Name <span className={styles.requiredAsterisk}>*</span>
                     </label>
                     <Input
                         name="name"
                         type="text"
                         required
-                        className="h-12 border-gray-200 rounded-none focus-visible:ring-primary"
+                        className={styles.inputField}
                         value={formData.name}
                         onChange={handleChange}
                     />
                 </div>
 
-                <div className="space-y-2">
-                    <label className="text-sm font-bold uppercase tracking-wider text-gray-900">
-                        Email <span className="text-red-500">*</span>
+                <div className={styles.field}>
+                    <label className={styles.label}>
+                        Email <span className={styles.requiredAsterisk}>*</span>
                     </label>
                     <Input
                         name="email"
                         type="email"
                         autoComplete="email"
                         required
-                        className="h-12 border-gray-200 rounded-none focus-visible:ring-primary"
+                        className={styles.inputField}
                         value={formData.email}
                         onChange={handleChange}
                     />
                 </div>
 
-                <div className="space-y-2">
-                    <label className="text-sm font-bold uppercase tracking-wider text-gray-900">
-                        Password <span className="text-red-500">*</span>
+                <div className={styles.field}>
+                    <label className={styles.label}>
+                        Password <span className={styles.requiredAsterisk}>*</span>
                     </label>
                     <Input
                         name="password"
                         type="password"
                         autoComplete="new-password"
                         required
-                        className="h-12 border-gray-200 rounded-none focus-visible:ring-primary"
+                        className={styles.inputField}
                         value={formData.password}
                         onChange={handleChange}
                     />
                 </div>
 
                 {/* Gender Selection */}
-                <div className="space-y-2">
-                    <label className="text-sm font-bold uppercase tracking-wider text-gray-900">
+                <div className={styles.field}>
+                    <label className={styles.label}>
                         Gender
                     </label>
                     <select
                         name="gender"
-                        className="flex h-12 w-full border border-gray-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary text-gray-900"
+                        className={styles.selectField}
                         value={formData.gender}
                         onChange={handleChange}
                     >
@@ -106,13 +107,13 @@ export default function RegisterPage() {
                 </div>
 
                 {/* Madhab Preference */}
-                <div className="space-y-2">
-                    <label className="text-sm font-bold uppercase tracking-wider text-gray-900">
+                <div className={styles.field}>
+                    <label className={styles.label}>
                         Madhab Preference
                     </label>
                     <select
                         name="madhab"
-                        className="flex h-12 w-full border border-gray-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary text-gray-900"
+                        className={styles.selectField}
                         value={formData.madhab}
                         onChange={handleChange}
                     >
@@ -128,14 +129,14 @@ export default function RegisterPage() {
                 <Button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full h-14 mt-12 mb-8 bg-[#9AA4AE] hover:bg-[#7D8893] text-white font-bold uppercase tracking-widest text-sm rounded-none shadow-sm disabled:opacity-70"
+                    className={styles.submitButton}
                 >
                     {isLoading ? "Registering..." : "Register"}
                 </Button>
 
-                <p className="text-sm font-medium text-gray-900 mt-8 text-left">
+                <p className={styles.footerText}>
                     Already have an account?{" "}
-                    <Link href="/login" className="text-[#FF5C5C] hover:text-[#E04B4B] font-bold">
+                    <Link href="/login" className={styles.footerLink}>
                         LOG IN
                     </Link>
                 </p>

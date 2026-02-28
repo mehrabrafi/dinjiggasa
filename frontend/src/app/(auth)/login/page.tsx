@@ -7,6 +7,7 @@ import { useAuthStore } from "@/store/auth.store"
 import { authService } from "@/services/auth.service"
 import { useRouter } from "next/navigation"
 import toast from "react-hot-toast"
+import styles from "../auth.module.css"
 
 export default function LoginPage() {
     const [email, setEmail] = useState("")
@@ -32,42 +33,42 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="w-full">
-            <h2 className="text-3xl font-extrabold font-sans uppercase mb-10 text-gray-900 tracking-wide text-left">
+        <div className={styles.fullWidth}>
+            <h2 className={styles.heading}>
                 Sign In
             </h2>
 
-            <form className="space-y-6" onSubmit={handleSubmit}>
-                <div className="space-y-2">
-                    <label className="text-sm font-bold uppercase tracking-wider text-gray-900">
+            <form className={styles.formGroup} onSubmit={handleSubmit}>
+                <div className={styles.field}>
+                    <label className={styles.label}>
                         Email
                     </label>
                     <Input
                         type="email"
                         autoComplete="email"
                         required
-                        className="h-12 border-gray-200 rounded-none focus-visible:ring-primary"
+                        className={styles.inputField}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                     />
                 </div>
 
-                <div className="space-y-2">
-                    <label className="text-sm font-bold uppercase tracking-wider text-gray-900">
+                <div className={styles.field}>
+                    <label className={styles.label}>
                         Password
                     </label>
                     <Input
                         type="password"
                         autoComplete="current-password"
                         required
-                        className="h-12 border-gray-200 rounded-none focus-visible:ring-primary"
+                        className={styles.inputField}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                     />
                 </div>
 
-                <div className="flex items-center justify-between mt-4">
-                    <Link href="/forgot-password" className="text-sm text-gray-500 hover:text-primary underline">
+                <div className={styles.forgotPasswordRow}>
+                    <Link href="/forgot-password" className={styles.forgotPassword}>
                         Forgot your password?
                     </Link>
                 </div>
@@ -75,14 +76,14 @@ export default function LoginPage() {
                 <Button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full h-14 mt-12 mb-8 bg-[#9AA4AE] hover:bg-[#7D8893] text-white font-bold uppercase tracking-widest text-sm rounded-none shadow-sm disabled:opacity-70"
+                    className={styles.submitButton}
                 >
                     {isLoading ? "Signing In..." : "Sign In"}
                 </Button>
 
-                <p className="text-sm font-medium text-gray-900 mt-8 text-left">
+                <p className={styles.footerText}>
                     Don't have an account?{" "}
-                    <Link href="/register" className="text-[#FF5C5C] hover:text-[#E04B4B] font-bold">
+                    <Link href="/register" className={styles.footerLink}>
                         SIGN UP
                     </Link>
                 </p>

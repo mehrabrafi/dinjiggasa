@@ -1,0 +1,80 @@
+.layoutWrapper {
+    display: flex;
+    min-height: 100vh;
+    background-color: var(--background);
+}
+
+.leftSide {
+    display: none;
+    position: relative;
+}
+
+@media (min-width: 1024px) {
+    .leftSide {
+        display: flex;
+        width: 50%;
+    }
+}
+
+.imageOverlay {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background-color: rgba(0, 109, 91, 0.2);
+    mix-blend-mode: multiply;
+}
+
+.rightSide {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+@media (min-width: 640px) {
+    .rightSide {
+        padding: 3rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .rightSide {
+        width: 50%;
+        padding: 6rem;
+    }
+}
+
+.formContainer {
+    width: 100%;
+    max-width: 28rem;
+    margin: 0 auto;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.logoWrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.logoIcon {
+    background-color: var(--primary);
+    color: white;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+}
+
+.logoText {
+    font-weight: 700;
+    font-size: 1.875rem;
+    letter-spacing: -0.025em;
+    color: #111827;
+}
