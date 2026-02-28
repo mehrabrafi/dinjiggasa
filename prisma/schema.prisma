@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// User role definition
+enum Role {
+  USER
+  SCHOLAR
+  ADMIN
+}
+
+// User Model
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  avatar    String?
+  role      Role     @default(USER)
+  reputation Int     @default(0) // Based on upvotes received
+
+  // Relations
+  questions Question[]
+  answers   Answer[]
+  votes     Vote[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Question Model
+model Question {
+  id        String   @id @default(uuid())
+  title     String
+  body      String   @db.Text
+  views     Int      @default(0)
+  
+  // Author relations
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+
+  // Content relations
+  answers   Answer[]
+  tags      Tag[]
+  votes     Vote[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Answer Model
+model Answer {
+  id         String   @id @default(uuid())
+  content    String   @db.Text
+  isAccepted Boolean  @default(false)
+  
+  // Relations
+  authorId   String
+  author     User     @relation(fields: [authorId], references: [id])
+  
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  votes      Vote[]
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// Vote Type
+enum VoteType {
+  UPVOTE
+  DOWNVOTE
+}
+
+// Vote Model (Polymorphic-like structure for both questions and answers)
+model Vote {
+  id         String   @id @default(uuid())
+  type       VoteType
+
+  // Who voted
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+
+  // What they voted on (Either Question OR Answer)
+  questionId String?
+  question   Question? @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  answerId   String?
+  answer     Answer?   @relation(fields: [answerId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+
+  // A user can only vote once per question or answer
+  @@unique([userId, questionId])
+  @@unique([userId, answerId])
+}
+
+// Tag Model (for categorizing questions)
+model Tag {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  questions Question[] 
+}
