@@ -37,7 +37,9 @@ export default function Dashboard() {
           <Home size={22} className={`${styles.headerIcon} ${styles.headerIconActive}`} />
           <List size={22} className={styles.headerIcon} />
           <Bell size={22} className={styles.headerIcon} />
-          <button className={styles.askButton}>Ask Question</button>
+          <Link href="/ask">
+            <button className={styles.askButton}>Ask Question</button>
+          </Link>
           {isAuthenticated && user?.name ? (
             <div className={styles.userAvatar} title={user.name}>
               <img src={`https://ui-avatars.com/api/?name=${user.name}&background=006D5B&color=fff`} alt={user.name} className={styles.userAvatar} />
