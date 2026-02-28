@@ -3,6 +3,9 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useState } from "react"
+import { authService } from "@/services/auth.service"
+import { useRouter } from "next/navigation"
+import toast from "react-hot-toast"
 
 export default function RegisterPage() {
     const [formData, setFormData] = useState({
@@ -17,9 +20,21 @@ export default function RegisterPage() {
         setFormData({ ...formData, [e.target.name]: e.target.value })
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const [isLoading, setIsLoading] = useState(false)
+    const router = useRouter()
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        // Implement signup functionality here
+        setIsLoading(true)
+        try {
+            await authService.register(formData)
+            toast.success("Registration successful! Please login.")
+            router.push("/login")
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Failed to register. Please try again.")
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     return (
@@ -112,9 +127,10 @@ export default function RegisterPage() {
 
                 <Button
                     type="submit"
-                    className="w-full h-14 mt-12 mb-8 bg-[#9AA4AE] hover:bg-[#7D8893] text-white font-bold uppercase tracking-widest text-sm rounded-none shadow-sm"
+                    disabled={isLoading}
+                    className="w-full h-14 mt-12 mb-8 bg-[#9AA4AE] hover:bg-[#7D8893] text-white font-bold uppercase tracking-widest text-sm rounded-none shadow-sm disabled:opacity-70"
                 >
-                    Register
+                    {isLoading ? "Registering..." : "Register"}
                 </Button>
 
                 <p className="text-sm font-medium text-gray-900 mt-8 text-left">
