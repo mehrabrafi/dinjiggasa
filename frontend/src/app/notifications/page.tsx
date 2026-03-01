@@ -2,71 +2,66 @@
 
 import DashboardLayout from "@/components/layout/DashboardLayout"
 import styles from "./notifications.module.css"
-import { Check, Volume2, ThumbsUp, User, Globe } from "lucide-react"
+import { Check, Volume2, ThumbsUp, User, Globe, Bell } from "lucide-react"
+import { useState, useEffect } from "react"
+import api from "@/lib/axios"
+import Link from "next/link"
 
 export default function NotificationsPage() {
-    const filters = ["All", "Answers", "Upvotes", "Mentions"];
+    const filters = ["All"]; // Simplified filters for now, easily extendable later
+    const [activeFilter, setActiveFilter] = useState("All");
 
-    const notifications = [
-        {
-            id: 1,
-            type: "answer",
-            user: "Sheikh Ahmad",
-            avatar: "man-1",
-            action: "answered your question about Zakat",
-            subtext: "Tap to listen to the voice answer",
-            time: "2h ago",
-            isUnread: true,
-            hasVoice: true
-        },
-        {
-            id: 2,
-            type: "comment",
-            user: "Scholar Mariam",
-            avatar: "woman-1",
-            action: "commented on your post regarding Hajj preparations",
-            subtext: "\"May Allah make your journey easy and accepted...\"",
-            time: "5h ago",
-            isUnread: false
-        },
-        {
-            id: 3,
-            type: "upvote",
-            action: "Your answer on 'Sadaqah in Ramadan' was upvoted",
-            subtext: "Your contribution is helping 15 other users today.",
-            time: "8h ago",
-            isUnread: false,
-            icon: <ThumbsUp size={16} />
-        },
-        {
-            id: 4,
-            type: "mention",
-            user: "Sarah",
-            avatar: "woman-2",
-            action: "mentioned you in a discussion",
-            subtext: "\"@User123 This is exactly the reference I was looking for!\"",
-            time: "1d ago",
-            isUnread: false
-        },
-        {
-            id: 5,
-            type: "system",
-            user: "Sheikh Ibrahim",
-            avatar: "man-2",
-            action: "is now online for Live Q&A",
-            subtext: "Join the session to ask your questions directly.",
-            time: "2d ago",
-            isUnread: false,
-            isVerified: true
+    const [notifications, setNotifications] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            try {
+                const res = await api.get('/notifications');
+                setNotifications(res.data);
+            } catch (err) {
+                console.error('Failed to fetch notifications', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchNotifications();
+    }, []);
+
+    const markAsRead = async (id: string, isCurrentlyRead: boolean) => {
+        if (isCurrentlyRead) return;
+        try {
+            await api.patch(`/notifications/${id}/read`);
+            setNotifications((prev) =>
+                prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+            );
+        } catch (err) {
+            console.error('Failed to mark as read', err);
         }
-    ];
+    };
+
+    const markAllAsRead = async () => {
+        try {
+            await api.patch('/notifications/read-all');
+            setNotifications((prev) =>
+                prev.map((n) => ({ ...n, isRead: true }))
+            );
+        } catch (err) {
+            console.error('Failed to mark all as read', err);
+        }
+    };
+
+    const filteredNotifications = notifications.filter((notif) => {
+        if (activeFilter === "All") return true;
+        return true;
+    });
 
     return (
         <DashboardLayout>
             <main className={styles.mainContent}>
                 <div className={styles.header}>
                     <h1 className={styles.title}>Notifications</h1>
-                    <button className={styles.markAllBtn}>Mark all as read</button>
+                    <button className={styles.markAllBtn} onClick={markAllAsRead}>Mark all as read</button>
                 </div>
 
                 <div className={styles.tabs}>
@@ -77,44 +72,47 @@ export default function NotificationsPage() {
                     ))}
                 </div>
 
-                <div className={styles.notificationList}>
-                    {notifications.map((notif) => (
-                        <div key={notif.id} className={`${styles.notifItem} ${notif.isUnread ? styles.notifUnread : ''}`}>
-                            <div className={styles.notifLeft}>
-                                <div className={styles.avatarContainer}>
-                                    {notif.type === 'upvote' ? (
-                                        <div className={styles.notifIconPill}>
-                                            <ThumbsUp size={18} />
+                {loading ? (
+                    <div style={{ padding: '2rem', textAlign: 'center' }}>Loading notifications...</div>
+                ) : filteredNotifications.length === 0 ? (
+                    <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280' }}>No notifications yet.</div>
+                ) : (
+                    <div className={styles.notificationList}>
+                        {filteredNotifications.map((notif) => (
+                            <Link key={notif.id} href={notif.questionId ? `/questions/${notif.questionId}` : '#'} style={{ textDecoration: 'none', color: 'inherit' }}>
+                                <div
+                                    className={`${styles.notifItem} ${!notif.isRead ? styles.notifUnread : ''}`}
+                                    onClick={() => markAsRead(notif.id, notif.isRead)}
+                                >
+                                    <div className={styles.notifLeft}>
+                                        <div className={styles.avatarContainer}>
+                                            <img src={notif.sender?.avatar || `https://ui-avatars.com/api/?name=${notif.sender?.name || 'System'}&background=${!notif.isRead ? '006D5B' : 'f3f4f6'}&color=${!notif.isRead ? 'fff' : '6b7280'}`} className={styles.avatar} alt="Avatar" />
                                         </div>
-                                    ) : notif.type === 'system' ? (
-                                        <div className={styles.avatarWrapper}>
-                                            <img src={`https://ui-avatars.com/api/?name=${notif.user}&background=006D5B&color=fff`} className={styles.avatar} alt="" />
-                                            <div className={styles.verifiedBadge}>
-                                                <Check size={8} fill="#fff" color="#fff" />
+                                        <div className={styles.notifInfo}>
+                                            <div className={styles.notifActionRow}>
+                                                <span className={styles.notifText}>
+                                                    {notif.sender?.name && <span className={styles.userName}>{notif.sender.name} </span>}
+                                                    {notif.message}
+                                                </span>
                                             </div>
+                                            <span className={styles.subtext}>
+                                                {notif.type === 'QUESTION_ACCEPTED' && "Your question has been accepted."}
+                                                {notif.type === 'QUESTION_ANSWERED' && "Tap to read the answer."}
+                                                {notif.type === 'QUESTION_DECLINED' && "The scholar has declined your question."}
+                                            </span>
                                         </div>
-                                    ) : (
-                                        <img src={`https://ui-avatars.com/api/?name=${notif.user || 'User'}&background=${notif.isUnread ? '006D5B' : 'f3f4f6'}&color=${notif.isUnread ? 'fff' : '6b7280'}`} className={styles.avatar} alt="" />
-                                    )}
-                                </div>
-                                <div className={styles.notifInfo}>
-                                    <div className={styles.notifActionRow}>
-                                        <span className={styles.notifText}>
-                                            {notif.user && <span className={styles.userName}>{notif.user} </span>}
-                                            {notif.action}
-                                        </span>
-                                        {notif.hasVoice && <Volume2 size={14} className={styles.voiceIcon} />}
                                     </div>
-                                    <span className={styles.subtext}>{notif.subtext}</span>
+                                    <div className={styles.notifRight}>
+                                        <span className={styles.time}>
+                                            {new Date(notif.createdAt).toLocaleDateString()}
+                                        </span>
+                                        {!notif.isRead && <div className={styles.unreadDot}></div>}
+                                    </div>
                                 </div>
-                            </div>
-                            <div className={styles.notifRight}>
-                                <span className={styles.time}>{notif.time}</span>
-                                {notif.isUnread && <div className={styles.unreadDot}></div>}
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                            </Link>
+                        ))}
+                    </div>
+                )}
 
                 <button className={styles.viewOlderBtn}>
                     View older notifications <Check size={14} className={styles.chevronIcon} />

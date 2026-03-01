@@ -1,9 +1,53 @@
-import { PlayCircle, Bell, MessageSquare, ArrowUp, ArrowDown, TrendingUp, GraduationCap, Share } from "lucide-react"
+"use client"
+
+import { PlayCircle, Bell, MessageSquare, ArrowUp, ArrowDown, TrendingUp, GraduationCap, Share, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
+import React, { useEffect, useState } from "react"
+import api from "@/lib/axios"
 import DashboardLayout from "@/components/layout/DashboardLayout"
 import styles from "./dashboard.module.css"
 
 export default function Dashboard() {
+  const [questions, setQuestions] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [userId, setUserId] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Optionally we can get userId from auth store. Using a simple logic here if available or rely on JWT.
+    const token = localStorage.getItem('auth-storage')
+    if (token) {
+      try {
+        const parsed = JSON.parse(token)
+        setUserId(parsed.state?.user?.id)
+      } catch (e) { }
+    }
+
+    const fetchFeed = async () => {
+      try {
+        const res = await api.get('/questions')
+        setQuestions(res.data)
+      } catch (error) {
+        console.error("Failed to load feed", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchFeed()
+  }, [])
+
+  const handleVote = async (questionId: string, value: number) => {
+    try {
+      const res = await api.post(`/questions/${questionId}/vote`, { value })
+      setQuestions(prev => prev.map(q => {
+        if (q.id === questionId) {
+          return { ...q, ratings: res.data }
+        }
+        return q
+      }))
+    } catch (err) {
+      console.error("Failed to vote", err)
+    }
+  }
   return (
     <DashboardLayout>
       {/* Feed Column */}
@@ -59,112 +103,70 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Card 2 - Voice Answer */}
-        <div className={styles.card}>
-          <div className={styles.cardBody}>
-            <div className={styles.cardTags}>
-              <span className={styles.tagPrimary}>SPIRITUAL</span>
-              <span className={styles.tagDot}>•</span>
-              <span>Voice Answer</span>
-            </div>
+        {/* Dynamic Questions Feed */}
+        {isLoading ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>Loading feed...</div>
+        ) : questions.filter((q: any) => q.answers && q.answers.length > 0).length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No answered questions available right now.</div>
+        ) : (
+          questions.filter((q: any) => q.answers && q.answers.length > 0).map((question) => {
+            const upvotes = question.ratings?.filter((r: any) => r.value === 1).length || 0
+            const downvotes = question.ratings?.filter((r: any) => r.value === -1).length || 0
+            const voteScore = upvotes - downvotes
+            const myVote = question.ratings?.find((r: any) => r.userId === userId)?.value || 0
 
-            <Link href="/questions/916490d6-0aed-47ca-a006-c9357e8844ef">
-              <h2 className={styles.cardTitle}>How to maintain consistency in Tahajjud?</h2>
-            </Link>
+            return (
+              <div key={question.id} className={styles.card}>
+                <div className={styles.cardBody}>
+                  <div className={styles.cardTagsWrapper} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <div className={styles.cardTags}>
+                      <span className={styles.tagPrimaryDark}>{question.tags?.[0]?.name || "General"}</span>
+                    </div>
+                  </div>
 
-            <div className={styles.audioPlayer}>
-              <div className={styles.audioAuthorInfo}>
-                <img src="https://i.pravatar.cc/150?img=11" alt="Author" className={styles.audioAvatar} />
-                <div className={styles.audioMeta}>
-                  <span className={styles.audioName}>Sheikh Omar Suleiman</span>
-                  <span className={styles.audioSubtitle}>Imam & Scholar</span>
-                </div>
-              </div>
-              <div className={styles.audioRight}>
-                <span className={styles.audioTime}>3m 45s</span>
-                <div className={styles.audioControls}>
-                  <button className={styles.playBtn}><PlayCircle size={20} fill="white" /></button>
-                  <div className={styles.waveContainer}>
-                    <div className={`${styles.waveBar} ${styles.waveBarActive}`} style={{ height: '40%' }}></div>
-                    <div className={`${styles.waveBar} ${styles.waveBarActive}`} style={{ height: '60%' }}></div>
-                    <div className={`${styles.waveBar} ${styles.waveBarActive}`} style={{ height: '100%' }}></div>
-                    <div className={`${styles.waveBar} ${styles.waveBarActive}`} style={{ height: '80%' }}></div>
-                    <div className={styles.waveBar} style={{ height: '50%' }}></div>
-                    <div className={styles.waveBar} style={{ height: '30%' }}></div>
-                    <div className={styles.waveBar} style={{ height: '60%' }}></div>
-                    <div className={styles.waveBar} style={{ height: '40%' }}></div>
-                    <div className={styles.waveBar} style={{ height: '70%' }}></div>
-                    <div className={styles.waveBar} style={{ height: '50%' }}></div>
+                  {/* Make title clickable to open question details */}
+                  <Link href={`/questions/${question.id}`} style={{ textDecoration: 'none' }}>
+                    <h2 className={styles.cardTitle} style={{ cursor: 'pointer' }}>{question.title}</h2>
+                  </Link>
+
+                  <div className={styles.cardAuthorRow}>
+                    <img src={question.answers[0].author?.avatar || `https://ui-avatars.com/api/?name=${question.answers[0].author?.name}&background=10b981&color=fff`} alt={question.answers[0].author?.name} className={styles.cardAuthorAvatar} />
+                    <span><span className={styles.cardAuthorName}>{question.answers[0].author?.name}</span> • {new Date(question.answers[0].createdAt || question.createdAt).toLocaleDateString()}</span>
+                  </div>
+
+                  <p className={styles.cardText}>
+                    {question.body.length > 200 ? `${question.body.substring(0, 200)}...` : question.body}
+                  </p>
+
+                  <div className={styles.cardActions}>
+                    <div className={styles.voteGroup}>
+                      <button
+                        className={`${styles.voteAction} ${myVote === 1 ? styles.voteUp : ''}`}
+                        onClick={() => handleVote(question.id, 1)}
+                        style={{ color: myVote === 1 ? '#10b981' : undefined }}
+                      >
+                        <ArrowUp size={16} /> {voteScore}
+                      </button>
+                      <div className={styles.voteDivider}></div>
+                      <button
+                        className={`${styles.voteAction}`}
+                        onClick={() => handleVote(question.id, -1)}
+                        style={{ color: myVote === -1 ? '#ef4444' : undefined }}
+                      >
+                        <ArrowDown size={16} />
+                      </button>
+                    </div>
+                    <div className={styles.actionGroup}>
+                      <button className={styles.actionBtn}>
+                        <Share size={16} /> Share
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-
-            <p className={styles.cardText}>
-              Consistency in Tahajjud is built through small, manageable habits. Don't overburden yourself initially; start with two rak'ahs before Fajr. The key is intention and asking Allah for ease...
-            </p>
-
-            <div className={styles.cardActions}>
-              <div className={styles.voteGroup}>
-                <button className={`${styles.voteAction} ${styles.voteUp}`}>
-                  <ArrowUp size={16} /> 2.1k
-                </button>
-                <div className={styles.voteDivider}></div>
-                <button className={styles.voteAction}>
-                  <ArrowDown size={16} />
-                </button>
-              </div>
-              <div className={styles.actionGroup}>
-                <button className={styles.actionBtn}>
-                  <MessageSquare size={16} /> 89 Comments
-                </button>
-                <button className={styles.actionBtn}>
-                  <Share size={16} /> Share
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 3 - Text Post */}
-        <div className={styles.card}>
-          <div className={styles.cardBody}>
-            <div className={styles.cardTags}>
-              <span className={styles.tagPrimaryDark}>Ramadan Preparation</span>
-            </div>
-
-            <h2 className={styles.cardTitle}>Recommended deeds to perform in the last ten nights of Ramadan</h2>
-
-            <div className={styles.cardAuthorRow}>
-              <img src="https://i.pravatar.cc/150?img=11" alt="Author" className={styles.cardAuthorAvatar} />
-              <span>Answered by <span className={styles.cardAuthorName}>Dr. Omar Suleiman</span> • 3h ago</span>
-            </div>
-
-            <p className={styles.cardText}>
-              The last ten nights are the most blessed nights of the year. One should strive to increase in Quran recitation, perform Qiyam al-Layl (night prayers), and make excessive Dua, especially seeking Laylatul Qadr...
-            </p>
-
-            <div className={styles.cardActions}>
-              <div className={styles.voteGroup}>
-                <button className={`${styles.voteAction} ${styles.voteUp}`}>
-                  <ArrowUp size={16} /> 1.2k
-                </button>
-                <div className={styles.voteDivider}></div>
-                <button className={styles.voteAction}>
-                  <ArrowDown size={16} />
-                </button>
-              </div>
-              <div className={styles.actionGroup}>
-                <button className={styles.actionBtn}>
-                  <MessageSquare size={16} /> 42
-                </button>
-                <button className={styles.actionBtn}>
-                  <Share size={16} /> Share
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+            )
+          })
+        )}
       </main>
 
       {/* Right Sidebar */}

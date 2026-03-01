@@ -133,17 +133,19 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.75rem 1rem;
-    color: #64748b;
+    color: #ef4444;
     font-size: 0.875rem;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     background: none;
     border: none;
-    transition: color 0.2s;
+    transition: all 0.2s;
+    border-radius: 10px;
 }
 
 .logOutBtn:hover {
-    color: #1e293b;
+    background-color: #fee2e2;
+    color: #dc2626;
 }
 
 .mainContent {
@@ -247,14 +249,7 @@
     margin-bottom: 1rem;
 }
 
-.directBadge {
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: #64748b;
-    background: #f1f5f9;
-    padding: 0.25rem 0.625rem;
-    border-radius: 6px;
-}
+
 
 .cardFooter {
     display: flex;
@@ -623,6 +618,54 @@
     background-color: #059669;
     transform: translateY(-1px);
     box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2);
+}
+
+.actionsRow {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.acceptBtn {
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.1), 0 2px 4px -1px rgba(59, 130, 246, 0.06);
+}
+
+.acceptBtn:hover {
+    background-color: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.2);
+}
+
+.declineBtn {
+    background-color: #fef2f2;
+    color: #ef4444;
+    border: 1px solid #fecaca;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.declineBtn:hover {
+    background-color: #fee2e2;
+    transform: translateY(-1px);
 }
 
 /* Right Column Cards */

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Search, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react"
 import DashboardLayout from '@/components/layout/DashboardLayout'
+import api from '@/lib/axios'
 import styles from './scholars.module.css'
 
 interface Scholar {
@@ -25,11 +26,8 @@ export default function ScholarsPage() {
     useEffect(() => {
         const fetchScholars = async () => {
             try {
-                const res = await fetch('http://localhost:3001/scholars')
-                if (res.ok) {
-                    const data = await res.json()
-                    setScholars(data)
-                }
+                const res = await api.get('/scholars')
+                setScholars(res.data)
             } catch (error) {
                 console.error('Failed to fetch scholars:', error)
             } finally {

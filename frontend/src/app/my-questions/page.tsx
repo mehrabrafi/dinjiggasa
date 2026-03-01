@@ -1,12 +1,76 @@
 "use client"
 
-import React, { useState } from "react"
-import { Search, MoreVertical, Eye, ChevronLeft, ChevronRight, ChevronDown, Clock, MessageSquare, ListOrdered } from "lucide-react"
+import React, { useState, useEffect } from "react"
+import { Search, MoreVertical, Eye, ChevronLeft, ChevronRight, ChevronDown, Clock, ListOrdered } from "lucide-react"
 import Link from "next/link"
 import DashboardLayout from "@/components/layout/DashboardLayout"
 import styles from "./my-questions.module.css"
+import api from "@/lib/axios"
+import toast from "react-hot-toast"
+import { useAuthStore } from "@/store/auth.store"
+import { useRouter } from "next/navigation"
+
+interface Question {
+    id: string;
+    title: string;
+    body: string;
+    createdAt: string;
+    views: number;
+    acceptedById: string | null;
+    _count: { answers: number };
+    answers: Array<{
+        author: {
+            name: string;
+            avatar: string | null;
+        }
+    }>;
+}
 
 export default function MyQuestionsPage() {
+    const { isAuthenticated } = useAuthStore()
+    const router = useRouter()
+
+    const [questions, setQuestions] = useState<Question[]>([])
+    const [isLoading, setIsLoading] = useState(true)
+    const [searchQuery, setSearchQuery] = useState("")
+
+    useEffect(() => {
+        if (!isAuthenticated) {
+            router.push('/login')
+            return
+        }
+
+        const fetchQuestions = async () => {
+            try {
+                const res = await api.get('/questions/my-questions')
+                setQuestions(res.data)
+            } catch (error) {
+                console.error("Error fetching my questions:", error)
+                toast.error("Failed to load your questions")
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        fetchQuestions()
+    }, [isAuthenticated, router])
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this question?")) return;
+        try {
+            await api.post(`/questions/${id}/delete`)
+            toast.success("Question deleted")
+            setQuestions(questions.filter(q => q.id !== id))
+        } catch (error) {
+            console.error("Error deleting question:", error)
+            toast.error("Failed to delete question")
+        }
+    }
+
+    const filteredQuestions = questions.filter(q =>
+        q.title.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+
     return (
         <DashboardLayout>
             <div className={styles.contentArea}>
@@ -22,6 +86,8 @@ export default function MyQuestionsPage() {
                             type="text"
                             placeholder="Search your questions..."
                             className={styles.searchInput}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
                     <div className={styles.filters}>
@@ -35,167 +101,91 @@ export default function MyQuestionsPage() {
                 </div>
 
                 <div className={styles.cardList}>
-                    {/* Question Card 1 - Answered */}
-                    <div className={styles.card}>
-                        <div className={styles.cardTop}>
-                            <div className={styles.statusContainer}>
-                                <span className={`${styles.badge} ${styles.badgeAnswered}`}>
-                                    <div className={styles.badgeDot}></div> Answered
-                                </span>
-                                <span className={styles.dateText}>Asked on Oct 12, 2023</span>
-                            </div>
-                            <MoreVertical size={20} className={styles.moreIcon} />
-                        </div>
+                    {isLoading ? (
+                        <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>Loading your questions...</div>
+                    ) : filteredQuestions.length === 0 ? (
+                        <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>No questions found.</div>
+                    ) : (
+                        filteredQuestions.map(q => {
+                            const hasAnswers = q._count.answers > 0;
 
-                        <h3 className={styles.questionTitle}>
-                            Is it permissible to combine prayers when traveling for business if the distance is short but traffic is heavy?
-                        </h3>
+                            let statusText = "Pending Review";
+                            let statusClass = styles.badgePending;
+                            if (hasAnswers) {
+                                statusText = "Answered";
+                                statusClass = styles.badgeAnswered;
+                            } else if (q.acceptedById) {
+                                statusText = "Accepted (Under Review)";
+                                statusClass = styles.badgeDraft;
+                            }
 
-                        <div className={styles.answerBox}>
-                            <div className={styles.answerAuthor}>
-                                <img src="https://ui-avatars.com/api/?name=Sheikh+Abdullah&background=f97316&color=fff" alt="Scholar" className={styles.authorAvatar} />
-                                <span className={styles.authorText}>Answered by Sheikh Abdullah</span>
-                            </div>
-                            <p className={styles.answerText}>
-                                According to the majority of scholars, the definition of travel (safar) that permits shortening and combining prayers is based on distance, generally considered to be around 48 miles (approx 80km). However, regarding heavy traffic within...
-                            </p>
-                        </div>
+                            return (
+                                <div key={q.id} className={styles.card}>
+                                    <div className={styles.cardTop}>
+                                        <div className={styles.statusContainer}>
+                                            <span className={`${styles.badge} ${statusClass}`}>
+                                                <div className={styles.badgeDot}></div> {statusText}
+                                            </span>
+                                            <span className={styles.dateText}>Asked on {new Date(q.createdAt).toLocaleDateString()}</span>
+                                        </div>
+                                    </div>
 
-                        <div className={styles.cardFooter}>
-                            <div className={styles.stats}>
-                                <div className={styles.statItem}>
-                                    <MessageSquare size={16} /> 2 Answers
+                                    <h3 className={styles.questionTitle}>
+                                        <Link href={`/questions/${q.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                                            {q.title}
+                                        </Link>
+                                    </h3>
+
+                                    {hasAnswers && q.answers.length > 0 ? (
+                                        <div className={styles.answerBox}>
+                                            <div className={styles.answerAuthor}>
+                                                <img
+                                                    src={q.answers[0].author.avatar || `https://ui-avatars.com/api/?name=${q.answers[0].author.name}&background=f97316&color=fff`}
+                                                    alt="Scholar"
+                                                    className={styles.authorAvatar}
+                                                />
+                                                <span className={styles.authorText}>Answered by {q.answers[0].author.name}</span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className={styles.awaitingBox}>
+                                            <Clock size={16} /> Awaiting Scholar
+                                        </div>
+                                    )}
+
+                                    <div className={styles.cardFooter}>
+                                        <div className={styles.stats}>
+                                            <div className={styles.statItem}>
+                                                <Eye size={16} /> {q.views} Views
+                                            </div>
+                                        </div>
+                                        {(!q.acceptedById && !hasAnswers) && (
+                                            <div className={styles.actions}>
+                                                <button className={styles.actionBtn}>Edit</button>
+                                                <button className={styles.actionBtn} onClick={() => handleDelete(q.id)}>Delete</button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className={styles.statItem}>
-                                    <Eye size={16} /> 1.2k Views
-                                </div>
-                            </div>
-                            <div className={styles.actions}>
-                                <button className={styles.actionBtn}>Edit</button>
-                                <button className={styles.actionBtn}>Delete</button>
-                                <button className={styles.viewThreadBtn}>View Thread</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Question Card 2 - Pending Review */}
-                    <div className={styles.card}>
-                        <div className={styles.cardTop}>
-                            <div className={styles.statusContainer}>
-                                <span className={`${styles.badge} ${styles.badgePending}`}>
-                                    <div className={styles.badgeDot}></div> Pending Review
-                                </span>
-                                <span className={styles.dateText}>Asked on Nov 05, 2023</span>
-                            </div>
-                            <MoreVertical size={20} className={styles.moreIcon} />
-                        </div>
-
-                        <h3 className={styles.questionTitle}>
-                            Clarification regarding the calculation of Zakat on long-term investments and stocks?
-                        </h3>
-
-                        <div className={styles.awaitingBox}>
-                            <Clock size={16} /> Awaiting Scholar
-                        </div>
-
-                        <div className={styles.cardFooter}>
-                            <div className={styles.stats}>
-                                <div style={{ width: '1px' }}></div> {/* Empty for alignment */}
-                            </div>
-                            <div className={styles.actions}>
-                                <button className={styles.actionBtn}>Edit</button>
-                                <button className={styles.actionBtn}>Delete</button>
-                                <button className={styles.viewDetailsBtn}>View Details</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Question Card 3 - Answered */}
-                    <div className={styles.card}>
-                        <div className={styles.cardTop}>
-                            <div className={styles.statusContainer}>
-                                <span className={`${styles.badge} ${styles.badgeAnswered}`}>
-                                    <div className={styles.badgeDot}></div> Answered
-                                </span>
-                                <span className={styles.dateText}>Asked on Sep 22, 2023</span>
-                            </div>
-                            <MoreVertical size={20} className={styles.moreIcon} />
-                        </div>
-
-                        <h3 className={styles.questionTitle}>
-                            What is the ruling on using perfumes that contain alcohol?
-                        </h3>
-
-                        <div className={styles.answerBox}>
-                            <div className={styles.answerAuthor}>
-                                <img src="https://ui-avatars.com/api/?name=Mufti+Ibrahim&background=c2410c&color=fff" alt="Scholar" className={styles.authorAvatar} />
-                                <span className={styles.authorText}>Answered by Mufti Ibrahim</span>
-                            </div>
-                            <p className={styles.answerText}>
-                                The alcohol used in perfumes is typically denatured alcohol (ethanol) which is synthetically produced or derived differently than khamr (intoxicants meant for drinking). Most contemporary scholars hold the view that this type of alcohol is...
-                            </p>
-                        </div>
-
-                        <div className={styles.cardFooter}>
-                            <div className={styles.stats}>
-                                <div className={styles.statItem}>
-                                    <MessageSquare size={16} /> 5 Answers
-                                </div>
-                                <div className={styles.statItem}>
-                                    <Eye size={16} /> 3.4k Views
-                                </div>
-                            </div>
-                            <div className={styles.actions}>
-                                <button className={styles.actionBtn}>Edit</button>
-                                <button className={styles.actionBtn}>Delete</button>
-                                <button className={styles.viewThreadBtn}>View Thread</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Question Card 4 - Draft */}
-                    <div className={styles.card}>
-                        <div className={styles.cardTop}>
-                            <div className={styles.statusContainer}>
-                                <span className={`${styles.badge} ${styles.badgeDraft}`}>
-                                    <div className={styles.badgeDot}></div> Draft
-                                </span>
-                                <span className={styles.dateText}>Last edited 2 days ago</span>
-                            </div>
-                            <MoreVertical size={20} className={styles.moreIcon} />
-                        </div>
-
-                        <h3 className={styles.questionTitle}>
-                            Question about inheritance laws for distant relatives...
-                        </h3>
-
-                        <div className={styles.cardFooter}>
-                            <div className={styles.stats}>
-                                <div className={styles.statItem}>Not published yet</div>
-                            </div>
-                            <div className={styles.actions}>
-                                <button className={styles.actionBtn}>Continue Editing</button>
-                                <button className={styles.actionBtn}>Discard</button>
-                            </div>
-                        </div>
-                    </div>
+                            )
+                        })
+                    )}
                 </div>
 
                 {/* Pagination */}
-                <div className={styles.pagination}>
-                    <button className={styles.pageBtn}>
-                        <ChevronLeft size={18} />
-                    </button>
-                    <button className={`${styles.pageBtn} ${styles.pageBtnActive}`}>1</button>
-                    <button className={styles.pageBtn}>2</button>
-                    <button className={styles.pageBtn}>3</button>
-                    <span className={styles.pageDots}>...</span>
-                    <button className={styles.pageBtn}>
-                        <ChevronRight size={18} />
-                    </button>
-                </div>
-
+                {!isLoading && filteredQuestions.length > 0 && (
+                    <div className={styles.pagination}>
+                        <button className={styles.pageBtn}>
+                            <ChevronLeft size={18} />
+                        </button>
+                        <button className={`${styles.pageBtn} ${styles.pageBtnActive}`}>1</button>
+                        <button className={styles.pageBtn}>
+                            <ChevronRight size={18} />
+                        </button>
+                    </div>
+                )}
             </div>
         </DashboardLayout>
     )
 }
+

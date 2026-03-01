@@ -18,17 +18,22 @@ import {
     Award,
     Filter,
     Search,
-    Check
+    Check,
+    XCircle
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth.store'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
+import api from '@/lib/axios'
 
 export default function ScholarPanel() {
     const { user, logout, isAuthenticated } = useAuthStore()
     const router = useRouter()
     const [activeTab, setActiveTab] = useState('dashboard')
     const [isAuthorized, setIsAuthorized] = useState(false)
+    const [questions, setQuestions] = useState<any[]>([])
+    const [urgentQuestions, setUrgentQuestions] = useState<any[]>([])
+    const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -43,9 +48,49 @@ export default function ScholarPanel() {
         }
 
         setIsAuthorized(true)
+
+        const fetchQuestions = async () => {
+            try {
+                const [directedRes, urgentRes] = await Promise.all([
+                    api.get('/questions/directed'),
+                    api.get('questions/urgent/all')
+                ])
+                setQuestions(directedRes.data)
+                setUrgentQuestions(urgentRes.data)
+            } catch (err) {
+                console.error("Failed to load questions", err)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        fetchQuestions()
     }, [isAuthenticated, user, router])
 
     const scholarName = user?.name || "Scholar"
+
+    const handleAccept = async (id: string) => {
+        try {
+            await api.post(`/questions/${id}/accept`)
+            toast.success("Question accepted!")
+            // Update local state to show 'Answer Now'
+            setQuestions(questions.map(q => q.id === id ? { ...q, acceptedById: user?.id } : q))
+        } catch (err: any) {
+            console.error("Failed to accept question", err)
+            toast.error(err.response?.data?.message || "Failed to accept question.")
+        }
+    }
+
+    const handleDecline = async (id: string) => {
+        try {
+            await api.post(`/questions/${id}/decline`)
+            toast.success("Question declined")
+            setQuestions(questions.filter(q => q.id !== id))
+        } catch (err: any) {
+            console.error("Failed to decline question", err)
+            toast.error(err.response?.data?.message || "Failed to decline question")
+        }
+    }
 
     const handleLogout = () => {
         logout()
@@ -178,47 +223,110 @@ export default function ScholarPanel() {
                             </div>
                         </div>
 
+                        {urgentQuestions.length > 0 && (
+                            <>
+                                <div className={styles.sectionHeader} style={{ marginBottom: '1rem' }}>
+                                    <h2 className={styles.sectionTitle} style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        🚨 Urgent Questions
+                                    </h2>
+                                </div>
+
+                                <div className={styles.questionsList} style={{ marginBottom: '2.5rem' }}>
+                                    {urgentQuestions.map((question) => (
+                                        <div key={question.id} className={styles.questionCard} style={{ borderLeft: '4px solid #ef4444', backgroundColor: '#fffcfc' }}>
+                                            <div className={styles.questionMeta}>
+                                                <span className={styles.categoryBadge} style={{ backgroundColor: '#fee2e2', color: '#ef4444', fontWeight: 'bold' }}>
+                                                    URGENT
+                                                </span>
+                                                <span className={styles.questionDot}>•</span>
+                                                <span className={styles.categoryBadge} style={{ backgroundColor: '#ecfdf5', color: '#10b981' }}>
+                                                    {question.tags?.[0]?.name || "General"}
+                                                </span>
+                                                <span className={styles.questionDot}>•</span>
+                                                <span className={styles.questionAuthor}>Asked by {question.author?.name || 'User'}</span>
+                                                <span className={styles.questionDot}>•</span>
+                                                <span className={styles.questionAuthor}>{new Date(question.createdAt).toLocaleDateString()}</span>
+                                            </div>
+                                            <h3 className={styles.questionTitle}>{question.title}</h3>
+                                            <p className={styles.questionExcerpt}>
+                                                {question.body}
+                                            </p>
+                                            <div className={styles.actionsRow} style={{ display: 'flex', gap: '1rem', width: '100%', marginTop: 'auto' }}>
+                                                {question.acceptedById === user?.id ? (
+                                                    <Link href={`/scholar-panel/answer/${question.id}`} style={{ textDecoration: 'none', width: '100%' }}>
+                                                        <button className={styles.answerBtn} style={{ width: '100%', justifyContent: 'center' }}>
+                                                            <MessageCircleQuestion size={16} strokeWidth={3} /> Answer Now
+                                                        </button>
+                                                    </Link>
+                                                ) : (
+                                                    <Link href={`/question/${question.id}`} style={{ textDecoration: 'none', width: '100%' }}>
+                                                        <button className={styles.acceptBtn} style={{ width: '100%', justifyContent: 'center' }}>
+                                                            <ArrowRight size={16} strokeWidth={3} /> View Question
+                                                        </button>
+                                                    </Link>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+
                         <div className={styles.sectionHeader}>
                             <h2 className={styles.sectionTitle}>Pending Questions</h2>
                             <Link href="/scholar-panel/questions" className={styles.viewAll}>View All</Link>
                         </div>
 
                         <div className={styles.questionsList}>
-                            {/* Question 1 */}
-                            <div className={styles.questionCard}>
-                                <div className={styles.questionMeta}>
-                                    <span className={styles.categoryBadge} style={{ backgroundColor: '#ecfdf5', color: '#10b981' }}>Finance</span>
-                                    <span className={styles.questionDot}>•</span>
-                                    <span className={styles.questionAuthor}>Asked by Yusuf K.</span>
-                                    <span className={styles.questionDot}>•</span>
-                                    <span className={styles.questionAuthor}>2 hours ago</span>
-                                </div>
-                                <h3 className={styles.questionTitle}>What is the ruling on investing in digital currencies that fluctuate rapidly?</h3>
-                                <p className={styles.questionExcerpt}>
-                                    I have been looking into crypto markets and I am unsure if the volatility makes it akin to gambling. Can you please clarify the stance on these rapid fluctuations...
-                                </p>
-                                <button className={styles.answerBtn}>
-                                    <MessageCircleQuestion size={16} strokeWidth={3} /> Answer Now
-                                </button>
-                            </div>
-
-                            {/* Question 2 */}
-                            <div className={styles.questionCard}>
-                                <div className={styles.questionMeta}>
-                                    <span className={styles.categoryBadge} style={{ backgroundColor: '#eff6ff', color: '#3b82f6' }}>Family</span>
-                                    <span className={styles.questionDot}>•</span>
-                                    <span className={styles.questionAuthor}>Asked by Sarah M.</span>
-                                    <span className={styles.questionDot}>•</span>
-                                    <span className={styles.questionAuthor}>5 hours ago</span>
-                                </div>
-                                <h3 className={styles.questionTitle}>Advice for maintaining family ties while living abroad?</h3>
-                                <p className={styles.questionExcerpt}>
-                                    My parents are getting older and I feel guilty for living in another country for work. What are my obligations to them while being so far away...
-                                </p>
-                                <button className={styles.answerBtn}>
-                                    <MessageCircleQuestion size={16} strokeWidth={3} /> Answer Now
-                                </button>
-                            </div>
+                            {isLoading ? (
+                                <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>Loading questions...</div>
+                            ) : questions.length === 0 ? (
+                                <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No pending questions.</div>
+                            ) : (
+                                questions.map((question) => (
+                                    <div key={question.id} className={styles.questionCard}>
+                                        <div className={styles.questionMeta}>
+                                            {question.isUrgent && (
+                                                <>
+                                                    <span className={styles.categoryBadge} style={{ backgroundColor: '#fee2e2', color: '#ef4444', fontWeight: 'bold' }}>
+                                                        🚨 URGENT
+                                                    </span>
+                                                    <span className={styles.questionDot}>•</span>
+                                                </>
+                                            )}
+                                            <span className={styles.categoryBadge} style={{ backgroundColor: '#ecfdf5', color: '#10b981' }}>
+                                                {question.tags?.[0]?.name || "General"}
+                                            </span>
+                                            <span className={styles.questionDot}>•</span>
+                                            <span className={styles.questionAuthor}>Asked by {question.author.name}</span>
+                                            <span className={styles.questionDot}>•</span>
+                                            <span className={styles.questionAuthor}>{new Date(question.createdAt).toLocaleDateString()}</span>
+                                        </div>
+                                        <h3 className={styles.questionTitle}>{question.title}</h3>
+                                        <p className={styles.questionExcerpt}>
+                                            {question.body}
+                                        </p>
+                                        <div className={styles.actionsRow} style={{ display: 'flex', gap: '1rem', width: '100%', marginTop: 'auto' }}>
+                                            {question.acceptedById === user?.id ? (
+                                                <Link href={`/scholar-panel/answer/${question.id}`} style={{ textDecoration: 'none', width: '100%' }}>
+                                                    <button className={styles.answerBtn} style={{ width: '100%', justifyContent: 'center' }}>
+                                                        <MessageCircleQuestion size={16} strokeWidth={3} /> Answer Now
+                                                    </button>
+                                                </Link>
+                                            ) : (
+                                                <>
+                                                    <button className={styles.acceptBtn} onClick={() => handleAccept(question.id)} style={{ flex: 1, justifyContent: 'center' }}>
+                                                        <CheckCircle2 size={16} strokeWidth={3} /> Accept
+                                                    </button>
+                                                    <button className={styles.declineBtn} onClick={() => handleDecline(question.id)} style={{ flex: 1, justifyContent: 'center' }}>
+                                                        <XCircle size={16} strokeWidth={3} /> Decline
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </section>
 

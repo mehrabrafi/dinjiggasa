@@ -5,6 +5,7 @@ import { ArrowLeft, CheckCircle2, Play, MessageSquare, Share2, ThumbsUp, ThumbsD
 import Link from "next/link"
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import styles from './page.module.css'
+import api from '@/lib/axios'
 
 interface Author {
     id: string;
@@ -44,11 +45,8 @@ export default function QuestionDetailsPage({ params: paramsPromise }: { params:
     useEffect(() => {
         const fetchQuestion = async () => {
             try {
-                const res = await fetch(`http://localhost:3001/questions/${params.id}`)
-                if (res.ok) {
-                    const data = await res.json()
-                    setQuestion(data)
-                }
+                const res = await api.get(`/questions/${params.id}`)
+                setQuestion(res.data)
             } catch (error) {
                 console.error('Failed to fetch question:', error)
             } finally {
@@ -70,10 +68,6 @@ export default function QuestionDetailsPage({ params: paramsPromise }: { params:
             <div style={{ display: 'flex', gap: '2.5rem', width: '100%' }}>
                 {/* Main Content */}
                 <div className={styles.container}>
-                    <Link href="/" className={styles.backButton}>
-                        <ArrowLeft size={18} /> Back to Feed
-                    </Link>
-
                     <div className={styles.questionCard}>
                         <div className={styles.tags}>
                             {question.tags.map(tag => (
@@ -85,16 +79,8 @@ export default function QuestionDetailsPage({ params: paramsPromise }: { params:
 
                         <h1 className={styles.title}>{question.title}</h1>
 
-                        <div className={styles.askerRow}>
-                            <img
-                                src={question.author.avatar || `https://ui-avatars.com/api/?name=${question.author.name}&background=006D5B&color=fff`}
-                                alt={question.author.name}
-                                className={styles.askerAvatar}
-                            />
-                            <div className={styles.askerInfo}>
-                                <span className={styles.askerName}>Asked by {question.author.name}</span>
-                                <span className={styles.askedAt}>Posted {new Date(question.createdAt).toLocaleDateString()}</span>
-                            </div>
+                        <div className={styles.askerRow} style={{ color: '#64748b', fontStyle: 'italic' }}>
+                            <span className={styles.askedAt}>Posted {new Date(question.createdAt).toLocaleDateString()}</span>
                         </div>
 
                         <p className={styles.questionBody}>{question.body}</p>
@@ -159,9 +145,6 @@ export default function QuestionDetailsPage({ params: paramsPromise }: { params:
                                     <ThumbsUp size={16} /> 2.4k Upvotes
                                 </div>
                                 <div className={styles.footerActions}>
-                                    <div className={styles.actionBtn}>
-                                        <MessageSquare size={18} /> 128 Comments
-                                    </div>
                                     <div className={styles.actionBtn}>
                                         <Share2 size={18} /> Share
                                     </div>

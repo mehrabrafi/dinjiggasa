@@ -16,17 +16,44 @@ import {
     AlertCircle,
     BarChart,
     Bookmark,
-    ChevronRight
+    ChevronRight,
+    XCircle
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth.store'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
+import api from '@/lib/axios'
 
 export default function NewQuestions() {
-    const { user, logout, isAuthenticated } = useAuthStore()
+    const { user, token, logout, isAuthenticated } = useAuthStore()
     const router = useRouter()
-    const [activeTab, setActiveTab] = useState('directed')
+    const [activeTab, setActiveTab] = useState('pending')
     const [isAuthorized, setIsAuthorized] = useState(false)
+    const [questions, setQuestions] = useState<any[]>([])
+    const [isLoading, setIsLoading] = useState(true)
+
+    const handleAccept = async (id: string) => {
+        try {
+            await api.post(`/questions/${id}/accept`)
+            toast.success("Question accepted!")
+            // Update local state to show 'Answer Now'
+            setQuestions(questions.map(q => q.id === id ? { ...q, acceptedById: user?.id } : q))
+        } catch (err: any) {
+            console.error("Failed to accept question", err)
+            toast.error(err.response?.data?.message || "Failed to accept question.")
+        }
+    }
+
+    const handleDecline = async (id: string) => {
+        try {
+            await api.post(`/questions/${id}/decline`)
+            toast.success("Question declined")
+            setQuestions(questions.filter(q => q.id !== id))
+        } catch (err: any) {
+            console.error("Failed to decline question", err)
+            toast.error(err.response?.data?.message || "Failed to decline question")
+        }
+    }
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -42,6 +69,22 @@ export default function NewQuestions() {
 
         setIsAuthorized(true)
     }, [isAuthenticated, user, router])
+
+    useEffect(() => {
+        const fetchQuestions = async () => {
+            if (!isAuthorized) return;
+            try {
+                const res = await api.get("/questions/directed")
+                setQuestions(res.data)
+            } catch (err) {
+                console.error("Failed to fetch questions:", err)
+                toast.error("Failed to load questions")
+            } finally {
+                setIsLoading(false)
+            }
+        }
+        fetchQuestions()
+    }, [isAuthorized])
 
     const scholarName = user?.name || "Scholar"
 
@@ -101,7 +144,7 @@ export default function NewQuestions() {
                     >
                         <MessageCircleQuestion size={20} />
                         New Questions
-                        <span className={`${styles.navBadge} ${styles.navBadgeActive}`}>12</span>
+                        <span className={`${styles.navBadge} ${styles.navBadgeActive}`}>{questions.length}</span>
                     </Link>
                     <Link
                         href="/scholar-panel/analytics"
@@ -140,16 +183,10 @@ export default function NewQuestions() {
 
                 <div className={styles.tabsContainer}>
                     <div
-                        className={`${styles.tab} ${activeTab === 'directed' ? styles.tabActive : ''}`}
-                        onClick={() => setActiveTab('directed')}
-                    >
-                        Directed to Me <span className={styles.tabCount}>5</span>
-                    </div>
-                    <div
                         className={`${styles.tab} ${activeTab === 'pending' ? styles.tabActive : ''}`}
                         onClick={() => setActiveTab('pending')}
                     >
-                        All Pending <span className={styles.tabCount}>12</span>
+                        All Pending <span className={styles.tabCount}>{questions.length}</span>
                     </div>
                     <div
                         className={`${styles.tab} ${activeTab === 'urgent' ? styles.tabActive : ''}`}
@@ -175,78 +212,53 @@ export default function NewQuestions() {
                     {/* Left Column */}
                     <section>
                         <div className={styles.questionsList}>
-                            {/* Question 1 */}
-                            <div className={styles.questionCard}>
-                                <div className={styles.questionMeta}>
-                                    <div className={styles.badgeRow}>
-                                        <span className={styles.categoryBadge} style={{ backgroundColor: '#ecfdf5', color: '#10b981' }}>Finance</span>
-                                        <span className={styles.directBadge}>Direct Request</span>
-                                    </div>
-                                    <div className={styles.authorGroup} style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#94a3b8', fontSize: '0.75rem', fontWeight: 600 }}>
-                                        <Clock size={14} /> 2 hours ago
-                                    </div>
+                            {isLoading ? (
+                                <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>Loading questions...</div>
+                            ) : questions.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b', backgroundColor: 'white', borderRadius: '1rem' }}>
+                                    No questions directed to you yet.
                                 </div>
-                                <h3 className={styles.questionTitle}>Is investing in highly volatile digital currencies permissible (Halal)?</h3>
-                                <p className={styles.questionExcerpt}>
-                                    I have been observing the crypto markets and noticed extreme fluctuations. I am concerned this resembles gambling (maysir). Could you please clarify the Sharia ruling on holding such assets for long-term vs day trading?
-                                </p>
-                                <div className={styles.cardFooter}>
-                                    <Link href="/scholar-panel/answer/29481" style={{ textDecoration: 'none' }}>
-                                        <button className={styles.answerBtn}>
-                                            <CheckCircle2 size={16} fill="white" color="var(--primary)" /> Answer Now
-                                        </button>
-                                    </Link>
-                                    <div className={styles.bookmarkBtn}><Bookmark size={20} /></div>
-                                </div>
-                            </div>
-
-                            {/* Question 2 */}
-                            <div className={styles.questionCard}>
-                                <div className={styles.questionMeta}>
-                                    <div className={styles.badgeRow}>
-                                        <span className={styles.categoryBadge} style={{ backgroundColor: '#eff6ff', color: '#3b82f6' }}>Family</span>
+                            ) : (
+                                questions.map((q) => (
+                                    <div key={q.id} className={styles.questionCard}>
+                                        <div className={styles.questionMeta}>
+                                            <div className={styles.badgeRow}>
+                                                <span className={styles.categoryBadge} style={{ backgroundColor: '#ecfdf5', color: '#10b981' }}>
+                                                    {q.tags?.[0]?.name || "Islamic Guidance"}
+                                                </span>
+                                            </div>
+                                            <div className={styles.authorGroup} style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#94a3b8', fontSize: '0.75rem', fontWeight: 600 }}>
+                                                <Clock size={14} /> {new Date(q.createdAt).toLocaleDateString()}
+                                            </div>
+                                        </div>
+                                        <h3 className={styles.questionTitle}>{q.title}</h3>
+                                        <p className={styles.questionExcerpt}>
+                                            {q.body.length > 200 ? q.body.substring(0, 200) + "..." : q.body}
+                                        </p>
+                                        <div className={styles.cardFooter}>
+                                            <div style={{ display: 'flex', gap: '1rem', flex: 1, marginRight: '1rem' }}>
+                                                {q.acceptedById === user?.id ? (
+                                                    <Link href={`/scholar-panel/answer/${q.id}`} style={{ textDecoration: 'none', width: '100%' }}>
+                                                        <button className={styles.answerBtn} style={{ width: '100%', justifyContent: 'center' }}>
+                                                            <CheckCircle2 size={16} fill="white" color="var(--primary)" /> Answer Now
+                                                        </button>
+                                                    </Link>
+                                                ) : (
+                                                    <>
+                                                        <button className={styles.acceptBtn} onClick={() => handleAccept(q.id)} style={{ flex: 1, justifyContent: 'center' }}>
+                                                            <CheckCircle2 size={16} strokeWidth={3} /> Accept
+                                                        </button>
+                                                        <button className={styles.declineBtn} onClick={() => handleDecline(q.id)} style={{ flex: 1, justifyContent: 'center' }}>
+                                                            <XCircle size={16} strokeWidth={3} /> Decline
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                            <div className={styles.bookmarkBtn}><Bookmark size={20} /></div>
+                                        </div>
                                     </div>
-                                    <div className={styles.authorGroup} style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#94a3b8', fontSize: '0.75rem', fontWeight: 600 }}>
-                                        <Clock size={14} /> 5 hours ago
-                                    </div>
-                                </div>
-                                <h3 className={styles.questionTitle}>Maintaining ties of kinship while living abroad for work</h3>
-                                <p className={styles.questionExcerpt}>
-                                    My parents are aging, and I live in another country to support them financially. However, I feel immense guilt for not being physically present. What is the balance between financial support and physical presence in Islam?
-                                </p>
-                                <div className={styles.cardFooter}>
-                                    <Link href="/scholar-panel/answer/29481" style={{ textDecoration: 'none' }}>
-                                        <button className={styles.answerBtn}>
-                                            <CheckCircle2 size={16} fill="white" color="var(--primary)" /> Answer Now
-                                        </button>
-                                    </Link>
-                                    <div className={styles.bookmarkBtn}><Bookmark size={20} /></div>
-                                </div>
-                            </div>
-
-                            {/* Question 3 */}
-                            <div className={styles.questionCard}>
-                                <div className={styles.questionMeta}>
-                                    <div className={styles.badgeRow}>
-                                        <span className={styles.categoryBadge} style={{ backgroundColor: '#f5f3ff', color: '#8b5cf6' }}>Rituals (Ibadah)</span>
-                                    </div>
-                                    <div className={styles.authorGroup} style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#94a3b8', fontSize: '0.75rem', fontWeight: 600 }}>
-                                        <Clock size={14} /> 1 day ago
-                                    </div>
-                                </div>
-                                <h3 className={styles.questionTitle}>Making up missed fasts from several years ago</h3>
-                                <p className={styles.questionExcerpt}>
-                                    I missed several days of fasting in Ramadan about 5 years ago due to minor illness, but never made them up. Do I need to pay Fidya as well as fasting them now?
-                                </p>
-                                <div className={styles.cardFooter}>
-                                    <Link href="/scholar-panel/answer/29481" style={{ textDecoration: 'none' }}>
-                                        <button className={styles.answerBtn}>
-                                            <CheckCircle2 size={16} fill="white" color="var(--primary)" /> Answer Now
-                                        </button>
-                                    </Link>
-                                    <div className={styles.bookmarkBtn}><Bookmark size={20} /></div>
-                                </div>
-                            </div>
+                                ))
+                            )}
                         </div>
                     </section>
 
@@ -287,7 +299,7 @@ export default function NewQuestions() {
                                 <div className={styles.statIconBox}><MessageCircleQuestion size={18} /></div>
                                 <div className={styles.statInfo}>
                                     <span className={styles.statLabel}>Pending Total</span>
-                                    <span className={styles.statVal}>42</span>
+                                    <span className={styles.statVal}>{questions.length}</span>
                                 </div>
                             </div>
 
