@@ -24,16 +24,45 @@ model User {
   email     String   @unique
   password  String
   avatar    String?
+  gender    String?
+  madhab    String?
   role      Role     @default(USER)
   reputation Float   @default(0) // Based on average ratings received
+  specialization String?
+  bio        String?  @db.Text
+  isVerified Boolean  @default(false)
+  urgentQuota Int      @default(1)
+  lastUrgentReset DateTime @default(now())
 
   // Relations
-  questions Question[]
+  questions Question[] @relation("AuthorQuestions")
+  directedQuestions Question[] @relation("DirectedScholars")
+  acceptedQuestions Question[] @relation("AcceptedScholar")
   answers   Answer[]
   ratings   Rating[]
 
+  notifications         Notification[] @relation("UserNotifications")
+  sentNotifications     Notification[] @relation("SenderNotifications")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Notification Model
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation("UserNotifications", fields: [userId], references: [id])
+  
+  senderId  String?
+  sender    User?    @relation("SenderNotifications", fields: [senderId], references: [id])
+
+  type      String   // E.g., 'QUESTION_ACCEPTED', 'QUESTION_ANSWERED'
+  message   String
+  isRead    Boolean  @default(false)
+  questionId String? // To link to exact question
+
+  createdAt DateTime @default(now())
 }
 
 // Question Model
@@ -42,10 +71,18 @@ model Question {
   title     String
   body      String   @db.Text
   views     Int      @default(0)
+  isUrgent  Boolean  @default(false)
   
   // Author relations
   authorId  String
-  author    User     @relation(fields: [authorId], references: [id])
+  author    User     @relation("AuthorQuestions", fields: [authorId], references: [id])
+
+  // Scholars this question is directed to
+  directedScholars User[] @relation("DirectedScholars")
+
+  // The scholar who accepted to answer this question
+  acceptedById String?
+  acceptedBy   User?    @relation("AcceptedScholar", fields: [acceptedById], references: [id])
 
   // Content relations
   answers   Answer[]

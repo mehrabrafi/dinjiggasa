@@ -1,16 +1,25 @@
-import { IsArray, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateQuestionDto {
-    @IsString()
-    @IsNotEmpty()
-    title: string;
+  @IsString()
+  @IsNotEmpty()
+  title: string;
 
-    @IsString()
-    @IsNotEmpty()
-    body: string;
+  @IsString()
+  @IsOptional()
+  body?: string;
 
-    @IsArray()
-    @IsString({ each: true })
-    @IsOptional()
-    tags?: string[];
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  tags?: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  scholarIds?: string[];
+
+  @IsBoolean()
+  @IsOptional()
+  isUrgent?: boolean;
 }

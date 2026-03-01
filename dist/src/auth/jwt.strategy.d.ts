@@ -16,6 +16,13 @@ export declare class JwtStrategy extends JwtStrategy_base {
         reputation: number;
         createdAt: Date;
         updatedAt: Date;
+        gender: string | null;
+        madhab: string | null;
+        specialization: string | null;
+        bio: string | null;
+        isVerified: boolean;
+        urgentQuota: number;
+        lastUrgentReset: Date;
     }>;
 }
 export {};

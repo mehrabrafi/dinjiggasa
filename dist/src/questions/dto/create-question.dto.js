@@ -15,6 +15,8 @@ class CreateQuestionDto {
     title;
     body;
     tags;
+    scholarIds;
+    isUrgent;
 }
 exports.CreateQuestionDto = CreateQuestionDto;
 __decorate([
@@ -24,7 +26,7 @@ __decorate([
 ], CreateQuestionDto.prototype, "title", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], CreateQuestionDto.prototype, "body", void 0);
 __decorate([
@@ -33,4 +35,15 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Array)
 ], CreateQuestionDto.prototype, "tags", void 0);
+__decorate([
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.IsString)({ each: true }),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Array)
+], CreateQuestionDto.prototype, "scholarIds", void 0);
+__decorate([
+    (0, class_validator_1.IsBoolean)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Boolean)
+], CreateQuestionDto.prototype, "isUrgent", void 0);
 //# sourceMappingURL=create-question.dto.js.map

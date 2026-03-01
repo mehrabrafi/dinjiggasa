@@ -47,6 +47,7 @@ const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const bcrypt = __importStar(require("bcrypt"));
 const jwt_1 = require("@nestjs/jwt");
+const client_1 = require("@prisma/client");
 let AuthService = class AuthService {
     prisma;
     jwtService;
@@ -67,12 +68,17 @@ let AuthService = class AuthService {
                 name: dto.name,
                 email: dto.email,
                 password: hashedPassword,
+                gender: dto.gender,
+                madhab: dto.madhab,
+                role: dto.role || client_1.Role.USER,
             },
             select: {
                 id: true,
                 name: true,
                 email: true,
                 role: true,
+                gender: true,
+                madhab: true,
             },
         });
         return {
