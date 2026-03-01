@@ -3,40 +3,72 @@
 import { useAuthStore } from "@/store/auth.store"
 import { Bold, Italic, List as ListIcon, Link as LinkIcon, Image as ImageIcon, Search, X, Plus, Send } from "lucide-react"
 import Link from "next/link"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import DashboardLayout from "@/components/layout/DashboardLayout"
 import styles from "./ask.module.css"
 
 export default function AskQuestionPage() {
-    const { user, isAuthenticated } = useAuthStore()
+    const { user, token, isAuthenticated } = useAuthStore()
+    const router = useRouter()
+
+    const [title, setTitle] = useState("")
+    const [body, setBody] = useState("")
+    const [tags, setTags] = useState<string[]>(["Spiritual Growth", "Fiqh"])
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [error, setError] = useState("")
+
+    const handlePublish = async () => {
+        if (!isAuthenticated) {
+            setError("You must be logged in to ask a question.")
+            return
+        }
+
+        if (!title.trim() || !body.trim()) {
+            setError("Please provide both a title and details for your question.")
+            return
+        }
+
+        setIsSubmitting(true)
+        setError("")
+
+        try {
+            const res = await fetch("http://localhost:3001/questions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    title,
+                    body,
+                    tags
+                })
+            })
+
+            if (res.ok) {
+                const data = await res.json()
+                router.push(`/questions/${data.id}`)
+            } else {
+                const data = await res.json()
+                setError(data.message || "Failed to publish question.")
+            }
+        } catch (err) {
+            setError("An error occurred while publishing. Please try again.")
+            console.error(err)
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
 
     return (
-        <div className={styles.layout}>
-            {/* Header */}
-            <header className={styles.header}>
-                <Link href="/" className={styles.headerLeft}>
-                    <div className={styles.logoIcon}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M4 19V5C4 3.89543 4.89543 3 6 3H19.4C19.7314 3 20 3.26863 20 3.6V16.7173C20 17.0917 19.6582 17.3736 19.2908 17.3103L6.03846 15.0276C5.46782 14.9293 4.89543 14.8954 4.3411 14.8954C4.15175 14.8954 4 15.0471 4 15.2365V19Z" fill="currentColor" />
-                        </svg>
-                    </div>
-                    <span className={styles.logoText}>DinJiggasa</span>
-                </Link>
-
-                <div className={styles.headerRight}>
-                    {isAuthenticated && user?.name ? (
-                        <div className={styles.userAvatar} title={user.name}>
-                            <img src={`https://ui-avatars.com/api/?name=${user.name}&background=006D5B&color=fff`} alt={user.name} className={styles.userAvatar} />
-                        </div>
-                    ) : (
-                        <div className={styles.userAvatar}></div>
-                    )}
-                </div>
-            </header>
-
-            {/* Main Container */}
+        <DashboardLayout>
             <main className={styles.container}>
                 {/* Left Form Area */}
                 <div className={styles.formCard}>
                     <h1 className={styles.pageTitle}>What is your question about Islam?</h1>
+
+                    {error && <div style={{ color: '#ef4444', backgroundColor: '#fee2e2', padding: '0.75rem', borderRadius: '0.5rem', marginBottom: '1.5rem', fontSize: '0.875rem' }}>{error}</div>}
 
                     <div className={styles.formGroup}>
                         <label className={styles.label}>Question</label>
@@ -45,6 +77,8 @@ export default function AskQuestionPage() {
                             type="text"
                             placeholder="e.g., What is the ruling on combining prayers during travel?"
                             className={styles.input}
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
                         />
                     </div>
 
@@ -62,6 +96,8 @@ export default function AskQuestionPage() {
                         <textarea
                             className={styles.textarea}
                             placeholder="Include details about your situation to help scholars give a precise answer..."
+                            value={body}
+                            onChange={(e) => setBody(e.target.value)}
                         ></textarea>
                     </div>
 
@@ -99,14 +135,19 @@ export default function AskQuestionPage() {
                         <Link href="/">
                             <button type="button" className={styles.cancelBtn}>Cancel</button>
                         </Link>
-                        <button type="button" className={styles.submitBtn}>
-                            Publish Question <Send size={16} />
+                        <button
+                            type="button"
+                            className={styles.submitBtn}
+                            onClick={handlePublish}
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting ? 'Publishing...' : 'Publish Question'} <Send size={16} />
                         </button>
                     </div>
                 </div>
 
                 {/* Right Sidebar */}
-                <div>
+                <div style={{ width: '300px', flexShrink: 0 }}>
                     <div className={styles.sidebarCard}>
                         <div className={styles.cardHeader}>
                             <div className={styles.cardIcon}>
@@ -150,18 +191,15 @@ export default function AskQuestionPage() {
                         </div>
                     </div>
 
+                    {/* Guidelines Section remains unchanged */}
                     <div className={`${styles.sidebarCard} ${styles.sidebarCardGreen}`}>
                         <h3 className={styles.guidelinesTitle}>Community Guidelines</h3>
                         <p className={styles.guidelinesText}>
-                            Please ensure your question adheres to our community standards. We do not allow hate speech, spam, or disrespect towards religious figures. <a href="#" className={styles.guidelinesLink}>Read full guidelines</a>
+                            Please ensure your question adheres to our community standards. We do not allow hate speech, spam, or disrespect towards religious figures. <Link href="#" className={styles.guidelinesLink}>Read full guidelines</Link>
                         </p>
                     </div>
                 </div>
             </main>
-
-            <footer className={styles.footer}>
-                © 2026 Islamic Q&A. Seeking knowledge is a duty upon every Muslim.
-            </footer>
-        </div>
+        </DashboardLayout>
     )
 }

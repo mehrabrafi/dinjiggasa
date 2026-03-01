@@ -1,0 +1,370 @@
+.answerContainer {
+    display: flex;
+    gap: 2rem;
+    padding: 2rem;
+    background: #f8fafc;
+    min-height: 100vh;
+}
+
+.mainColumn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.sidebarColumn {
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Question ID Badge */
+.idBadge {
+    display: inline-flex;
+    align-items: center;
+    background: #ecfdf5;
+    color: #10b981;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.questionCard {
+    background: white;
+    padding: 2rem;
+    border-radius: 20px;
+    border: 1px solid #f1f5f9;
+}
+
+.questionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.submissionMeta {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.questionTitle {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 1rem;
+}
+
+.questionText {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #475569;
+    font-style: italic;
+    margin-bottom: 2rem;
+}
+
+.tagGroup {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.tag {
+    font-size: 0.75rem;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+/* Categorization section */
+.categorySection {
+    background: white;
+    padding: 1.5rem 2rem;
+    border-radius: 20px;
+    border: 1px solid #f1f5f9;
+}
+
+.sectionLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 1rem;
+}
+
+.sectionIcon {
+    color: #10b981;
+}
+
+.categoryInputContainer {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+}
+
+.appliedCategory {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #ecfdf5;
+    color: #10b981;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.removeCategory {
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.categoryInput {
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 0.875rem;
+    color: #1e293b;
+    width: 100%;
+}
+
+.suggestedGroup {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.suggestedLabel {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    font-weight: 800;
+    color: #94a3b8;
+    letter-spacing: 0.05em;
+}
+
+.suggestion {
+    font-size: 0.75rem;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+/* Editor Section */
+.editorSection {
+    background: white;
+    border-radius: 20px;
+    border: 1px solid #f1f5f9;
+    overflow: hidden;
+}
+
+.editorTabs {
+    display: flex;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.editorTab {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.25rem 2rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #64748b;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+}
+
+.editorTabActive {
+    color: #10b981;
+    border-bottom-color: #10b981;
+}
+
+.editorToolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.toolbarBtn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #1e293b;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.toolbarBtn:hover {
+    background: #f1f5f9;
+}
+
+.autosave {
+    margin-left: auto;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+.editorBody {
+    padding: 2rem;
+    min-height: 400px;
+}
+
+.placeholder {
+    font-size: 1.125rem;
+    color: #cbd5e1;
+    font-style: italic;
+}
+
+/* Actions */
+.actionRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1rem;
+}
+
+.clarificationBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: white;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: #1e293b;
+    cursor: pointer;
+}
+
+.publishBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 2rem;
+    background: #10b981;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.9375rem;
+    font-weight: 800;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2);
+}
+
+/* Sidebar Cards */
+.sidebarCard {
+    background: #effaf4;
+    padding: 1.5rem 2rem;
+    border-radius: 20px;
+    border: 1px solid #e6f7ef;
+}
+
+.cardTitleSection {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.9375rem;
+    font-weight: 800;
+    color: #0d9488;
+    margin-bottom: 1.5rem;
+}
+
+.guidelineList {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.guidelineItem {
+    display: flex;
+    gap: 0.75rem;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: #1e293b;
+    font-weight: 500;
+}
+
+.checkWrapper {
+    color: #10b981;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.statusCard {
+    background: white;
+    padding: 1.5rem 2rem;
+    border-radius: 20px;
+    border: 1px solid #f1f5f9;
+}
+
+.statusLabel {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    font-weight: 800;
+    color: #94a3b8;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+}
+
+.statusIndicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.activeDot {
+    width: 8px;
+    height: 8px;
+    background: #10b981;
+    border-radius: 50%;
+}
+
+.footer {
+    display: flex;
+    justify-content: space-between;
+    padding: 2rem;
+    border-top: 1px solid #f1f5f9;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.footerLinks {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.footerLink {
+    cursor: pointer;
+}
+
+.footerLink:hover {
+    color: #64748b;
+}

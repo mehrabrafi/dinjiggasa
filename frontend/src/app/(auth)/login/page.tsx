@@ -24,7 +24,13 @@ export default function LoginPage() {
             const data = await authService.login({ email, password })
             login({ user: data.user, access_token: data.access_token })
             toast.success("Successfully logged in!")
-            router.push("/")
+
+            // Redirect based on role
+            if (data.user.role === 'SCHOLAR' || data.user.role === 'ADMIN') {
+                router.push("/scholar-panel")
+            } else {
+                router.push("/")
+            }
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Failed to login. Please check credentials.")
         } finally {

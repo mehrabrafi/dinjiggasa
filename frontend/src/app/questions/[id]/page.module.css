@@ -1,0 +1,412 @@
+.container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.backButton {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #6b7280;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 0.5rem;
+}
+
+.backButton:hover {
+    color: #111827;
+}
+
+.questionCard {
+    background-color: #ffffff;
+    padding: 2.5rem;
+    border-radius: 1.25rem;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+.tags {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.tag {
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.tagGreen {
+    background-color: #ecfdf5;
+    color: #10b981;
+}
+
+.tagGray {
+    background-color: #f3f4f6;
+    color: #6b7280;
+}
+
+.title {
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: #111827;
+    line-height: 1.2;
+    margin-bottom: 1.5rem;
+}
+
+.askerRow {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+}
+
+.askerAvatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+}
+
+.askerInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.askerName {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #111827;
+}
+
+.askedAt {
+    font-size: 0.75rem;
+    color: #9ca3af;
+}
+
+.questionBody {
+    font-size: 1rem;
+    color: #4b5563;
+    line-height: 1.6;
+}
+
+.sectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1rem;
+}
+
+.sectionTitle {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #111827;
+}
+
+.answerCount {
+    font-size: 0.875rem;
+    color: #9ca3af;
+    font-weight: 600;
+}
+
+.answerCard {
+    background-color: #ffffff;
+    border-radius: 1.25rem;
+    border: 1px solid #e5e7eb;
+    margin-top: 1.5rem;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+.answerCard::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background-color: #10b981;
+}
+
+.answerHeader {
+    padding: 1.5rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.scholarRow {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.scholarAvatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+}
+
+.scholarInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.scholarNameRow {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.scholarName {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #111827;
+}
+
+.scholarMeta {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    font-weight: 500;
+}
+
+.featuredBadge {
+    background-color: #ecfdf5;
+    color: #10b981;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    text-transform: uppercase;
+}
+
+.audioPlayer {
+    margin: 0 2rem;
+    background-color: #f9fafb;
+    border: 1px solid #f3f4f6;
+    border-radius: 1rem;
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.playBtn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background-color: #10b981;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: none;
+    transition: opacity 0.2s;
+}
+
+.playBtn:hover {
+    opacity: 0.9;
+}
+
+.waveform {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 32px;
+}
+
+.bar {
+    background-color: #e5e7eb;
+    border-radius: 2px;
+    flex: 1;
+    width: 3px;
+}
+
+.barActive {
+    background-color: #10b981;
+}
+
+.playerMeta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.audioLabel {
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.duration {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #6b7280;
+}
+
+.answerText {
+    padding: 2rem;
+    font-size: 1rem;
+    color: #4b5563;
+    line-height: 1.7;
+    white-space: pre-line;
+}
+
+.quote {
+    font-weight: 700;
+    font-style: italic;
+    color: #111827;
+    display: block;
+    margin-bottom: 1.5rem;
+}
+
+.cardFooter {
+    padding: 1.5rem 2rem;
+    border-top: 1px solid #f3f4f6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.footerActions {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.actionBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.actionBtn:hover {
+    color: #111827;
+}
+
+.upvotePill {
+    background-color: #f0fdf4;
+    border: 1px solid #dcfce7;
+    color: #10b981;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+}
+
+/* Sidebar Widgets */
+.sidebar {
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.widget {
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+.widgetTitle {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1.25rem;
+}
+
+.aboutScholar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.smallScholarAvatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    margin-bottom: 1rem;
+}
+
+.scholarWidgetName {
+    font-size: 1.125rem;
+    font-weight: 800;
+    color: #111827;
+    margin-bottom: 0.25rem;
+}
+
+.scholarWidgetRole {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #10b981;
+    margin-bottom: 1rem;
+}
+
+.scholarWidgetBio {
+    font-size: 0.875rem;
+    color: #6b7280;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+}
+
+.viewProfileBtn {
+    width: 100%;
+    background-color: transparent;
+    border: 1px solid #d1d5db;
+    color: #10b981;
+    padding: 0.625rem;
+    border-radius: 0.625rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.viewProfileBtn:hover {
+    background-color: #f9fafb;
+}
+
+.guidelinesList {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.guidelineItem {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+    color: #4b5563;
+    line-height: 1.4;
+}
+
+.checkIcon {
+    margin-top: 0.2rem;
+    color: #10b981;
+    flex-shrink: 0;
+}
