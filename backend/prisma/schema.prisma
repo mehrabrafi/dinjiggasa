@@ -1,0 +1,143 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User role definition
+enum Role {
+  USER
+  SCHOLAR
+  ADMIN
+}
+
+// User Model
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  avatar    String?
+  gender    String?
+  madhab    String?
+  role      Role     @default(USER)
+  reputation Float   @default(0) // Based on average ratings received
+  specialization String?
+  bio        String?  @db.Text
+  isVerified Boolean  @default(false)
+  urgentQuota Int      @default(1)
+  lastUrgentReset DateTime @default(now())
+
+  // Relations
+  questions Question[] @relation("AuthorQuestions")
+  directedQuestions Question[] @relation("DirectedScholars")
+  acceptedQuestions Question[] @relation("AcceptedScholar")
+  answers   Answer[]
+  ratings   Rating[]
+
+  notifications         Notification[] @relation("UserNotifications")
+  sentNotifications     Notification[] @relation("SenderNotifications")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Notification Model
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation("UserNotifications", fields: [userId], references: [id])
+  
+  senderId  String?
+  sender    User?    @relation("SenderNotifications", fields: [senderId], references: [id])
+
+  type      String   // E.g., 'QUESTION_ACCEPTED', 'QUESTION_ANSWERED'
+  message   String
+  isRead    Boolean  @default(false)
+  questionId String? // To link to exact question
+
+  createdAt DateTime @default(now())
+}
+
+// Question Model
+model Question {
+  id        String   @id @default(uuid())
+  title     String
+  body      String   @db.Text
+  views     Int      @default(0)
+  isUrgent  Boolean  @default(false)
+  
+  // Author relations
+  authorId  String
+  author    User     @relation("AuthorQuestions", fields: [authorId], references: [id])
+
+  // Scholars this question is directed to
+  directedScholars User[] @relation("DirectedScholars")
+
+  // The scholar who accepted to answer this question
+  acceptedById String?
+  acceptedBy   User?    @relation("AcceptedScholar", fields: [acceptedById], references: [id])
+
+  // Content relations
+  answers   Answer[]
+  tags      Tag[]
+  ratings   Rating[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Answer Model
+model Answer {
+  id         String   @id @default(uuid())
+  content    String   @db.Text
+  isAccepted Boolean  @default(false)
+  
+  // Relations
+  authorId   String
+  author     User     @relation(fields: [authorId], references: [id])
+  
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  ratings    Rating[]
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// Rating Model (Polymorphic-like structure for both questions and answers)
+model Rating {
+  id         String   @id @default(uuid())
+  value      Int      // 1 to 5 scale
+
+  // Who rated
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+
+  // What they rated on (Either Question OR Answer)
+  questionId String?
+  question   Question? @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  answerId   String?
+  answer     Answer?   @relation(fields: [answerId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+
+  // A user can only rate once per question or answer
+  @@unique([userId, questionId])
+  @@unique([userId, answerId])
+}
+
+// Tag Model (for categorizing questions)
+model Tag {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  questions Question[] 
+}
