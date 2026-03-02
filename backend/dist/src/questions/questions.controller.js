@@ -31,8 +31,13 @@ let QuestionsController = class QuestionsController {
     findDirected(req) {
         return this.questionsService.findDirectedTo(req.user.id);
     }
-    findMyQuestions(req) {
-        return this.questionsService.findMyQuestions(req.user.id);
+    findMyQuestions(req, status, sort, search, page) {
+        return this.questionsService.findMyQuestions(req.user.id, {
+            status,
+            sort,
+            search,
+            page: page ? parseInt(page) : 1
+        });
     }
     deleteQuestion(id, req) {
         return this.questionsService.deleteQuestion(id, req.user.id);
@@ -51,6 +56,9 @@ let QuestionsController = class QuestionsController {
     }
     findOne(id) {
         return this.questionsService.findOne(id);
+    }
+    voteAnswer(id, dto, req) {
+        return this.questionsService.voteAnswer(id, req.user.id, dto.value);
     }
     answerQuestion(id, dto, req) {
         return this.questionsService.answerQuestion(id, req.user.id, dto.content);
@@ -84,8 +92,12 @@ __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Get)('my-questions'),
     __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Query)('status')),
+    __param(2, (0, common_1.Query)('sort')),
+    __param(3, (0, common_1.Query)('search')),
+    __param(4, (0, common_1.Query)('page')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, String, String, String, String]),
     __metadata("design:returntype", void 0)
 ], QuestionsController.prototype, "findMyQuestions", null);
 __decorate([
@@ -139,6 +151,16 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], QuestionsController.prototype, "findOne", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Post)('answers/:id/vote'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:returntype", void 0)
+], QuestionsController.prototype, "voteAnswer", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Post)(':id/answers'),

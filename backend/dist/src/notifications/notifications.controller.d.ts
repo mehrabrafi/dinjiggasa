@@ -12,10 +12,10 @@ export declare class NotificationsController {
     } & {
         id: string;
         createdAt: Date;
+        message: string;
+        userId: string;
         questionId: string | null;
         type: string;
-        userId: string;
-        message: string;
         isRead: boolean;
         senderId: string | null;
     })[]>;

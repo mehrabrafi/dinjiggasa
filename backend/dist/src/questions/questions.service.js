@@ -125,9 +125,15 @@ let QuestionsService = class QuestionsService {
                                 reputation: true,
                             },
                         },
+                        ratings: {
+                            select: { value: true, userId: true },
+                        },
                         _count: { select: { ratings: true } },
                     },
                     orderBy: [{ isAccepted: 'desc' }, { createdAt: 'desc' }],
+                },
+                ratings: {
+                    select: { value: true, userId: true },
                 },
                 _count: {
                     select: { ratings: true },
@@ -158,27 +164,67 @@ let QuestionsService = class QuestionsService {
             },
         });
     }
-    async findMyQuestions(authorId) {
-        return this.prisma.question.findMany({
-            where: { authorId },
-            orderBy: { createdAt: 'desc' },
-            include: {
-                author: {
-                    select: { id: true, name: true, role: true, avatar: true },
-                },
-                tags: true,
-                _count: {
-                    select: { answers: true, ratings: true },
-                },
-                answers: {
-                    take: 1,
-                    orderBy: { createdAt: 'desc' },
-                    include: {
-                        author: { select: { id: true, name: true, avatar: true } }
+    async findMyQuestions(authorId, options = {}) {
+        const { status, sort, search, page = 1, limit = 10 } = options;
+        const skip = (page - 1) * limit;
+        const where = { authorId };
+        if (search) {
+            where.title = { contains: search, mode: 'insensitive' };
+        }
+        if (status && status !== 'All') {
+            if (status === 'Pending Review') {
+                where.acceptedById = null;
+                where.answers = { none: {} };
+            }
+            else if (status === 'Answered') {
+                where.answers = { some: {} };
+            }
+            else if (status === 'Accepted (Under Review)') {
+                where.acceptedById = { not: null };
+                where.answers = { none: {} };
+            }
+        }
+        let orderBy = { createdAt: 'desc' };
+        if (sort) {
+            if (sort === 'Oldest')
+                orderBy = { createdAt: 'asc' };
+            else if (sort === 'Newest')
+                orderBy = { createdAt: 'desc' };
+            else if (sort === 'Most Viewed')
+                orderBy = { views: 'desc' };
+        }
+        const [questions, total] = await Promise.all([
+            this.prisma.question.findMany({
+                where,
+                orderBy,
+                skip,
+                take: limit,
+                include: {
+                    author: {
+                        select: { id: true, name: true, role: true, avatar: true },
+                    },
+                    tags: true,
+                    _count: {
+                        select: { answers: true, ratings: true },
+                    },
+                    answers: {
+                        take: 1,
+                        orderBy: { createdAt: 'desc' },
+                        include: {
+                            author: { select: { id: true, name: true, avatar: true } }
+                        }
                     }
-                }
-            },
-        });
+                },
+            }),
+            this.prisma.question.count({ where }),
+        ]);
+        return {
+            questions,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+        };
     }
     async findUrgentQuestions() {
         return this.prisma.question.findMany({
@@ -321,6 +367,43 @@ let QuestionsService = class QuestionsService {
         }
         return this.prisma.rating.findMany({
             where: { questionId },
+            select: { value: true, userId: true },
+        });
+    }
+    async voteAnswer(answerId, userId, value) {
+        const answer = await this.prisma.answer.findUnique({ where: { id: answerId } });
+        if (!answer)
+            throw new common_1.NotFoundException('Answer not found');
+        const existingVote = await this.prisma.rating.findUnique({
+            where: {
+                userId_answerId: {
+                    userId,
+                    answerId,
+                },
+            },
+        });
+        if (existingVote) {
+            if (existingVote.value === value) {
+                await this.prisma.rating.delete({ where: { id: existingVote.id } });
+            }
+            else {
+                await this.prisma.rating.update({
+                    where: { id: existingVote.id },
+                    data: { value },
+                });
+            }
+        }
+        else {
+            await this.prisma.rating.create({
+                data: {
+                    value,
+                    user: { connect: { id: userId } },
+                    answer: { connect: { id: answerId } },
+                },
+            });
+        }
+        return this.prisma.rating.findMany({
+            where: { answerId },
             select: { value: true, userId: true },
         });
     }

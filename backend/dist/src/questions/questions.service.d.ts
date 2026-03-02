@@ -26,8 +26,8 @@ export declare class QuestionsService {
         title: string;
         body: string;
         views: number;
-        authorId: string;
         isUrgent: boolean;
+        authorId: string;
         acceptedById: string | null;
     }>;
     findAll(): Promise<({
@@ -47,8 +47,8 @@ export declare class QuestionsService {
             questionId: string;
         })[];
         ratings: {
-            userId: string;
             value: number;
+            userId: string;
         }[];
         author: {
             id: string;
@@ -71,12 +71,16 @@ export declare class QuestionsService {
         title: string;
         body: string;
         views: number;
-        authorId: string;
         isUrgent: boolean;
+        authorId: string;
         acceptedById: string | null;
     })[]>;
     findOne(id: string): Promise<{
         answers: ({
+            ratings: {
+                value: number;
+                userId: string;
+            }[];
             author: {
                 id: string;
                 name: string;
@@ -96,6 +100,10 @@ export declare class QuestionsService {
             isAccepted: boolean;
             questionId: string;
         })[];
+        ratings: {
+            value: number;
+            userId: string;
+        }[];
         author: {
             id: string;
             name: string;
@@ -117,8 +125,8 @@ export declare class QuestionsService {
         title: string;
         body: string;
         views: number;
-        authorId: string;
         isUrgent: boolean;
+        authorId: string;
         acceptedById: string | null;
     }>;
     findDirectedTo(scholarId: string): Promise<({
@@ -143,51 +151,63 @@ export declare class QuestionsService {
         title: string;
         body: string;
         views: number;
-        authorId: string;
         isUrgent: boolean;
+        authorId: string;
         acceptedById: string | null;
     })[]>;
-    findMyQuestions(authorId: string): Promise<({
-        answers: ({
+    findMyQuestions(authorId: string, options?: {
+        status?: string;
+        sort?: string;
+        search?: string;
+        page?: number;
+        limit?: number;
+    }): Promise<{
+        questions: ({
+            answers: ({
+                author: {
+                    id: string;
+                    name: string;
+                    avatar: string | null;
+                };
+            } & {
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                authorId: string;
+                content: string;
+                isAccepted: boolean;
+                questionId: string;
+            })[];
             author: {
                 id: string;
                 name: string;
                 avatar: string | null;
+                role: import(".prisma/client").$Enums.Role;
+            };
+            tags: {
+                id: string;
+                name: string;
+            }[];
+            _count: {
+                answers: number;
+                ratings: number;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            title: string;
+            body: string;
+            views: number;
+            isUrgent: boolean;
             authorId: string;
-            content: string;
-            isAccepted: boolean;
-            questionId: string;
+            acceptedById: string | null;
         })[];
-        author: {
-            id: string;
-            name: string;
-            avatar: string | null;
-            role: import(".prisma/client").$Enums.Role;
-        };
-        tags: {
-            id: string;
-            name: string;
-        }[];
-        _count: {
-            answers: number;
-            ratings: number;
-        };
-    } & {
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        title: string;
-        body: string;
-        views: number;
-        authorId: string;
-        isUrgent: boolean;
-        acceptedById: string | null;
-    })[]>;
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    }>;
     findUrgentQuestions(): Promise<({
         author: {
             id: string;
@@ -210,8 +230,8 @@ export declare class QuestionsService {
         title: string;
         body: string;
         views: number;
-        authorId: string;
         isUrgent: boolean;
+        authorId: string;
         acceptedById: string | null;
     })[]>;
     deleteQuestion(id: string, authorId: string): Promise<{
@@ -221,8 +241,8 @@ export declare class QuestionsService {
         title: string;
         body: string;
         views: number;
-        authorId: string;
         isUrgent: boolean;
+        authorId: string;
         acceptedById: string | null;
     }>;
     acceptQuestion(id: string, scholarId: string): Promise<{
@@ -232,8 +252,8 @@ export declare class QuestionsService {
         title: string;
         body: string;
         views: number;
-        authorId: string;
         isUrgent: boolean;
+        authorId: string;
         acceptedById: string | null;
     }>;
     declineQuestion(id: string, scholarId: string): Promise<{
@@ -243,8 +263,8 @@ export declare class QuestionsService {
         title: string;
         body: string;
         views: number;
-        authorId: string;
         isUrgent: boolean;
+        authorId: string;
         acceptedById: string | null;
     }>;
     answerQuestion(questionId: string, scholarId: string, content: string): Promise<{
@@ -264,7 +284,11 @@ export declare class QuestionsService {
         questionId: string;
     }>;
     voteQuestion(questionId: string, userId: string, value: number): Promise<{
-        userId: string;
         value: number;
+        userId: string;
+    }[]>;
+    voteAnswer(answerId: string, userId: string, value: number): Promise<{
+        value: number;
+        userId: string;
     }[]>;
 }
