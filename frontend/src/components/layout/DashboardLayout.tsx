@@ -1,14 +1,14 @@
 "use client"
 
 import { useAuthStore } from "@/store/auth.store"
-import { Search, Home, Bookmark, Settings, Bell, List, Users, ArrowLeft, MessageSquare, PlusCircle, HelpCircle, GraduationCap, LogOut } from "lucide-react"
+import { Search, Home, Bookmark, Settings, Bell, List, Users, ArrowLeft, MessageSquare, PlusCircle, HelpCircle, GraduationCap } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import styles from "@/app/dashboard.module.css"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-    const { user, logout, isAuthenticated } = useAuthStore()
+    const { user, isAuthenticated } = useAuthStore()
     const pathname = usePathname()
     const router = useRouter()
     const [mounted, setMounted] = useState(false)
@@ -16,11 +16,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     useEffect(() => {
         setMounted(true)
     }, [])
-
-    const handleLogout = () => {
-        logout()
-        router.push('/login')
-    }
 
     const mainNav = [
         { name: "Home", icon: <Home />, href: "/" },
@@ -125,13 +120,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             <div className={styles.navItem}><HelpCircle size={18} /> Help Center</div>
                         </div>
 
-                        {mounted && isAuthenticated && (
-                            <div className={styles.sidebarSection} style={{ marginTop: 'auto' }}>
-                                <div className={styles.logoutBtn} onClick={handleLogout}>
-                                    <LogOut size={18} /> Logout
-                                </div>
-                            </div>
-                        )}
                     </nav>
 
                     {/* Daily Hadith Widget */}

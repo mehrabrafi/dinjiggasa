@@ -1,12 +1,21 @@
 "use client"
 
 import React, { useState } from "react"
-import { Bell, Lock, Moon, UserCircle, User, Camera, RefreshCw } from "lucide-react"
+import { Bell, Lock, Moon, UserCircle, User, Camera, RefreshCw, LogOut } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useAuthStore } from "@/store/auth.store"
 import styles from "./settings.module.css"
 
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState("Profile");
+    const { logout } = useAuthStore()
+    const router = useRouter()
+
+    const handleLogout = () => {
+        logout()
+        router.push('/login')
+    }
 
     return (
         <div className={styles.layout}>
@@ -38,87 +47,212 @@ export default function SettingsPage() {
                         <Moon size={18} className={styles.navIcon} /> Display
                     </button>
                 </nav>
+
+                <button className={styles.logoutBtn} onClick={handleLogout}>
+                    <LogOut size={18} /> Logout
+                </button>
             </aside>
 
             {/* Main Content */}
             <main className={styles.mainContent}>
                 <div className={styles.contentWrapper}>
-                    {/* Render different tabs' content depending on active tab. But the mock shows multiple sections as if they scroll. We'll show all or just mock the whole layout as one "Profile" tab for now to match exactly */}
+                    {/* Render different tabs' content depending on active tab */}
                     <div className={styles.centerArea}>
-                        {/* Profile Information Block */}
-                        <div className={styles.sectionTitleRow}>
-                            <h2 className={styles.sectionTitle}>Profile Information</h2>
-                            <span className={styles.visibilityLabel}>Publicly visible</span>
-                        </div>
-                        <div className={styles.card}>
-                            <div className={styles.photoSection}>
-                                <div className={styles.avatarWrapper}>
-                                    <img src="https://ui-avatars.com/api/?name=Ahmed+Ali&background=FFE5D0&color=FF8A00" alt="Avatar" className={styles.avatar} />
-                                    <button className={styles.cameraBtn}>
-                                        <Camera size={12} />
-                                    </button>
+                        {activeTab === 'Profile' && (
+                            <>
+                                {/* Profile Information Block */}
+                                <div className={styles.sectionTitleRow}>
+                                    <h2 className={styles.sectionTitle}>Profile Information</h2>
+                                    <span className={styles.visibilityLabel}>Publicly visible</span>
                                 </div>
-                                <div className={styles.photoMeta}>
-                                    <h3 className={styles.photoHeading}>Profile Photo</h3>
-                                    <p className={styles.photoDesc}>PNG or JPG. Max size 2MB.</p>
+                                <div className={styles.card}>
+                                    <div className={styles.photoSection}>
+                                        <div className={styles.avatarWrapper}>
+                                            <img src="https://ui-avatars.com/api/?name=Ahmed+Ali&background=FFE5D0&color=FF8A00" alt="Avatar" className={styles.avatar} />
+                                            <button className={styles.cameraBtn}>
+                                                <Camera size={12} />
+                                            </button>
+                                        </div>
+                                        <div className={styles.photoMeta}>
+                                            <h3 className={styles.photoHeading}>Profile Photo</h3>
+                                            <p className={styles.photoDesc}>PNG or JPG. Max size 2MB.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className={styles.formGroup}>
+                                        <label className={styles.label}>Full Name</label>
+                                        <input type="text" className={styles.input} defaultValue="Ahmed Al-Farsi" />
+                                    </div>
+
+                                    <div className={styles.formGroup}>
+                                        <label className={styles.label}>Bio</label>
+                                        <textarea className={styles.textarea} defaultValue="Student of knowledge focused on Islamic history and Fiqh."></textarea>
+                                    </div>
+
+                                    <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                                        <label className={styles.label}>Madhab Preference</label>
+                                        <select className={styles.select} defaultValue="Hanafi">
+                                            <option value="Hanafi">Hanafi</option>
+                                            <option value="Maliki">Maliki</option>
+                                            <option value="Shafi'i">Shafi'i</option>
+                                            <option value="Hanbali">Hanbali</option>
+                                        </select>
+                                        <p className={styles.helpText}>This helps scholars tailor their answers to your school of thought if applicable.</p>
+                                    </div>
                                 </div>
-                            </div>
+                            </>
+                        )}
 
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Full Name</label>
-                                <input type="text" className={styles.input} defaultValue="Ahmed Al-Farsi" />
-                            </div>
+                        {activeTab === 'Account' && (
+                            <>
+                                {/* Account Settings Block */}
+                                <h2 className={styles.sectionTitle}>Account Settings</h2>
+                                <div className={styles.card}>
+                                    <div className={styles.formGroup}>
+                                        <label className={styles.label}>Email Address</label>
+                                        <div className={styles.inputWrapper}>
+                                            <input type="email" className={styles.input} defaultValue="ahmed.alfarsi@example.com" />
+                                            <button className={styles.verifyBtn}>Verify</button>
+                                        </div>
+                                    </div>
 
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Bio</label>
-                                <textarea className={styles.textarea} defaultValue="Student of knowledge focused on Islamic history and Fiqh."></textarea>
-                            </div>
-
-                            <div className={styles.formGroup} style={{ marginBottom: 0 }}>
-                                <label className={styles.label}>Madhab Preference</label>
-                                <select className={styles.select} defaultValue="Hanafi">
-                                    <option value="Hanafi">Hanafi</option>
-                                    <option value="Maliki">Maliki</option>
-                                    <option value="Shafi'i">Shafi'i</option>
-                                    <option value="Hanbali">Hanbali</option>
-                                </select>
-                                <p className={styles.helpText}>This helps scholars tailor their answers to your school of thought if applicable.</p>
-                            </div>
-                        </div>
-
-                        {/* Account Settings Block */}
-                        <h2 className={styles.sectionTitle}>Account Settings</h2>
-                        <div className={styles.card}>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Email Address</label>
-                                <div className={styles.inputWrapper}>
-                                    <input type="email" className={styles.input} defaultValue="ahmed.alfarsi@example.com" />
-                                    <button className={styles.verifyBtn}>Verify</button>
+                                    <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                                        <label className={styles.label}>Password</label>
+                                        <button className={styles.btnSecondary}>
+                                            <RefreshCw size={14} /> Change Password
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
+                            </>
+                        )}
 
-                            <div className={styles.formGroup} style={{ marginBottom: 0 }}>
-                                <label className={styles.label}>Password</label>
-                                <button className={styles.btnSecondary}>
-                                    <RefreshCw size={14} /> Change Password
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Display & Interface Block */}
-                        <h2 className={styles.sectionTitle}>Display & Interface</h2>
-                        <div className={styles.card}>
-                            <div className={styles.settingRow}>
-                                <div>
-                                    <h3 className={styles.settingName}>Dark Mode</h3>
-                                    <p className={styles.settingDesc}>Adjust the interface to reduce eye strain</p>
+                        {activeTab === 'Notifications' && (
+                            <>
+                                <h2 className={styles.sectionTitle}>Notifications</h2>
+                                <div className={styles.card}>
+                                    <div className={styles.settingRow}>
+                                        <div>
+                                            <h3 className={styles.settingName}>Reply Notifications</h3>
+                                            <p className={styles.settingDesc}>Get notified when someone replies to your questions</p>
+                                        </div>
+                                        <label className={styles.switch}>
+                                            <input type="checkbox" defaultChecked />
+                                            <span className={styles.slider}></span>
+                                        </label>
+                                    </div>
+                                    <div className={styles.settingRow} style={{ marginTop: '1.5rem' }}>
+                                        <div>
+                                            <h3 className={styles.settingName}>Scholar Mentions</h3>
+                                            <p className={styles.settingDesc}>Get notified when a scholar mentions you or your question</p>
+                                        </div>
+                                        <label className={styles.switch}>
+                                            <input type="checkbox" defaultChecked />
+                                            <span className={styles.slider}></span>
+                                        </label>
+                                    </div>
+                                    <div className={styles.settingRow} style={{ marginTop: '1.5rem' }}>
+                                        <div>
+                                            <h3 className={styles.settingName}>Weekly Digest</h3>
+                                            <p className={styles.settingDesc}>Receive a weekly summary of top questions and answers</p>
+                                        </div>
+                                        <label className={styles.switch}>
+                                            <input type="checkbox" />
+                                            <span className={styles.slider}></span>
+                                        </label>
+                                    </div>
+                                    <div className={styles.settingRow} style={{ marginTop: '1.5rem' }}>
+                                        <div>
+                                            <h3 className={styles.settingName}>Push Notifications</h3>
+                                            <p className={styles.settingDesc}>Get real-time updates directly on your device</p>
+                                        </div>
+                                        <label className={styles.switch}>
+                                            <input type="checkbox" />
+                                            <span className={styles.slider}></span>
+                                        </label>
+                                    </div>
                                 </div>
-                                <label className={styles.switch}>
-                                    <input type="checkbox" />
-                                    <span className={styles.slider}></span>
-                                </label>
-                            </div>
-                        </div>
+                            </>
+                        )}
+
+                        {activeTab === 'Privacy' && (
+                            <>
+                                <h2 className={styles.sectionTitle}>Privacy Settings</h2>
+                                <div className={styles.card}>
+                                    <div className={styles.settingRow}>
+                                        <div>
+                                            <h3 className={styles.settingName}>Profile Visibility</h3>
+                                            <p className={styles.settingDesc}>Make your profile visible to everyone on the platform</p>
+                                        </div>
+                                        <label className={styles.switch}>
+                                            <input type="checkbox" defaultChecked />
+                                            <span className={styles.slider}></span>
+                                        </label>
+                                    </div>
+                                    <div className={styles.settingRow} style={{ marginTop: '1.5rem' }}>
+                                        <div>
+                                            <h3 className={styles.settingName}>Search Engine Indexing</h3>
+                                            <p className={styles.settingDesc}>Allow search engines to index your public questions and profile</p>
+                                        </div>
+                                        <label className={styles.switch}>
+                                            <input type="checkbox" defaultChecked />
+                                            <span className={styles.slider}></span>
+                                        </label>
+                                    </div>
+                                    <div className={styles.formGroup} style={{ marginTop: '2rem', borderTop: '1px solid #f1f5f9', paddingTop: '1.5rem' }}>
+                                        <Link href="/privacy-policy" style={{ color: '#10b981', textDecoration: 'none', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            Read Our Detailed Privacy Policy &rarr;
+                                        </Link>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {activeTab === 'Display' && (
+                            <>
+                                <h2 className={styles.sectionTitle}>Display & Interface</h2>
+                                <div className={styles.card}>
+                                    <div className={styles.settingRow} style={{ marginBottom: '1.5rem' }}>
+                                        <div>
+                                            <h3 className={styles.settingName}>Dark Mode</h3>
+                                            <p className={styles.settingDesc}>Switch between light and dark themes</p>
+                                        </div>
+                                        <label className={styles.switch}>
+                                            <input type="checkbox" />
+                                            <span className={styles.slider}></span>
+                                        </label>
+                                    </div>
+
+                                    <div className={styles.formGroup}>
+                                        <label className={styles.label}>Language</label>
+                                        <select className={styles.select} defaultValue="English">
+                                            <option value="English">English</option>
+                                            <option value="Bengali">Bengali (বাংলা)</option>
+                                            <option value="Arabic">Arabic (العربية)</option>
+                                        </select>
+                                    </div>
+
+                                    <div className={styles.formGroup}>
+                                        <label className={styles.label}>Font Size</label>
+                                        <select className={styles.select} defaultValue="Medium">
+                                            <option value="Small">Small</option>
+                                            <option value="Medium">Medium</option>
+                                            <option value="Large">Large</option>
+                                        </select>
+                                    </div>
+
+                                    <div className={styles.settingRow} style={{ marginTop: '0.5rem' }}>
+                                        <div>
+                                            <h3 className={styles.settingName}>Compact View</h3>
+                                            <p className={styles.settingDesc}>Reduce spacing between elements to show more content</p>
+                                        </div>
+                                        <label className={styles.switch}>
+                                            <input type="checkbox" />
+                                            <span className={styles.slider}></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </>
+                        )}
 
                         {/* Actions */}
                         <div className={styles.actionsCard}>

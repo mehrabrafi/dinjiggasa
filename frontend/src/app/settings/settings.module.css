@@ -447,3 +447,28 @@ input:checked+.slider:before {
 .footerLinks a:hover {
     text-decoration: underline;
 }
+
+.logoutBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #ef4444;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: auto;
+    margin-bottom: 1rem;
+    border: none;
+    background: transparent;
+    width: calc(100% - 2rem);
+    margin-left: 1rem;
+    text-align: left;
+}
+
+.logoutBtn:hover {
+    background-color: #fee2e2;
+    color: #dc2626;
+}

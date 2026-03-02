@@ -1,0 +1,97 @@
+.layout {
+    min-height: 100vh;
+    background-color: var(--background-color, #F5F7FA);
+    display: flex;
+    flex-direction: column;
+}
+
+.mainContent {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    padding: 2rem 1rem;
+}
+
+.contentWrapper {
+    max-width: 800px;
+    width: 100%;
+    background-color: var(--card-bg, #FFFFFF);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    padding: 3rem;
+    color: var(--text-color, #333333);
+}
+
+.title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary-color, #235246);
+    margin-bottom: 0.5rem;
+    text-align: center;
+}
+
+.lastUpdated {
+    text-align: center;
+    color: #666;
+    margin-bottom: 3rem;
+    font-size: 0.9rem;
+}
+
+.section {
+    margin-bottom: 2rem;
+}
+
+.sectionTitle {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--primary-color, #235246);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.text {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--text-color, #4A5568);
+    margin-bottom: 1rem;
+}
+
+.list {
+    list-style-type: disc;
+    padding-left: 1.5rem;
+    margin-bottom: 1rem;
+    color: var(--text-color, #4A5568);
+}
+
+.list li {
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+}
+
+.backBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    color: var(--primary-color, #235246);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.backBtn:hover {
+    color: var(--primary-hover, #1a3d34);
+    text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+    .contentWrapper {
+        padding: 1.5rem;
+    }
+
+    .title {
+        font-size: 2rem;
+    }
+}

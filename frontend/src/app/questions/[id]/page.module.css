@@ -3,8 +3,9 @@
     display: flex;
     flex-direction: column;
     gap: 2rem;
-    max-width: 800px;
+    max-width: 1000px;
     margin: 0 auto;
+    padding: 0 1rem;
 }
 
 .backButton {
@@ -311,6 +312,19 @@
     gap: 0.5rem;
     font-size: 0.875rem;
     font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.upvotePill:hover {
+    background-color: #dcfce7;
+    transform: translateY(-1px);
+}
+
+.upvotePillActive {
+    background-color: #10b981;
+    color: white;
+    border-color: #10b981;
 }
 
 /* Sidebar Widgets */
@@ -409,4 +423,29 @@
     margin-top: 0.2rem;
     color: #10b981;
     flex-shrink: 0;
+}
+
+.footerLinksWrapper {
+    margin-top: 3rem;
+    padding: 1.5rem 0;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #9ca3af;
+    font-size: 0.75rem;
+}
+
+.footerLinks {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.footerLinks span {
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.footerLinks span:hover {
+    color: #6b7280;
 }

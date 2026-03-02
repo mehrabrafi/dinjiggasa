@@ -33,6 +33,33 @@ export default function MyQuestionsPage() {
     const [questions, setQuestions] = useState<Question[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
+    const [status, setStatus] = useState("All")
+    const [sortBy, setSortBy] = useState("Newest")
+    const [currentPage, setCurrentPage] = useState(1)
+    const [totalPages, setTotalPages] = useState(1)
+
+    const fetchQuestions = async (isSearch = false) => {
+        setIsLoading(true)
+        try {
+            const res = await api.get('/questions/my-questions', {
+                params: {
+                    status: status !== 'All' ? status : undefined,
+                    sort: sortBy,
+                    search: searchQuery,
+                    page: isSearch ? 1 : currentPage,
+                    limit: 10
+                }
+            })
+            setQuestions(res.data.questions)
+            setTotalPages(res.data.totalPages)
+            if (isSearch) setCurrentPage(1)
+        } catch (error) {
+            console.error("Error fetching my questions:", error)
+            toast.error("Failed to load your questions")
+        } finally {
+            setIsLoading(false)
+        }
+    }
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -40,36 +67,31 @@ export default function MyQuestionsPage() {
             return
         }
 
-        const fetchQuestions = async () => {
-            try {
-                const res = await api.get('/questions/my-questions')
-                setQuestions(res.data)
-            } catch (error) {
-                console.error("Error fetching my questions:", error)
-                toast.error("Failed to load your questions")
-            } finally {
-                setIsLoading(false)
-            }
-        }
-
+        // Immediate fetch for non-search changes
         fetchQuestions()
-    }, [isAuthenticated, router])
+    }, [isAuthenticated, router, status, sortBy, currentPage])
+
+    useEffect(() => {
+        // Debounce search query
+        const timeoutId = setTimeout(() => {
+            if (isAuthenticated) {
+                fetchQuestions(true)
+            }
+        }, 500)
+        return () => clearTimeout(timeoutId)
+    }, [searchQuery])
 
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to delete this question?")) return;
         try {
             await api.post(`/questions/${id}/delete`)
             toast.success("Question deleted")
-            setQuestions(questions.filter(q => q.id !== id))
+            fetchQuestions() // Reload current page
         } catch (error) {
             console.error("Error deleting question:", error)
             toast.error("Failed to delete question")
         }
     }
-
-    const filteredQuestions = questions.filter(q =>
-        q.title.toLowerCase().includes(searchQuery.toLowerCase())
-    )
 
     return (
         <DashboardLayout>
@@ -80,6 +102,35 @@ export default function MyQuestionsPage() {
                 </div>
 
                 <div className={styles.toolbar}>
+                    <div className={styles.filtersRow}>
+                        <div className={styles.filters}>
+                            <div className={styles.filterWrapper}>
+                                <span className={styles.filterLabel}>Status:</span>
+                                <select
+                                    className={styles.filterDropdown}
+                                    value={status}
+                                    onChange={(e) => { setStatus(e.target.value); setCurrentPage(1); }}
+                                >
+                                    <option value="All">All Status</option>
+                                    <option value="Pending Review">Pending Review</option>
+                                    <option value="Answered">Answered</option>
+                                    <option value="Accepted (Under Review)">Accepted (Under Review)</option>
+                                </select>
+                            </div>
+                            <div className={styles.filterWrapper}>
+                                <span className={styles.filterLabel}>Sort:</span>
+                                <select
+                                    className={styles.filterDropdown}
+                                    value={sortBy}
+                                    onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }}
+                                >
+                                    <option value="Newest">Newest</option>
+                                    <option value="Oldest">Oldest</option>
+                                    <option value="Most Viewed">Most Viewed</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                     <div className={styles.searchBar}>
                         <Search size={18} color="#9ca3af" />
                         <input
@@ -90,23 +141,15 @@ export default function MyQuestionsPage() {
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
-                    <div className={styles.filters}>
-                        <button className={styles.filterSelect}>
-                            Status: All <ChevronDown size={16} color="#64748b" />
-                        </button>
-                        <button className={styles.filterSelect}>
-                            Sort: Newest <ListOrdered size={16} color="#64748b" />
-                        </button>
-                    </div>
                 </div>
 
                 <div className={styles.cardList}>
                     {isLoading ? (
                         <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>Loading your questions...</div>
-                    ) : filteredQuestions.length === 0 ? (
+                    ) : questions.length === 0 ? (
                         <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>No questions found.</div>
                     ) : (
-                        filteredQuestions.map(q => {
+                        questions.map(q => {
                             const hasAnswers = q._count.answers > 0;
 
                             let statusText = "Pending Review";
@@ -173,13 +216,29 @@ export default function MyQuestionsPage() {
                 </div>
 
                 {/* Pagination */}
-                {!isLoading && filteredQuestions.length > 0 && (
+                {!isLoading && totalPages > 1 && (
                     <div className={styles.pagination}>
-                        <button className={styles.pageBtn}>
+                        <button
+                            className={styles.pageBtn}
+                            disabled={currentPage === 1}
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        >
                             <ChevronLeft size={18} />
                         </button>
-                        <button className={`${styles.pageBtn} ${styles.pageBtnActive}`}>1</button>
-                        <button className={styles.pageBtn}>
+                        {[...Array(totalPages)].map((_, i) => (
+                            <button
+                                key={i}
+                                className={`${styles.pageBtn} ${currentPage === i + 1 ? styles.pageBtnActive : ''}`}
+                                onClick={() => setCurrentPage(i + 1)}
+                            >
+                                {i + 1}
+                            </button>
+                        ))}
+                        <button
+                            className={styles.pageBtn}
+                            disabled={currentPage === totalPages}
+                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        >
                             <ChevronRight size={18} />
                         </button>
                     </div>
