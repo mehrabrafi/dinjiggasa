@@ -6,6 +6,7 @@ import {
   Post,
   UseGuards,
   Request,
+  Query,
 } from '@nestjs/common';
 import { QuestionsService } from './questions.service';
 import { CreateQuestionDto } from './dto/create-question.dto';
@@ -34,8 +35,19 @@ export class QuestionsController {
 
   @UseGuards(JwtAuthGuard)
   @Get('my-questions')
-  findMyQuestions(@Request() req: any) {
-    return this.questionsService.findMyQuestions(req.user.id);
+  findMyQuestions(
+    @Request() req: any,
+    @Query('status') status?: string,
+    @Query('sort') sort?: string,
+    @Query('search') search?: string,
+    @Query('page') page?: string,
+  ) {
+    return this.questionsService.findMyQuestions(req.user.id, {
+      status,
+      sort,
+      search,
+      page: page ? parseInt(page) : 1
+    });
   }
 
   @UseGuards(JwtAuthGuard)
@@ -75,6 +87,16 @@ export class QuestionsController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.questionsService.findOne(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('answers/:id/vote')
+  voteAnswer(
+    @Param('id') id: string,
+    @Body() dto: { value: number },
+    @Request() req: any
+  ) {
+    return this.questionsService.voteAnswer(id, req.user.id, dto.value);
   }
 
   @UseGuards(JwtAuthGuard)
