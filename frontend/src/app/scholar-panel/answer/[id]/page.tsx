@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import styles from '../answer-question.module.css'
@@ -13,21 +13,22 @@ import {
     Tag,
     TextCursorInput,
     Mic,
-    Bold,
-    Italic,
-    List,
-    ListOrdered,
-    Quote,
-    Type,
-    Link2,
-    HelpCircle,
     Send,
     CheckCircle2,
     Lightbulb,
     Info,
     ChevronDown,
-    X
+    X,
+    Square,
+    Trash2,
+    Plus,
+    HelpCircle,
+    Save
 } from 'lucide-react'
+import dynamic from 'next/dynamic'
+import 'react-quill-new/dist/quill.snow.css'
+
+const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false })
 
 export default function AnswerQuestionPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = React.use(params)
@@ -36,12 +37,23 @@ export default function AnswerQuestionPage({ params }: { params: Promise<{ id: s
     const { user, isAuthenticated } = useAuthStore()
     const router = useRouter()
 
-    const [activeTab, setActiveTab] = useState('text')
+    const [activeTab, setActiveTab] = useState<'text' | 'voice'>('text')
     const [categories, setCategories] = useState<string[]>([])
     const [question, setQuestion] = useState<any>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [answerText, setAnswerText] = useState('')
     const [isPublishing, setIsPublishing] = useState(false)
+    const [categoryInput, setCategoryInput] = useState('')
+    const [allTags, setAllTags] = useState<string[]>([])
+    const [isTagDropdownOpen, setIsTagDropdownOpen] = useState(false)
+    const [isSavingDraft, setIsSavingDraft] = useState(false)
+
+    const [isRecording, setIsRecording] = useState(false)
+    const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
+    const [audioUrl, setAudioUrl] = useState<string>('')
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+    const audioChunksRef = useRef<Blob[]>([])
+    const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -75,28 +87,168 @@ export default function AnswerQuestionPage({ params }: { params: Promise<{ id: s
             }
         }
 
+        const fetchAllTags = async () => {
+            try {
+                const res = await api.get('/questions/tags/all')
+                setAllTags(res.data)
+            } catch (err) {
+                console.error("Failed to fetch tags", err)
+            }
+        }
+
+        const fetchDraft = async () => {
+            try {
+                const res = await api.get(`/questions/${questionId}/draft`)
+                if (res.data) {
+                    if (res.data.content && res.data.content !== 'Voice Answer') {
+                        setAnswerText(res.data.content)
+                    }
+                    if (res.data.voiceUrl) {
+                        setAudioUrl(res.data.voiceUrl)
+                        setActiveTab('voice')
+                    }
+                }
+            } catch (err) { }
+        }
+
         fetchQuestion()
+        fetchAllTags()
+        fetchDraft()
     }, [isAuthenticated, user, router, questionId])
+
+    const filteredTags = useMemo(() => {
+        if (!categoryInput.trim()) return []
+        return allTags.filter(t =>
+            t.toLowerCase().includes(categoryInput.toLowerCase()) &&
+            !categories.includes(t)
+        )
+    }, [allTags, categoryInput, categories])
 
     const removeCategory = (cat: string) => {
         setCategories(categories.filter(c => c !== cat))
     }
 
+    const handleAddCategory = (forcedValue?: string) => {
+        const val = forcedValue || categoryInput.trim()
+        if (val) {
+            if (!categories.includes(val)) {
+                setCategories([...categories, val])
+            }
+            setCategoryInput('')
+            setIsTagDropdownOpen(false)
+        }
+    }
+
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+            const mediaRecorder = new MediaRecorder(stream)
+            mediaRecorderRef.current = mediaRecorder
+            audioChunksRef.current = []
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    audioChunksRef.current.push(event.data)
+                }
+            }
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+                setAudioBlob(blob)
+                setAudioUrl(URL.createObjectURL(blob))
+            }
+
+            mediaRecorder.start()
+            setIsRecording(true)
+        } catch (error) {
+            console.error("Error accessing microphone", error)
+            toast.error("Could not access microphone")
+        }
+    }
+
+    const stopRecording = () => {
+        if (mediaRecorderRef.current && isRecording) {
+            mediaRecorderRef.current.stop()
+            setIsRecording(false)
+            mediaRecorderRef.current.stream.getTracks().forEach((track: any) => track.stop())
+        }
+    }
+
+    const discardVoice = () => {
+        setAudioBlob(null)
+        setAudioUrl('')
+    }
+
+    const handleSaveDraft = async () => {
+        if (!answerText.trim() && !audioBlob && !audioUrl) {
+            toast.error("Nothing to save as draft.")
+            return
+        }
+
+        setIsSavingDraft(true)
+        try {
+            let voiceUrl = audioUrl;
+
+            // If there's a new recording, upload it first
+            if (activeTab === 'voice' && audioBlob) {
+                const formData = new FormData()
+                formData.append('file', audioBlob, 'voice-draft.webm')
+                const uploadRes = await api.post('/upload/answer-voice', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                })
+                voiceUrl = uploadRes.data.voiceUrl
+            }
+
+            await api.post(`/questions/${questionId}/draft`, {
+                content: activeTab === 'text' ? answerText : 'Voice Answer',
+                voiceUrl: voiceUrl
+            })
+            toast.success("Draft saved successfully!")
+            if (voiceUrl) setAudioUrl(voiceUrl);
+        } catch (err: any) {
+            console.error("Failed to save draft", err)
+            toast.error(err.response?.data?.message || "Failed to save draft")
+        } finally {
+            setIsSavingDraft(false)
+        }
+    }
+
     const handlePublish = async () => {
-        if (!answerText.trim()) {
+        if (categories.length === 0) {
+            toast.error("Please add at least one category before publishing.")
+            return
+        }
+
+        if (activeTab === 'text' && !answerText.trim()) {
             toast.error("Answer cannot be empty")
             return
         }
 
-        // Ideally you want to check word length or other conditions here
+        if (activeTab === 'voice' && !audioBlob && !audioUrl) {
+            toast.error("Please record a voice answer")
+            return
+        }
 
         setIsPublishing(true)
         try {
+            let voiceUrl = audioUrl;
+
+            if (activeTab === 'voice' && audioBlob) {
+                const formData = new FormData()
+                formData.append('file', audioBlob, 'voice-answer.webm')
+                const uploadRes = await api.post('/upload/answer-voice', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                })
+                voiceUrl = uploadRes.data.voiceUrl
+            }
+
             await api.post(`/questions/${questionId}/answers`, {
-                content: answerText
+                content: activeTab === 'text' ? answerText : 'Voice Answer',
+                categories: categories,
+                voiceUrl: voiceUrl
             })
             toast.success("Answer published successfully!")
-            router.push('/scholar-panel/new-questions')
+            router.push('/scholar-panel/pending')
         } catch (err: any) {
             console.error("Failed to publish answer", err)
             toast.error(err.response?.data?.message || "Failed to publish answer")
@@ -104,6 +256,11 @@ export default function AnswerQuestionPage({ params }: { params: Promise<{ id: s
             setIsPublishing(false)
         }
     }
+
+
+    const isTextEmpty = !answerText || answerText === '<p><br></p>' || answerText.replace(/<[^>]*>?/gm, '').trim() === '';
+    const hasText = !isTextEmpty;
+    const hasVoice = audioBlob !== null || audioUrl !== '' || isRecording;
 
     if (isLoading) {
         return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontWeight: 600, color: 'var(--primary)' }}>Loading question...</div>
@@ -132,9 +289,6 @@ export default function AnswerQuestionPage({ params }: { params: Promise<{ id: s
                         {question.tags?.map((tag: any) => (
                             <span key={tag.id} className={styles.tag}>#{tag.name}</span>
                         ))}
-                        {(!question.tags || question.tags.length === 0) && (
-                            <span className={styles.tag}>#General</span>
-                        )}
                     </div>
                 </div>
 
@@ -149,14 +303,36 @@ export default function AnswerQuestionPage({ params }: { params: Promise<{ id: s
                                 {cat} <X size={14} className={styles.removeCategory} onClick={() => removeCategory(cat)} />
                             </div>
                         ))}
-                        <input type="text" placeholder="Search or add categories..." className={styles.categoryInput} />
-                    </div>
-                    <div className={styles.suggestedGroup}>
-                        <span className={styles.suggestedLabel}>Suggested Categories:</span>
-                        <div className={styles.suggestion}>Fiqh</div>
-                        <div className={styles.suggestion}>Hadith</div>
-                        <div className={styles.suggestion}>Contemporary</div>
-                        <div className={styles.suggestion}>Spirituality</div>
+                        <input
+                            type="text"
+                            placeholder="Search existing or type new..."
+                            className={styles.categoryInput}
+                            value={categoryInput}
+                            onChange={(e) => {
+                                setCategoryInput(e.target.value)
+                                setIsTagDropdownOpen(true)
+                            }}
+                            onFocus={() => setIsTagDropdownOpen(true)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    handleAddCategory();
+                                }
+                            }}
+                        />
+                        {isTagDropdownOpen && filteredTags.length > 0 && (
+                            <div className={styles.tagDropdown}>
+                                {filteredTags.map(tag => (
+                                    <div
+                                        key={tag}
+                                        className={styles.tagOption}
+                                        onClick={() => handleAddCategory(tag)}
+                                    >
+                                        {tag}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -165,13 +341,27 @@ export default function AnswerQuestionPage({ params }: { params: Promise<{ id: s
                     <div className={styles.editorTabs}>
                         <div
                             className={`${styles.editorTab} ${activeTab === 'text' ? styles.editorTabActive : ''}`}
-                            onClick={() => setActiveTab('text')}
+                            onClick={() => {
+                                if (hasVoice && activeTab !== 'text') {
+                                    toast.error("Please discard your voice answer first to write a text answer.");
+                                    return;
+                                }
+                                setActiveTab('text');
+                            }}
+                            style={{ opacity: (activeTab !== 'text' && hasVoice) ? 0.5 : 1, cursor: (activeTab !== 'text' && hasVoice) ? 'not-allowed' : 'pointer' }}
                         >
                             <TextCursorInput size={18} /> Text Answer
                         </div>
                         <div
                             className={`${styles.editorTab} ${activeTab === 'voice' ? styles.editorTabActive : ''}`}
-                            onClick={() => setActiveTab('voice')}
+                            onClick={() => {
+                                if (hasText && activeTab !== 'voice') {
+                                    toast.error("Please clear your text answer first to record a voice answer.");
+                                    return;
+                                }
+                                setActiveTab('voice');
+                            }}
+                            style={{ opacity: (activeTab !== 'voice' && hasText) ? 0.5 : 1, cursor: (activeTab !== 'voice' && hasText) ? 'not-allowed' : 'pointer' }}
                         >
                             <Mic size={18} /> Voice Answer
                         </div>
@@ -179,47 +369,104 @@ export default function AnswerQuestionPage({ params }: { params: Promise<{ id: s
 
                     {activeTab === 'text' && (
                         <>
-                            <div className={styles.editorToolbar}>
-                                <div className={styles.toolbarBtn}><Bold size={18} /></div>
-                                <div className={styles.toolbarBtn}><Italic size={18} /></div>
-                                <div className={styles.toolbarBtn} style={{ margin: '0 0.5rem', width: '1px', height: '1.25rem', background: '#e2e8f0' }} />
-                                <div className={styles.toolbarBtn}><List size={18} /></div>
-                                <div className={styles.toolbarBtn}><ListOrdered size={18} /></div>
-                                <div className={styles.toolbarBtn} style={{ margin: '0 0.5rem', width: '1px', height: '1.25rem', background: '#e2e8f0' }} />
-                                <div className={styles.toolbarBtn}><Quote size={18} /></div>
-                                <div className={styles.toolbarBtn}><Type size={18} /></div>
-                                <div className={styles.toolbarBtn} style={{ margin: '0 0.5rem', width: '1px', height: '1.25rem', background: '#e2e8f0' }} />
-                                <div className={styles.toolbarBtn}><Link2 size={18} /></div>
-                                {/* <div className={styles.autosave}>Auto-saved 1m ago</div> */}
-                            </div>
-
-                            <div className={styles.editorBody} style={{ padding: 0 }}>
-                                <textarea
-                                    style={{
-                                        width: '100%',
-                                        minHeight: '400px',
-                                        padding: '2rem',
-                                        border: 'none',
-                                        resize: 'vertical',
-                                        outline: 'none',
-                                        fontSize: '1rem',
-                                        lineHeight: 1.6,
-                                        color: '#334155'
-                                    }}
-                                    placeholder="Begin your answer here with Bismillah..."
+                            <div className={styles.editorBody} style={{ padding: '0', minHeight: '400px', display: 'flex', flexDirection: 'column' }}>
+                                <style>{`
+                                    .ql-toolbar.ql-snow {
+                                        background: #f8faf9 !important;
+                                        border: none !important;
+                                        border-bottom: 1px solid #e2e8f0 !important;
+                                        padding: 8px 12px !important;
+                                        border-radius: 20px 20px 0 0 !important;
+                                    }
+                                    .ql-container.ql-snow {
+                                        border: none !important;
+                                        font-size: 1.05rem !important;
+                                        font-family: inherit !important;
+                                        flex: 1 !important;
+                                        background: transparent !important;
+                                        min-height: 350px !important;
+                                    }
+                                    .ql-editor {
+                                        min-height: 350px !important;
+                                        padding: 1.5rem !important;
+                                        color: #1e293b !important;
+                                        line-height: 1.8 !important;
+                                    }
+                                    .ql-editor.ql-blank::before {
+                                        color: #cbd5e1 !important;
+                                        font-style: italic !important;
+                                        left: 1.5rem !important;
+                                    }
+                                    .ql-toolbar.ql-snow .ql-picker-label:hover,
+                                    .ql-toolbar.ql-snow .ql-picker-label.ql-active,
+                                    .ql-toolbar.ql-snow .ql-picker-item:hover,
+                                    .ql-toolbar.ql-snow .ql-picker-item.ql-selected,
+                                    .ql-toolbar.ql-snow button:hover,
+                                    .ql-toolbar.ql-snow button:focus,
+                                    .ql-toolbar.ql-snow button.ql-active {
+                                        color: #006D5B !important;
+                                    }
+                                    .ql-toolbar.ql-snow .ql-stroke {
+                                        stroke: #475569;
+                                    }
+                                    .ql-toolbar.ql-snow button:hover .ql-stroke,
+                                    .ql-toolbar.ql-snow button:focus .ql-stroke,
+                                    .ql-toolbar.ql-snow button.ql-active .ql-stroke,
+                                    .ql-toolbar.ql-snow .ql-picker-label:hover .ql-stroke,
+                                    .ql-toolbar.ql-snow .ql-picker-label.ql-active .ql-stroke {
+                                        stroke: #006D5B !important;
+                                    }
+                                    .ql-toolbar.ql-snow .ql-fill {
+                                        fill: #475569;
+                                    }
+                                    .ql-toolbar.ql-snow button:hover .ql-fill,
+                                    .ql-toolbar.ql-snow button:focus .ql-fill,
+                                    .ql-toolbar.ql-snow button.ql-active .ql-fill,
+                                    .ql-toolbar.ql-snow .ql-picker-label:hover .ql-fill,
+                                    .ql-toolbar.ql-snow .ql-picker-label.ql-active .ql-fill {
+                                        fill: #006D5B !important;
+                                    }
+                                    .ql-editor h1, .ql-editor h2, .ql-editor h3, .ql-editor h4, .ql-editor h5, .ql-editor h6 {
+                                        margin-bottom: 0.5rem;
+                                        color: #006D5B;
+                                    }
+                                `}</style>
+                                <ReactQuill
+                                    theme="snow"
                                     value={answerText}
-                                    onChange={(e) => setAnswerText(e.target.value)}
-                                ></textarea>
+                                    onChange={setAnswerText}
+                                    placeholder="Begin your answer here with Bismillah..."
+                                    style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+                                    modules={{
+                                        toolbar: [
+                                            [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                                            ['bold', 'italic', 'underline', 'strike'],
+                                            ['blockquote'],
+                                            [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'list': 'check' }]
+                                        ]
+                                    }}
+                                />
                             </div>
                         </>
                     )}
 
                     {activeTab === 'voice' && (
                         <div className={styles.editorBody} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', gap: '1rem' }}>
-                            <div style={{ padding: '2rem', borderRadius: '50%', background: '#ecfdf5', color: '#10b981', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                <Mic size={48} />
-                            </div>
-                            <p style={{ color: '#64748b', fontWeight: 500 }}>Voice answers are coming soon!</p>
+                            {!audioBlob && !audioUrl ? (
+                                <>
+                                    <div onClick={isRecording ? stopRecording : startRecording} style={{ cursor: 'pointer', padding: '2rem', borderRadius: '50%', background: isRecording ? '#fee2e2' : '#ecfdf5', color: isRecording ? '#ef4444' : '#10b981', display: 'flex', justifyContent: 'center', alignItems: 'center', transition: 'all 0.2s', boxShadow: isRecording ? '0 0 0 4px rgba(239, 68, 68, 0.2)' : 'none' }}>
+                                        {isRecording ? <Square size={48} /> : <Mic size={48} />}
+                                    </div>
+                                    <p style={{ color: '#64748b', fontWeight: 500 }}>{isRecording ? 'Listening... click to stop' : 'Click microphone to record your answer'}</p>
+                                </>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', width: '100%', maxWidth: '400px' }}>
+                                    <audio src={audioUrl} controls style={{ width: '100%' }} />
+                                    <button onClick={discardVoice} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', border: '1px solid #ef4444', color: '#ef4444', background: 'transparent', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 500 }}>
+                                        <Trash2 size={18} /> Discard & Record Again
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -229,14 +476,24 @@ export default function AnswerQuestionPage({ params }: { params: Promise<{ id: s
                     <button className={styles.clarificationBtn}>
                         <HelpCircle size={18} /> Ask for Clarification
                     </button>
-                    <button
-                        className={styles.publishBtn}
-                        onClick={handlePublish}
-                        disabled={isPublishing || !answerText.trim() || activeTab !== 'text'}
-                        style={{ opacity: (isPublishing || !answerText.trim() || activeTab !== 'text') ? 0.7 : 1 }}
-                    >
-                        <Send size={18} /> {isPublishing ? 'Publishing...' : 'Publish Answer'}
-                    </button>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        <button
+                            className={styles.draftBtn}
+                            onClick={handleSaveDraft}
+                            disabled={isSavingDraft || isPublishing || (activeTab === 'text' && isTextEmpty) || (activeTab === 'voice' && !hasVoice)}
+                            style={{ opacity: (isSavingDraft || isPublishing) ? 0.7 : 1 }}
+                        >
+                            <Save size={18} /> {isSavingDraft ? 'Saving...' : 'Save as Draft'}
+                        </button>
+                        <button
+                            className={styles.publishBtn}
+                            onClick={handlePublish}
+                            disabled={isPublishing || categories.length === 0 || (activeTab === 'text' && isTextEmpty) || (activeTab === 'voice' && !hasVoice)}
+                            style={{ opacity: (isPublishing || categories.length === 0) ? 0.7 : 1 }}
+                        >
+                            <Send size={18} /> {isPublishing ? 'Publishing...' : 'Publish Answer'}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Footer Section */}
@@ -250,44 +507,7 @@ export default function AnswerQuestionPage({ params }: { params: Promise<{ id: s
                 </footer>
             </div>
 
-            <div className={styles.sidebarColumn}>
-                {/* Guidelines Card */}
-                <div className={styles.sidebarCard}>
-                    <div className={styles.cardTitleSection}>
-                        <Lightbulb size={20} /> Scholar Guidelines
-                    </div>
-                    <div className={styles.guidelineList}>
-                        <div className={styles.guidelineItem}>
-                            <div className={styles.checkWrapper}><CheckCircle2 size={16} /></div>
-                            <span>Ensure all Quranic verses include the Arabic text alongside the translation.</span>
-                        </div>
-                        <div className={styles.guidelineItem}>
-                            <div className={styles.checkWrapper}><CheckCircle2 size={16} /></div>
-                            <span>Verify Hadith authenticity and mention the grade (Sahih, Hasan, etc.).</span>
-                        </div>
-                        <div className={styles.guidelineItem}>
-                            <div className={styles.checkWrapper}><CheckCircle2 size={16} /></div>
-                            <span>Maintain a compassionate, clear, and professional tone throughout your answer.</span>
-                        </div>
-                        <div className={styles.guidelineItem}>
-                            <div className={styles.checkWrapper}><CheckCircle2 size={16} /></div>
-                            <span>Use bullet points for lists to improve readability for mobile users.</span>
-                        </div>
-                        <div className={styles.guidelineItem}>
-                            <div className={styles.checkWrapper}><CheckCircle2 size={16} /></div>
-                            <span>Reference contemporary scholars when discussing modern fiqh issues.</span>
-                        </div>
-                    </div>
-                </div>
 
-                {/* Status Card */}
-                <div className={styles.statusCard}>
-                    <div className={styles.statusLabel}>Editor Status</div>
-                    <div className={styles.statusIndicator}>
-                        <div className={styles.activeDot} /> Active Session
-                    </div>
-                </div>
-            </div>
         </div>
     )
 }

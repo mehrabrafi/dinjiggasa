@@ -1,14 +1,14 @@
 .layout {
     display: flex;
     min-height: 100vh;
-    background-color: #f8fafc;
+    background-color: var(--background, #f8fafc);
     font-family: inherit;
 }
 
 .sidebar {
     width: 250px;
-    background-color: #ffffff;
-    border-right: 1px solid #e2e8f0;
+    background-color: var(--card, #ffffff);
+    border-right: 1px solid var(--border, #e2e8f0);
     display: flex;
     flex-direction: column;
     position: sticky;
@@ -23,7 +23,7 @@
     gap: 0.75rem;
     padding: 1.5rem 1.25rem;
     text-decoration: none;
-    color: #0f172a;
+    color: var(--foreground, #0f172a);
     border-bottom: 1px solid transparent;
 }
 
@@ -59,7 +59,7 @@
     background: transparent;
     border: none;
     border-radius: 8px;
-    color: #64748b;
+    color: var(--muted-foreground, #64748b);
     font-size: 0.9rem;
     font-weight: 500;
     cursor: pointer;
@@ -68,18 +68,18 @@
 }
 
 .navItem:hover {
-    background-color: #f1f5f9;
-    color: #0f172a;
+    background-color: var(--muted, #f1f5f9);
+    color: var(--foreground, #0f172a);
 }
 
 .navItemActive {
-    background-color: #ecfdf5;
-    color: #10b981;
+    background-color: rgba(0, 109, 91, 0.1);
+    color: var(--primary);
     font-weight: 600;
 }
 
 .navItemActive .navIcon {
-    color: #10b981;
+    color: var(--primary);
 }
 
 .navIcon {
@@ -119,7 +119,7 @@
 .sectionTitle {
     font-size: 1.25rem;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--foreground, #0f172a);
     margin: 0;
     margin-top: 2rem;
 }
@@ -130,16 +130,16 @@
 
 .visibilityLabel {
     font-size: 0.8rem;
-    color: #94a3b8;
+    color: var(--muted-foreground, #94a3b8);
     font-weight: 500;
 }
 
 .card {
-    background-color: #ffffff;
+    background-color: var(--card, #ffffff);
     border-radius: 8px;
     padding: 2rem;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border, #e2e8f0);
 }
 
 .photoSection {
@@ -169,25 +169,25 @@
     width: 26px;
     height: 26px;
     border-radius: 50%;
-    background-color: #10b981;
+    background-color: var(--primary);
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 3px solid #ffffff;
+    border: 3px solid var(--card, #ffffff);
     cursor: pointer;
 }
 
 .photoHeading {
     font-size: 1rem;
     font-weight: 600;
-    color: #0f172a;
+    color: var(--foreground, #0f172a);
     margin-bottom: 0.35rem;
 }
 
 .photoDesc {
     font-size: 0.85rem;
-    color: #64748b;
+    color: var(--muted-foreground, #64748b);
 }
 
 .formGroup {
@@ -198,7 +198,7 @@
     display: block;
     font-size: 0.9rem;
     font-weight: 600;
-    color: #334155;
+    color: var(--foreground, #334155);
     margin-bottom: 0.5rem;
 }
 
@@ -207,11 +207,11 @@
 .select {
     width: 100%;
     padding: 0.75rem 1rem;
-    border: 1px solid #cbd5e1;
+    border: 1px solid var(--border, #cbd5e1);
     border-radius: 6px;
     font-size: 0.95rem;
-    color: #1e293b;
-    background-color: #ffffff;
+    color: var(--foreground, #1e293b);
+    background-color: var(--card, #ffffff);
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -228,8 +228,8 @@
 .input:focus,
 .textarea:focus,
 .select:focus {
-    border-color: #10b981;
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(0, 109, 91, 0.1);
 }
 
 .textarea {
@@ -239,7 +239,7 @@
 
 .helpText {
     font-size: 0.8rem;
-    color: #94a3b8;
+    color: var(--muted-foreground, #94a3b8);
     margin-top: 0.5rem;
 }
 
@@ -254,7 +254,7 @@
     right: 1.25rem;
     background: transparent;
     border: none;
-    color: #10b981;
+    color: var(--primary);
     font-weight: 600;
     font-size: 0.9rem;
     cursor: pointer;
@@ -265,18 +265,18 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.65rem 1.25rem;
-    background-color: #ffffff;
-    border: 1px solid #cbd5e1;
+    background-color: var(--card, #ffffff);
+    border: 1px solid var(--border, #cbd5e1);
     border-radius: 6px;
     font-size: 0.9rem;
     font-weight: 600;
-    color: #334155;
+    color: var(--foreground, #334155);
     cursor: pointer;
     transition: background-color 0.2s;
 }
 
 .btnSecondary:hover {
-    background-color: #f8fafc;
+    background-color: var(--background, #f8fafc);
 }
 
 .settingRow {
@@ -288,13 +288,13 @@
 .settingName {
     font-size: 1rem;
     font-weight: 600;
-    color: #0f172a;
+    color: var(--foreground, #0f172a);
     margin-bottom: 0.25rem;
 }
 
 .settingDesc {
     font-size: 0.85rem;
-    color: #64748b;
+    color: var(--muted-foreground, #64748b);
 }
 
 .switch {
@@ -317,7 +317,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: #cbd5e1;
+    background-color: var(--border, #cbd5e1);
     transition: .4s;
     border-radius: 24px;
 }
@@ -336,7 +336,7 @@
 }
 
 input:checked+.slider {
-    background-color: #10b981;
+    background-color: var(--primary);
 }
 
 input:checked+.slider:before {
@@ -344,7 +344,7 @@ input:checked+.slider:before {
 }
 
 .actionsCard {
-    background-color: #ffffff;
+    background-color: var(--card, #ffffff);
     border-radius: 8px;
     padding: 1.5rem 2rem;
     display: flex;
@@ -352,25 +352,25 @@ input:checked+.slider:before {
     align-items: center;
     gap: 1.5rem;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border, #e2e8f0);
     margin-top: 1rem;
 }
 
 .btnCancel {
     background: transparent;
     border: none;
-    color: #334155;
+    color: var(--foreground, #334155);
     font-weight: 600;
     font-size: 0.95rem;
     cursor: pointer;
 }
 
 .btnCancel:hover {
-    color: #0f172a;
+    color: var(--foreground, #0f172a);
 }
 
 .btnSave {
-    background-color: #22c55e;
+    background-color: var(--primary);
     color: white;
     border: none;
     padding: 0.75rem 1.5rem;
@@ -378,11 +378,11 @@ input:checked+.slider:before {
     font-weight: 600;
     font-size: 0.95rem;
     cursor: pointer;
-    box-shadow: 0 1px 2px rgba(34, 197, 94, 0.2);
+    box-shadow: 0 1px 2px rgba(0, 109, 91, 0.2);
 }
 
 .btnSave:hover {
-    background-color: #16a34a;
+    background-color: var(--primary-hover);
 }
 
 .rightSidebar {
@@ -391,8 +391,8 @@ input:checked+.slider:before {
 }
 
 .helpWidget {
-    background-color: #f0fdf4;
-    border: 1px solid #dcfce7;
+    background-color: rgba(0, 109, 91, 0.05);
+    border: 1px solid rgba(0, 109, 91, 0.1);
     border-radius: 8px;
     padding: 1.5rem;
 }
@@ -400,14 +400,15 @@ input:checked+.slider:before {
 .helpTitle {
     font-size: 0.75rem;
     font-weight: 800;
-    color: #166534;
+    color: var(--primary);
     margin-bottom: 0.75rem;
     letter-spacing: 0.05em;
 }
 
 .helpDesc {
     font-size: 0.85rem;
-    color: #15803d;
+    color: var(--foreground);
+    opacity: 0.9;
     line-height: 1.6;
     margin-bottom: 1.25rem;
 }
@@ -415,7 +416,7 @@ input:checked+.slider:before {
 .helpLink {
     font-size: 0.9rem;
     font-weight: 600;
-    color: #16a34a;
+    color: var(--primary);
     text-decoration: none;
 }
 
@@ -430,7 +431,7 @@ input:checked+.slider:before {
     padding-top: 1.5rem;
     padding-bottom: 1.5rem;
     font-size: 0.8rem;
-    color: #94a3b8;
+    color: var(--muted-foreground, #94a3b8);
     margin-top: 1.5rem;
 }
 
@@ -471,4 +472,181 @@ input:checked+.slider:before {
 .logoutBtn:hover {
     background-color: #fee2e2;
     color: #dc2626;
+}
+
+.passwordForm {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border, #e2e8f0);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.passwordFormActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.btnPrimary {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.65rem 1.25rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btnPrimary:hover {
+    background-color: var(--primary-hover);
+}
+
+.btnPrimary:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.uploadOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+    color: var(--primary);
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================
+   MOBILE RESPONSIVENESS
+   ============================ */
+@media (max-width: 768px) {
+    .layout {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        display: none;
+    }
+
+    .mainContent {
+        padding: 1rem;
+        padding-bottom: 5rem;
+    }
+
+    .contentWrapper {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .centerArea {
+        max-width: 100%;
+    }
+
+    .rightSidebar {
+        width: 100%;
+    }
+
+    .card {
+        padding: 1.25rem;
+    }
+
+    .sectionTitle {
+        font-size: 1.1rem;
+    }
+
+    .photoSection {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .avatarWrapper {
+        margin: 0 auto;
+    }
+
+    .actionsCard {
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 1.25rem;
+        align-items: stretch;
+    }
+
+    .actionsCard .btnSave {
+        text-align: center;
+    }
+
+    .settingRow {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: flex-start;
+    }
+
+    .formGroup .label {
+        font-size: 0.85rem;
+    }
+
+    .input,
+    .textarea,
+    .select {
+        font-size: 0.9rem;
+    }
+
+    .passwordFormActions {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .passwordFormActions .btnPrimary {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+    }
+
+    .footer {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .mainContent {
+        padding: 0.75rem;
+        padding-bottom: 5rem;
+    }
+
+    .card {
+        padding: 1rem;
+        border-radius: 8px;
+    }
+
+    .photoHeading {
+        font-size: 0.9rem;
+    }
+
+    .photoDesc {
+        font-size: 0.8rem;
+    }
 }

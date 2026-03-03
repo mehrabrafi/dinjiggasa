@@ -38,8 +38,11 @@ model User {
   questions Question[] @relation("AuthorQuestions")
   directedQuestions Question[] @relation("DirectedScholars")
   acceptedQuestions Question[] @relation("AcceptedScholar")
-  answers   Answer[]
-  ratings   Rating[]
+  answers       Answer[]
+  answerDrafts  AnswerDraft[]
+  ratings       Rating[]
+  savedQuestions Question[] @relation("SavedQuestions")
+  views         QuestionView[]
 
   notifications         Notification[] @relation("UserNotifications")
   sentNotifications     Notification[] @relation("SenderNotifications")
@@ -86,17 +89,55 @@ model Question {
 
   // Content relations
   answers   Answer[]
+  answerDrafts AnswerDraft[]
   tags      Tag[]
   ratings   Rating[]
+  savedBy   User[]   @relation("SavedQuestions")
+  viewRecords QuestionView[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// AnswerDraft Model
+model AnswerDraft {
+  id         String   @id @default(uuid())
+  content    String   @db.Text
+  voiceUrl   String?
+  
+  authorId   String
+  author     User     @relation(fields: [authorId], references: [id])
+  
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([authorId, questionId])
+}
+
+// QuestionView Model (for unique views)
+model QuestionView {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?     @relation(fields: [userId], references: [id])
+  ipAddress  String?
+  
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, questionId])
+  @@unique([ipAddress, questionId])
 }
 
 // Answer Model
 model Answer {
   id         String   @id @default(uuid())
   content    String   @db.Text
+  voiceUrl   String?
   isAccepted Boolean  @default(false)
   
   // Relations

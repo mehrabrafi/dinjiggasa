@@ -1,11 +1,15 @@
 "use client"
 
 import { useEffect, useState, use } from 'react'
-import { ArrowLeft, CheckCircle2, MessageSquare, Share2, ThumbsUp, ThumbsDown, Check } from "lucide-react"
+import { ArrowLeft, CheckCircle2, MessageSquare, Share2, ThumbsUp, ThumbsDown, Check, Bookmark } from "lucide-react"
 import Link from "next/link"
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import styles from './page.module.css'
 import api from '@/lib/axios'
+import dynamic from 'next/dynamic'
+import '@uiw/react-markdown-preview/markdown.css'
+
+const MarkdownPreview = dynamic(() => import('@uiw/react-markdown-preview'), { ssr: false })
 
 interface Author {
     id: string;
@@ -20,6 +24,7 @@ interface Author {
 interface Answer {
     id: string;
     content: string;
+    voiceUrl?: string | null;
     isAccepted: boolean;
     createdAt: string;
     author: Author;
@@ -44,6 +49,7 @@ export default function QuestionDetailsPage({ params: paramsPromise }: { params:
     const [question, setQuestion] = useState<Question | null>(null)
     const [loading, setLoading] = useState(true)
     const [userId, setUserId] = useState<string | null>(null)
+    const [isSaved, setIsSaved] = useState(false)
 
     useEffect(() => {
         const token = localStorage.getItem('auth-storage')
@@ -60,6 +66,16 @@ export default function QuestionDetailsPage({ params: paramsPromise }: { params:
             try {
                 const res = await api.get(`/questions/${params.id}`)
                 setQuestion(res.data)
+
+                const token = localStorage.getItem('auth-storage')
+                if (token) {
+                    try {
+                        const saveRes = await api.get(`/questions/${params.id}/is-saved`)
+                        setIsSaved(saveRes.data.isSaved)
+                    } catch (e) {
+                        console.error('Failed to fetch saved status', e)
+                    }
+                }
             } catch (error) {
                 console.error('Failed to fetch question:', error)
             } finally {
@@ -93,6 +109,19 @@ export default function QuestionDetailsPage({ params: paramsPromise }: { params:
         }
     }
 
+    const handleSave = async () => {
+        if (!userId) {
+            alert("Please login to save questions")
+            return
+        }
+        try {
+            const res = await api.post(`/questions/${question?.id}/save`)
+            setIsSaved(res.data.isSaved)
+        } catch (error) {
+            console.error('Failed to save question:', error)
+        }
+    }
+
     return (
         <DashboardLayout>
             <div className={styles.container}>
@@ -105,7 +134,27 @@ export default function QuestionDetailsPage({ params: paramsPromise }: { params:
                         ))}
                     </div>
 
-                    <h1 className={styles.title}>{question.title}</h1>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <h1 className={styles.title} style={{ marginBottom: 0 }}>{question.title}</h1>
+                        <button
+                            onClick={handleSave}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                cursor: 'pointer',
+                                padding: '8px',
+                                marginLeft: '16px',
+                                color: isSaved ? 'var(--primary, #006D5B)' : '#9ca3af',
+                                transition: 'all 0.2s ease',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}
+                            title={isSaved ? "Remove from Saved Answers" : "Save Answer"}
+                        >
+                            <Bookmark size={28} fill={isSaved ? 'currentColor' : 'none'} strokeWidth={isSaved ? 2 : 2} />
+                        </button>
+                    </div>
 
                     <div className={styles.askerRow} style={{ color: '#64748b', fontStyle: 'italic' }}>
                         <span className={styles.askedAt}>Posted {new Date(question.createdAt).toLocaleDateString()}</span>
@@ -142,11 +191,23 @@ export default function QuestionDetailsPage({ params: paramsPromise }: { params:
                         </div>
 
                         <div className={styles.answerText}>
-                            {featuredAnswer.content.split('\n\n').map((paragraph, idx) => (
-                                <p key={idx} className={idx === 0 ? styles.quote : ''}>
-                                    {paragraph}
-                                </p>
-                            ))}
+                            {featuredAnswer.voiceUrl && (
+                                <div style={{ marginBottom: '1.5rem', width: '100%', maxWidth: '400px' }}>
+                                    <audio src={featuredAnswer.voiceUrl} controls style={{ width: '100%' }} />
+                                </div>
+                            )}
+                            <div data-color-mode="light" style={{ width: '100%' }}>
+                                <MarkdownPreview
+                                    source={featuredAnswer.content}
+                                    style={{
+                                        backgroundColor: 'transparent',
+                                        color: '#334155',
+                                        fontSize: '1rem',
+                                        lineHeight: 1.6,
+                                        fontFamily: 'inherit'
+                                    }}
+                                />
+                            </div>
                         </div>
 
                         <div className={styles.cardFooter}>

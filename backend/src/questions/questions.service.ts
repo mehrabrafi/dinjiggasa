@@ -7,12 +7,15 @@ export class QuestionsService {
   constructor(private readonly prisma: PrismaService) { }
 
   async create(userId: string, dto: CreateQuestionDto) {
-    const { title, body, tags, scholarIds, isUrgent } = dto;
+    const { title, body, scholarIds, isUrgent } = dto;
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+    if (user.role === 'SCHOLAR') {
+      throw new BadRequestException('Scholars cannot ask questions. Your role is intended for providing answers.');
+    }
 
     if (isUrgent) {
-      const user = await this.prisma.user.findUnique({ where: { id: userId } });
-      if (!user) throw new NotFoundException('User not found');
-
       const now = new Date();
       const lastReset = user.lastUrgentReset;
       const msIn30Days = 30 * 24 * 60 * 60 * 1000;
@@ -43,20 +46,13 @@ export class QuestionsService {
         author: {
           connect: { id: userId },
         },
-        tags: {
-          connectOrCreate:
-            tags?.map((tag) => ({
-              where: { name: tag.trim().toLowerCase() },
-              create: { name: tag.trim().toLowerCase() },
-            })) || [],
-        },
         directedScholars: {
-          connect: scholarIds?.map((id) => ({ id })) || [],
+          connect: scholarIds?.map((id: string) => ({ id })) || [],
         },
       },
       include: {
         author: {
-          select: { id: true, name: true, role: true, avatar: true },
+          select: { id: true, name: true, role: true, avatar: true, gender: true },
         },
         tags: true,
         directedScholars: {
@@ -71,7 +67,7 @@ export class QuestionsService {
       orderBy: { createdAt: 'desc' },
       include: {
         author: {
-          select: { id: true, name: true, role: true, avatar: true },
+          select: { id: true, name: true, role: true, avatar: true, gender: true },
         },
         tags: true,
         answers: {
@@ -91,14 +87,53 @@ export class QuestionsService {
     });
   }
 
-  async findOne(id: string) {
-    // Increment view count
-    await this.prisma.question
-      .update({
-        where: { id },
-        data: { views: { increment: 1 } },
-      })
-      .catch(() => null);
+  async findOne(id: string, userId?: string, ip?: string) {
+    // Unique view record logic
+    let shouldIncrement = false;
+
+    try {
+      if (userId) {
+        const existingView = await this.prisma.questionView.findUnique({
+          where: { userId_questionId: { userId, questionId: id } },
+        });
+
+        if (!existingView) {
+          await this.prisma.questionView
+            .create({
+              data: { userId, questionId: id },
+            })
+            .catch(() => null);
+          shouldIncrement = true;
+        }
+      } else if (ip) {
+        const existingView = await this.prisma.questionView.findUnique({
+          where: { ipAddress_questionId: { ipAddress: ip, questionId: id } },
+        });
+
+        if (!existingView) {
+          await this.prisma.questionView
+            .create({
+              data: { ipAddress: ip, questionId: id },
+            })
+            .catch(() => null);
+          shouldIncrement = true;
+        }
+      } else {
+        // Fallback for cases where we can't identify the user/IP
+        shouldIncrement = true;
+      }
+
+      if (shouldIncrement) {
+        await this.prisma.question
+          .update({
+            where: { id },
+            data: { views: { increment: 1 } },
+          })
+          .catch(() => null);
+      }
+    } catch (err) {
+      console.error('Error recording view:', err);
+    }
 
     const question = await this.prisma.question.findUnique({
       where: { id },
@@ -110,6 +145,7 @@ export class QuestionsService {
             role: true,
             avatar: true,
             reputation: true,
+            gender: true,
           },
         },
         tags: true,
@@ -150,16 +186,26 @@ export class QuestionsService {
   async findDirectedTo(scholarId: string) {
     return this.prisma.question.findMany({
       where: {
-        directedScholars: {
-          some: { id: scholarId },
-        },
+        OR: [
+          {
+            directedScholars: {
+              some: { id: scholarId },
+            },
+          },
+          { acceptedById: scholarId },
+        ],
       },
+      distinct: ['id'],
       orderBy: { createdAt: 'desc' },
       include: {
         author: {
-          select: { id: true, name: true, role: true, avatar: true },
+          select: { id: true, name: true, role: true, avatar: true, gender: true },
         },
         tags: true,
+        answers: {
+          where: { authorId: scholarId },
+          select: { id: true, authorId: true },
+        },
         _count: {
           select: { answers: true, ratings: true },
         },
@@ -203,7 +249,7 @@ export class QuestionsService {
         take: limit,
         include: {
           author: {
-            select: { id: true, name: true, role: true, avatar: true },
+            select: { id: true, name: true, role: true, avatar: true, gender: true },
           },
           tags: true,
           _count: {
@@ -235,13 +281,21 @@ export class QuestionsService {
       where: {
         isUrgent: true,
         acceptedById: null,
+        answers: { none: {} },
       },
       orderBy: { createdAt: 'desc' },
       include: {
         author: {
-          select: { id: true, name: true, role: true, avatar: true },
+          select: { id: true, name: true, role: true, avatar: true, gender: true },
         },
         tags: true,
+        answers: {
+          take: 1,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            author: { select: { id: true, name: true, avatar: true } },
+          },
+        },
         _count: {
           select: { answers: true, ratings: true },
         },
@@ -316,7 +370,7 @@ export class QuestionsService {
     return updated;
   }
 
-  async answerQuestion(questionId: string, scholarId: string, content: string) {
+  async answerQuestion(questionId: string, scholarId: string, content: string, categories: string[], voiceUrl?: string) {
     const question = await this.prisma.question.findUnique({
       where: { id: questionId },
     });
@@ -325,9 +379,27 @@ export class QuestionsService {
       throw new NotFoundException('Question not found');
     }
 
+    if (!categories || categories.length === 0) {
+      throw new BadRequestException('At least one category is required to answer a question');
+    }
+
+    // Update tags for the question based on categories
+    await this.prisma.question.update({
+      where: { id: questionId },
+      data: {
+        tags: {
+          connectOrCreate: categories.map((cat) => ({
+            where: { name: cat.trim().toLowerCase() },
+            create: { name: cat.trim().toLowerCase() },
+          })),
+        },
+      },
+    });
+
     const answer = await this.prisma.answer.create({
       data: {
         content,
+        voiceUrl,
         question: { connect: { id: questionId } },
         author: { connect: { id: scholarId } },
       },
@@ -337,6 +409,20 @@ export class QuestionsService {
         }
       }
     });
+
+    // Delete draft if it exists
+    try {
+      await this.prisma.answerDraft.delete({
+        where: {
+          authorId_questionId: {
+            authorId: scholarId,
+            questionId: questionId,
+          },
+        },
+      });
+    } catch (err) {
+      // Ignore if draft doesn't exist
+    }
 
     await this.prisma.notification.create({
       data: {
@@ -349,6 +435,47 @@ export class QuestionsService {
     });
 
     return answer;
+  }
+
+  async saveDraft(questionId: string, scholarId: string, content: string, voiceUrl?: string) {
+    const draft = await this.prisma.answerDraft.upsert({
+      where: {
+        authorId_questionId: {
+          authorId: scholarId,
+          questionId: questionId,
+        },
+      },
+      update: {
+        content,
+        voiceUrl,
+      },
+      create: {
+        content,
+        voiceUrl,
+        author: { connect: { id: scholarId } },
+        question: { connect: { id: questionId } },
+      },
+    });
+    return draft;
+  }
+
+  async getDraft(questionId: string, scholarId: string) {
+    const draft = await this.prisma.answerDraft.findUnique({
+      where: {
+        authorId_questionId: {
+          authorId: scholarId,
+          questionId: questionId,
+        },
+      },
+    });
+    return draft;
+  }
+
+  async findAllTags() {
+    const tags = await this.prisma.tag.findMany({
+      select: { name: true }
+    });
+    return tags.map(t => t.name);
   }
 
   async voteQuestion(questionId: string, userId: string, value: number) {
@@ -433,5 +560,169 @@ export class QuestionsService {
       where: { answerId },
       select: { value: true, userId: true },
     });
+  }
+
+  async toggleSaveQuestion(id: string, userId: string) {
+    const question = await this.prisma.question.findUnique({
+      where: { id },
+      include: { savedBy: { select: { id: true } } },
+    });
+
+    if (!question) throw new NotFoundException('Question not found');
+
+    const isSaved = question.savedBy.some((u) => u.id === userId);
+
+    if (isSaved) {
+      await this.prisma.question.update({
+        where: { id },
+        data: { savedBy: { disconnect: { id: userId } } },
+      });
+      return { isSaved: false };
+    } else {
+      await this.prisma.question.update({
+        where: { id },
+        data: { savedBy: { connect: { id: userId } } },
+      });
+      return { isSaved: true };
+    }
+  }
+
+  async checkSaved(id: string, userId: string) {
+    const question = await this.prisma.question.findUnique({
+      where: { id },
+      include: { savedBy: { select: { id: true } } },
+    });
+
+    if (!question) throw new NotFoundException('Question not found');
+    const isSaved = question.savedBy.some((u) => u.id === userId);
+    return { isSaved };
+  }
+
+  async findSavedQuestions(userId: string) {
+    return this.prisma.question.findMany({
+      where: {
+        savedBy: { some: { id: userId } },
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        author: {
+          select: { id: true, name: true, role: true, avatar: true, gender: true },
+        },
+        tags: true,
+        _count: {
+          select: { answers: true, ratings: true },
+        },
+        answers: {
+          take: 1,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            author: { select: { id: true, name: true, avatar: true } }
+          }
+        }
+      },
+    });
+  }
+
+  async findDraftQuestions(scholarId: string) {
+    return this.prisma.question.findMany({
+      where: {
+        answerDrafts: { some: { authorId: scholarId } },
+      },
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        author: {
+          select: { id: true, name: true, role: true, avatar: true, gender: true },
+        },
+        tags: true,
+        _count: {
+          select: { answers: true, ratings: true },
+        },
+        answers: {
+          take: 1,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            author: { select: { id: true, name: true, avatar: true } }
+          }
+        },
+        answerDrafts: {
+          where: { authorId: scholarId },
+          take: 1
+        }
+      },
+    });
+  }
+
+  async unsaveAll(userId: string) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        savedQuestions: { set: [] }
+      }
+    });
+    return { success: true };
+  }
+
+  async getTrendingTopicsWithCounts() {
+    // Get all tags and count how many questions they have
+    const tagsWithCounts = await this.prisma.tag.findMany({
+      include: {
+        _count: {
+          select: { questions: true }
+        }
+      }
+    });
+
+    // Default icon mapping
+    const getIcon = (name: string) => {
+      const n = name.toLowerCase();
+      if (n.includes('spiritual') || n.includes('heart')) return "🌱";
+      if (n.includes('fiqh') || n.includes('law')) return "⚖️";
+      if (n.includes('family') || n.includes('marriage')) return "🏠";
+      if (n.includes('history') || n.includes('seerah')) return "📜";
+      if (n.includes('hadith')) return "📖";
+      if (n.includes('contemporary')) return "🌐";
+      if (n.includes('aqidah') || n.includes('belief')) return "🕋";
+      if (n.includes('quran')) return "📗";
+      if (n.includes('ramadan') || n.includes('fasting')) return "🌙";
+      return "🏷️";
+    };
+
+    return tagsWithCounts
+      .map(tag => ({
+        name: tag.name.charAt(0).toUpperCase() + tag.name.slice(1),
+        count: tag._count.questions,
+        icon: getIcon(tag.name)
+      }))
+      .filter(t => t.count > 0)
+      .sort((a, b) => b.count - a.count); // sort descending by count
+  }
+
+  async getGlobalStats() {
+    const totalQuestions = await this.prisma.question.count();
+    const totalAnswers = await this.prisma.answer.count();
+    const answeredQuestionsCount = await this.prisma.question.count({
+      where: { answers: { some: {} } },
+    });
+
+    // People helped: sum of unique question authors who received at least one answer
+    const helpedAuthors = await this.prisma.answer.findMany({
+      select: {
+        question: {
+          select: { authorId: true },
+        },
+      },
+      distinct: ['questionId'],
+    });
+    const peopleHelped = new Set(helpedAuthors.map((a) => a.question.authorId)).size;
+
+    // Response rate: (Answered Questions / Total Questions) * 100
+    const responseRate = totalQuestions > 0 ? Math.round((answeredQuestionsCount / totalQuestions) * 100) : 0;
+
+    return {
+      totalQuestions,
+      totalAnswers,
+      peopleHelped,
+      responseRate,
+    };
   }
 }

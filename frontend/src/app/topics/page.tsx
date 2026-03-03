@@ -1,16 +1,23 @@
 "use client"
 
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout'
+import api from '@/lib/axios'
 
 export default function TopicsPage() {
-    const topics = [
-        { name: "Spiritual Growth", count: 120, icon: "🌱" },
-        { name: "Fiqh & Law", count: 85, icon: "⚖️" },
-        { name: "Family & Marriage", count: 64, icon: "🏠" },
-        { name: "History", count: 42, icon: "📜" },
-        { name: "Hadith Studies", count: 38, icon: "📖" },
-        { name: "Contemporary Issues", count: 76, icon: "🌐" },
-    ]
+    const [topics, setTopics] = useState<any[]>([]);
+
+    useEffect(() => {
+        const fetchTopics = async () => {
+            try {
+                const res = await api.get('/questions/tags/trending');
+                setTopics(res.data);
+            } catch (err) {
+                console.error("Failed to fetch topics", err);
+            }
+        };
+        fetchTopics();
+    }, []);
 
     return (
         <DashboardLayout>

@@ -75,6 +75,26 @@ textarea {
   font: inherit;
 }
 
+/* Mobile-friendly utilities */
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+/* Prevent zoom on iOS when focusing inputs */
+@media (max-width: 768px) {
+
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* Utilities */
 .container {
   width: 100%;
@@ -83,4 +103,25 @@ textarea {
   margin-right: auto;
   padding-left: 1rem;
   padding-right: 1rem;
+}
+
+.dark {
+  --background: #09090b;
+  --foreground: #ededed;
+  --card: #18181b;
+  --card-foreground: #ededed;
+  --primary: #00b396;
+  --primary-foreground: #000000;
+  --primary-hover: #00cfad;
+  --secondary: #27272a;
+  --secondary-foreground: #fafafa;
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
+  --accent: #27272a;
+  --accent-foreground: #fafafa;
+  --destructive: #7f1d1d;
+  --destructive-foreground: #ffffff;
+  --border: #27272a;
+  --input: #27272a;
+  --ring: var(--primary);
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { PlayCircle, Bell, MessageSquare, ArrowUp, ArrowDown, TrendingUp, GraduationCap, Share, CheckCircle2 } from "lucide-react"
+import { PlayCircle, Bell, MessageSquare, ArrowUp, ArrowDown, TrendingUp, GraduationCap, Share, CheckCircle2, Heart, BarChart3, HelpCircle, Activity } from "lucide-react"
 import Link from "next/link"
 import React, { useEffect, useState } from "react"
 import api from "@/lib/axios"
@@ -11,6 +11,8 @@ export default function Dashboard() {
   const [questions, setQuestions] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
+  const [stats, setStats] = useState<any>(null)
+  const [topScholars, setTopScholars] = useState<any[]>([])
 
   useEffect(() => {
     // Optionally we can get userId from auth store. Using a simple logic here if available or rely on JWT.
@@ -32,8 +34,68 @@ export default function Dashboard() {
         setIsLoading(false)
       }
     }
+
+    const fetchStats = async () => {
+      try {
+        const res = await api.get('/questions/stats/global')
+        setStats(res.data)
+      } catch (error) {
+        console.error("Failed to fetch stats", error)
+      }
+    }
+
+    const fetchTopScholars = async () => {
+      try {
+        const res = await api.get('/scholars/top')
+        setTopScholars(res.data)
+      } catch (error) {
+        console.error("Failed to fetch top scholars", error)
+      }
+    }
+
     fetchFeed()
+    fetchStats()
+    fetchTopScholars()
+
+    // Poll for stats every 5 seconds for "live" feel
+    const statsInterval = setInterval(fetchStats, 5000)
+
+    return () => {
+      clearInterval(statsInterval)
+    }
   }, [])
+
+  // Simple CountUp animation component
+  const CountUp = ({ value, duration = 1000, suffix = "" }: { value: number, duration?: number, suffix?: string }) => {
+    const [displayValue, setDisplayValue] = useState(value);
+
+    useEffect(() => {
+      let start = displayValue;
+      const end = value;
+      if (start === end) return;
+
+      const startTime = performance.now();
+
+      const update = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Ease out quadratic
+        const easeOut = 1 - (1 - progress) * (1 - progress);
+        const current = Math.floor(start + (end - start) * easeOut);
+
+        setDisplayValue(current);
+
+        if (progress < 1) {
+          requestAnimationFrame(update);
+        }
+      };
+
+      requestAnimationFrame(update);
+    }, [value]);
+
+    return <span>{displayValue.toLocaleString()}{suffix}</span>;
+  };
 
   const handleVote = async (questionId: string, value: number) => {
     try {
@@ -48,6 +110,7 @@ export default function Dashboard() {
       console.error("Failed to vote", err)
     }
   }
+
   return (
     <DashboardLayout>
       {/* Feed Column */}
@@ -171,38 +234,87 @@ export default function Dashboard() {
 
       {/* Right Sidebar */}
       <aside className={styles.rightSidebar}>
+        {/* Statistics Widget */}
         <div className={styles.widget}>
           <h3 className={styles.widgetTitle}>
-            <TrendingUp size={18} color="#006D5B" /> Trending Topics
+            <BarChart3 size={18} color="#006D5B" /> Platform Statistics
+            <span className={styles.liveIndicator}>
+              <span className={styles.pulseDot}></span>
+              Live
+            </span>
           </h3>
-          <div className={styles.trendingItem}>
-            <div className={styles.trendingMeta}>Fiqh • 2.4k questions</div>
-            <div className={styles.trendingName}>Zakat calculation on stocks</div>
-          </div>
-          <div className={styles.trendingItem}>
-            <div className={styles.trendingMeta}>Events • 5k discussions</div>
-            <div className={styles.trendingName}>Upcoming Ramadan Checklist</div>
+          <div className={styles.statsList}>
+            <div className={styles.statItem}>
+              <div className={styles.statIcon}>
+                <HelpCircle size={20} />
+              </div>
+              <div className={styles.statInfo}>
+                <span className={styles.statValue}>
+                  {stats ? <CountUp value={stats.totalQuestions} /> : '...'}
+                </span>
+                <span className={styles.statLabel}>Total Questions</span>
+              </div>
+            </div>
+
+            <div className={styles.statItem}>
+              <div className={styles.statIcon} style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+                <CheckCircle2 size={20} />
+              </div>
+              <div className={styles.statInfo}>
+                <span className={styles.statValue}>
+                  {stats ? <CountUp value={stats.totalAnswers} /> : '...'}
+                </span>
+                <span className={styles.statLabel}>Answers Provided</span>
+              </div>
+            </div>
+
+            <div className={styles.statItem}>
+              <div className={styles.statIcon} style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
+                <Heart size={20} />
+              </div>
+              <div className={styles.statInfo}>
+                <span className={styles.statValue}>
+                  {stats ? <CountUp value={stats.peopleHelped} /> : '...'}
+                </span>
+                <span className={styles.statLabel}>People Helped</span>
+              </div>
+            </div>
+
+            <div className={styles.statItem}>
+              <div className={styles.statIcon} style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
+                <Activity size={20} />
+              </div>
+              <div className={styles.statInfo}>
+                <span className={styles.statValue}>
+                  {stats ? <CountUp value={stats.responseRate} suffix="%" /> : '...'}
+                </span>
+                <span className={styles.statLabel}>Response Rate</span>
+              </div>
+            </div>
           </div>
         </div>
 
         <div className={styles.widget}>
           <h3 className={styles.widgetTitle}>
-            <GraduationCap size={18} color="#006D5B" /> Our Scholars
+            <GraduationCap size={18} color="#006D5B" /> Top Scholars
           </h3>
-          <div className={styles.scholarItem}>
-            <img src="https://i.pravatar.cc/150?img=11" alt="Scholar" className={styles.scholarAvatar} />
-            <div className={styles.scholarInfo}>
-              <span className={styles.scholarName}>Sheikh Abdullah</span>
-              <span className={styles.scholarDesc}>Fiqh, Usul al-Fiqh</span>
-            </div>
-          </div>
-          <div className={styles.scholarItem}>
-            <img src="https://i.pravatar.cc/150?img=5" alt="Scholar" className={styles.scholarAvatar} />
-            <div className={styles.scholarInfo}>
-              <span className={styles.scholarName}>Fatima Az-Zahra</span>
-              <span className={styles.scholarDesc}>Islamic History, Seerah</span>
-            </div>
-          </div>
+          {topScholars.length > 0 ? (
+            topScholars.map((scholar) => (
+              <div key={scholar.id} className={styles.scholarItem}>
+                <img
+                  src={scholar.avatar || `https://ui-avatars.com/api/?name=${scholar.name}&background=006D5B&color=fff`}
+                  alt={scholar.name}
+                  className={styles.scholarAvatar}
+                />
+                <div className={styles.scholarInfo}>
+                  <span className={styles.scholarName}>{scholar.name}</span>
+                  <span className={styles.scholarDesc}>{scholar.specialization || "Islamic Scholar"}</span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div style={{ fontSize: '0.875rem', color: '#64748b' }}>Loading scholars...</div>
+          )}
 
           <Link href="/scholars" className={styles.seeAllLink}>See All Scholars</Link>
         </div>

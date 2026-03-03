@@ -2,7 +2,7 @@
     display: flex;
     gap: 0;
     padding: 0;
-    background: #f8fafc;
+    background: var(--background, #f8fafc);
     min-height: 100vh;
 }
 
@@ -17,12 +17,12 @@
 .titleArea h1 {
     font-size: 1.5rem;
     font-weight: 800;
-    color: #1e293b;
+    color: var(--foreground, #1e293b);
 }
 
 .titleArea p {
     font-size: 0.8125rem;
-    color: #64748b;
+    color: var(--muted-foreground, #64748b);
     margin-top: 0.25rem;
 }
 
@@ -33,7 +33,7 @@
 
 .dropdownSlot {
     background: white;
-    border: 1px solid #f1f5f9;
+    border: 1px solid var(--muted, #f1f5f9);
     padding: 0.5rem 1rem;
     border-radius: 10px;
     font-size: 0.8125rem;
@@ -49,12 +49,12 @@
     width: 38px;
     height: 38px;
     background: white;
-    border: 1px solid #f1f5f9;
+    border: 1px solid var(--muted, #f1f5f9);
     border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #64748b;
+    color: var(--muted-foreground, #64748b);
     cursor: pointer;
 }
 
@@ -70,7 +70,7 @@
     background: white;
     padding: 1.5rem;
     border-radius: 20px;
-    border: 1px solid #f1f5f9;
+    border: 1px solid var(--muted, #f1f5f9);
 }
 
 .cardTop {
@@ -95,20 +95,20 @@
     gap: 0.25rem;
     font-size: 0.75rem;
     font-weight: 700;
-    color: #10b981;
+    color: var(--primary);
 }
 
 .cardLabel {
     font-size: 0.75rem;
     font-weight: 600;
-    color: #64748b;
+    color: var(--muted-foreground, #64748b);
     margin-bottom: 0.25rem;
 }
 
 .cardValue {
     font-size: 1.5rem;
     font-weight: 800;
-    color: #1e293b;
+    color: var(--foreground, #1e293b);
 }
 
 /* Engagement & Impact Area */
@@ -123,7 +123,7 @@
     background: white;
     padding: 2rem;
     border-radius: 24px;
-    border: 1px solid #f1f5f9;
+    border: 1px solid var(--muted, #f1f5f9);
 }
 
 .chartHeader {
@@ -136,12 +136,12 @@
 .chartTitle {
     font-size: 0.9375rem;
     font-weight: 800;
-    color: #1e293b;
+    color: var(--foreground, #1e293b);
 }
 
 .chartPeriod {
     font-size: 0.75rem;
-    color: #94a3b8;
+    color: var(--muted-foreground, #94a3b8);
     margin-bottom: 2rem;
 }
 
@@ -156,7 +156,7 @@
     gap: 0.5rem;
     font-size: 0.75rem;
     font-weight: 600;
-    color: #94a3b8;
+    color: var(--muted-foreground, #94a3b8);
 }
 
 .legendDot {
@@ -186,12 +186,12 @@
 .chartLabel {
     font-size: 0.6875rem;
     font-weight: 600;
-    color: #cbd5e1;
+    color: var(--border, #cbd5e1);
 }
 
 /* Impact Card */
 .impactCard {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
     padding: 2rem;
     border-radius: 24px;
     color: white;
@@ -233,7 +233,7 @@
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    border: 2px solid #059669;
+    border: 2px solid var(--primary-hover);
     margin-left: -8px;
 }
 
@@ -266,14 +266,14 @@
     background: white;
     padding: 2rem;
     border-radius: 24px;
-    border: 1px solid #f1f5f9;
+    border: 1px solid var(--muted, #f1f5f9);
     margin-top: 1.5rem;
 }
 
 .catsTitle {
     font-size: 0.875rem;
     font-weight: 800;
-    color: #1e293b;
+    color: var(--foreground, #1e293b);
     margin-bottom: 1.5rem;
 }
 
@@ -291,7 +291,7 @@
 
 .catBar {
     height: 6px;
-    background: #f1f5f9;
+    background: var(--muted, #f1f5f9);
     border-radius: 3px;
     overflow: hidden;
 }
@@ -306,7 +306,7 @@
     background: white;
     padding: 2rem;
     border-radius: 24px;
-    border: 1px solid #f1f5f9;
+    border: 1px solid var(--muted, #f1f5f9);
 }
 
 .perfHeader {
@@ -319,26 +319,26 @@
 .viewAll {
     font-size: 0.75rem;
     font-weight: 700;
-    color: #10b981;
+    color: var(--primary);
     text-decoration: none;
 }
 
 .tableHeader {
     display: grid;
-    grid-template-columns: 2.5fr 1fr 1fr 1fr 0.5fr;
+    grid-template-columns: 2.5fr 1fr 1fr 1fr;
     padding: 0 1rem 1rem 1rem;
-    border-bottom: 1px solid #f8fafc;
+    border-bottom: 1px solid var(--background, #f8fafc);
     font-size: 0.75rem;
     font-weight: 700;
-    color: #94a3b8;
+    color: var(--muted-foreground, #94a3b8);
 }
 
 .tableRow {
     display: grid;
-    grid-template-columns: 2.5fr 1fr 1fr 1fr 0.5fr;
+    grid-template-columns: 2.5fr 1fr 1fr 1fr;
     padding: 1.25rem 1rem;
     align-items: center;
-    border-bottom: 1px solid #f8fafc;
+    border-bottom: 1px solid var(--background, #f8fafc);
 }
 
 .tableRow:last-child {
@@ -348,12 +348,12 @@
 .topicCell h4 {
     font-size: 0.8125rem;
     font-weight: 700;
-    color: #1e293b;
+    color: var(--foreground, #1e293b);
 }
 
 .topicCell span {
     font-size: 0.6875rem;
-    color: #94a3b8;
+    color: var(--muted-foreground, #94a3b8);
 }
 
 .catBadge {
@@ -370,10 +370,6 @@
     color: #475569;
 }
 
-.statusCell {
-    color: #10b981;
-}
-
 /* Sidebar Verification */
 .verifWidget {
     margin-top: auto;
@@ -388,12 +384,12 @@
     gap: 0.5rem;
     font-size: 0.75rem;
     font-weight: 700;
-    color: #059669;
+    color: var(--primary);
     margin-bottom: 0.5rem;
 }
 
 .verifText {
     font-size: 0.625rem;
-    color: #0d9488;
+    color: var(--primary-hover);
     line-height: 1.4;
 }

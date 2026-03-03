@@ -1,20 +1,131 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Bell, Lock, Moon, UserCircle, User, Camera, RefreshCw, LogOut } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuthStore } from "@/store/auth.store"
+import { useTheme } from "next-themes"
 import styles from "./settings.module.css"
+import api from "@/lib/axios"
+import { toast } from "react-hot-toast"
 
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState("Profile");
-    const { logout } = useAuthStore()
+    const { logout, user, updateUser } = useAuthStore()
     const router = useRouter()
+    const { theme, setTheme } = useTheme();
+    const [mounted, setMounted] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    const [showPasswordForm, setShowPasswordForm] = useState(false);
+    const [passwordData, setPasswordData] = useState({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+    });
+    const [isLoading, setIsLoading] = useState(false);
+    const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+    const [profileData, setProfileData] = useState({
+        name: '',
+        madhab: ''
+    });
+
+    useEffect(() => {
+        if (user) {
+            setProfileData({
+                name: user.name || '',
+                madhab: user.madhab || 'Hanafi'
+            });
+        }
+    }, [user]);
+
+    const handlePasswordChange = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (passwordData.newPassword !== passwordData.confirmPassword) {
+            toast.error("New passwords do not match.");
+            return;
+        }
+
+        if (passwordData.newPassword.length < 6) {
+            toast.error("Password must be at least 6 characters.");
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            await api.post('/auth/change-password', {
+                currentPassword: passwordData.currentPassword,
+                newPassword: passwordData.newPassword
+            });
+            toast.success("Password changed successfully!");
+            setShowPasswordForm(false);
+            setPasswordData({
+                currentPassword: '',
+                newPassword: '',
+                confirmPassword: ''
+            });
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Failed to change password.");
+        } finally {
+            setIsLoading(false);
+        }
+    }
 
     const handleLogout = () => {
         logout()
         router.push('/login')
+    }
+
+    const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Size check (2MB)
+        if (file.size > 2 * 1024 * 1024) {
+            toast.error("File size must be less than 2MB");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        setIsUploading(true);
+        try {
+            const response = await api.post('/upload/avatar', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+
+            // Update user in store and cookies
+            if (user) {
+                updateUser({ ...user, avatar: response.data.avatarUrl });
+            }
+            toast.success("Profile photo updated!");
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Failed to upload avatar");
+        } finally {
+            setIsUploading(false);
+        }
+    }
+
+    const handleProfileUpdate = async () => {
+        setIsUpdatingProfile(true);
+        try {
+            const response = await api.post('/auth/profile', profileData);
+            updateUser(response.data.user);
+            toast.success("Profile updated successfully!");
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Failed to update profile.");
+        } finally {
+            setIsUpdatingProfile(false);
+        }
     }
 
     return (
@@ -40,9 +151,6 @@ export default function SettingsPage() {
                     <button className={`${styles.navItem} ${activeTab === 'Notifications' ? styles.navItemActive : ''}`} onClick={() => setActiveTab('Notifications')}>
                         <Bell size={18} className={styles.navIcon} /> Notifications
                     </button>
-                    <button className={`${styles.navItem} ${activeTab === 'Privacy' ? styles.navItemActive : ''}`} onClick={() => setActiveTab('Privacy')}>
-                        <Lock size={18} className={styles.navIcon} /> Privacy
-                    </button>
                     <button className={`${styles.navItem} ${activeTab === 'Display' ? styles.navItemActive : ''}`} onClick={() => setActiveTab('Display')}>
                         <Moon size={18} className={styles.navIcon} /> Display
                     </button>
@@ -58,71 +166,150 @@ export default function SettingsPage() {
                 <div className={styles.contentWrapper}>
                     {/* Render different tabs' content depending on active tab */}
                     <div className={styles.centerArea}>
-                        {activeTab === 'Profile' && (
+                        {!mounted ? null : (
                             <>
-                                {/* Profile Information Block */}
-                                <div className={styles.sectionTitleRow}>
-                                    <h2 className={styles.sectionTitle}>Profile Information</h2>
-                                    <span className={styles.visibilityLabel}>Publicly visible</span>
-                                </div>
-                                <div className={styles.card}>
-                                    <div className={styles.photoSection}>
-                                        <div className={styles.avatarWrapper}>
-                                            <img src="https://ui-avatars.com/api/?name=Ahmed+Ali&background=FFE5D0&color=FF8A00" alt="Avatar" className={styles.avatar} />
-                                            <button className={styles.cameraBtn}>
-                                                <Camera size={12} />
-                                            </button>
+                                {activeTab === 'Profile' && (
+                                    <>
+                                        {/* Profile Information Block */}
+                                        <div className={styles.sectionTitleRow}>
+                                            <h2 className={styles.sectionTitle}>Profile Information</h2>
+                                            <span className={styles.visibilityLabel}>Publicly visible</span>
                                         </div>
-                                        <div className={styles.photoMeta}>
-                                            <h3 className={styles.photoHeading}>Profile Photo</h3>
-                                            <p className={styles.photoDesc}>PNG or JPG. Max size 2MB.</p>
+                                        <div className={styles.card}>
+                                            <div className={styles.photoSection}>
+                                                <div className={styles.avatarWrapper}>
+                                                    <img
+                                                        src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=FFE5D0&color=FF8A00`}
+                                                        alt="Avatar"
+                                                        className={styles.avatar}
+                                                    />
+                                                    <label className={styles.cameraBtn}>
+                                                        <Camera size={12} />
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            onChange={handleAvatarChange}
+                                                            style={{ display: 'none' }}
+                                                            disabled={isUploading}
+                                                        />
+                                                    </label>
+                                                    {isUploading && <div className={styles.uploadOverlay}><RefreshCw size={16} className={styles.spinner} /></div>}
+                                                </div>
+                                                <div className={styles.photoMeta}>
+                                                    <h3 className={styles.photoHeading}>Profile Photo</h3>
+                                                    <p className={styles.photoDesc}>PNG or JPG. Max size 2MB.</p>
+                                                </div>
+                                            </div>
+
+                                            <div className={styles.formGroup}>
+                                                <label className={styles.label}>Full Name</label>
+                                                <input
+                                                    type="text"
+                                                    className={styles.input}
+                                                    value={profileData.name}
+                                                    onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                                                />
+                                            </div>
+
+                                            <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                                                <label className={styles.label}>Madhab Preference</label>
+                                                <select
+                                                    className={styles.select}
+                                                    value={profileData.madhab}
+                                                    onChange={(e) => setProfileData({ ...profileData, madhab: e.target.value })}
+                                                >
+                                                    <option value="Hanafi">Hanafi</option>
+                                                    <option value="Maliki">Maliki</option>
+                                                    <option value="Shafi'i">Shafi'i</option>
+                                                    <option value="Hanbali">Hanbali</option>
+                                                    <option value="Salafi">Salafi</option>
+                                                </select>
+                                                <p className={styles.helpText}>This helps scholars tailor their answers to your school of thought if applicable.</p>
+                                            </div>
                                         </div>
-                                    </div>
+                                    </>
+                                )}
 
-                                    <div className={styles.formGroup}>
-                                        <label className={styles.label}>Full Name</label>
-                                        <input type="text" className={styles.input} defaultValue="Ahmed Al-Farsi" />
-                                    </div>
+                                {activeTab === 'Account' && (
+                                    <>
+                                        {/* Account Settings Block */}
+                                        <h2 className={styles.sectionTitle}>Account Settings</h2>
+                                        <div className={styles.card}>
+                                            <div className={styles.formGroup}>
+                                                <label className={styles.label}>Email Address</label>
+                                                <div className={styles.inputWrapper}>
+                                                    <input type="email" className={styles.input} defaultValue={user?.email || ""} />
+                                                    <button className={styles.verifyBtn}>Verify</button>
+                                                </div>
+                                            </div>
 
-                                    <div className={styles.formGroup}>
-                                        <label className={styles.label}>Bio</label>
-                                        <textarea className={styles.textarea} defaultValue="Student of knowledge focused on Islamic history and Fiqh."></textarea>
-                                    </div>
-
-                                    <div className={styles.formGroup} style={{ marginBottom: 0 }}>
-                                        <label className={styles.label}>Madhab Preference</label>
-                                        <select className={styles.select} defaultValue="Hanafi">
-                                            <option value="Hanafi">Hanafi</option>
-                                            <option value="Maliki">Maliki</option>
-                                            <option value="Shafi'i">Shafi'i</option>
-                                            <option value="Hanbali">Hanbali</option>
-                                        </select>
-                                        <p className={styles.helpText}>This helps scholars tailor their answers to your school of thought if applicable.</p>
-                                    </div>
-                                </div>
-                            </>
-                        )}
-
-                        {activeTab === 'Account' && (
-                            <>
-                                {/* Account Settings Block */}
-                                <h2 className={styles.sectionTitle}>Account Settings</h2>
-                                <div className={styles.card}>
-                                    <div className={styles.formGroup}>
-                                        <label className={styles.label}>Email Address</label>
-                                        <div className={styles.inputWrapper}>
-                                            <input type="email" className={styles.input} defaultValue="ahmed.alfarsi@example.com" />
-                                            <button className={styles.verifyBtn}>Verify</button>
+                                            <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                                                <label className={styles.label}>Password</label>
+                                                {!showPasswordForm ? (
+                                                    <button
+                                                        className={styles.btnSecondary}
+                                                        onClick={() => setShowPasswordForm(true)}
+                                                    >
+                                                        <RefreshCw size={14} /> Change Password
+                                                    </button>
+                                                ) : (
+                                                    <div className={styles.passwordForm}>
+                                                        <div className={styles.formGroup}>
+                                                            <label className={styles.label}>Current Password</label>
+                                                            <input
+                                                                type="password"
+                                                                className={styles.input}
+                                                                placeholder="Enter current password"
+                                                                value={passwordData.currentPassword}
+                                                                onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                                                            />
+                                                        </div>
+                                                        <div className={styles.formGroup}>
+                                                            <label className={styles.label}>New Password</label>
+                                                            <input
+                                                                type="password"
+                                                                className={styles.input}
+                                                                placeholder="New password (min 6 chars)"
+                                                                value={passwordData.newPassword}
+                                                                onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                                                            />
+                                                        </div>
+                                                        <div className={styles.formGroup}>
+                                                            <label className={styles.label}>Confirm New Password</label>
+                                                            <input
+                                                                type="password"
+                                                                className={styles.input}
+                                                                placeholder="Confirm new password"
+                                                                value={passwordData.confirmPassword}
+                                                                onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                                                            />
+                                                        </div>
+                                                        <div className={styles.passwordFormActions}>
+                                                            <button
+                                                                type="button"
+                                                                className={styles.btnCancel}
+                                                                onClick={() => {
+                                                                    setShowPasswordForm(false);
+                                                                    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                                                                }}
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className={styles.btnPrimary}
+                                                                onClick={handlePasswordChange}
+                                                                disabled={isLoading}
+                                                            >
+                                                                {isLoading ? "Updating..." : "Update Password"}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-
-                                    <div className={styles.formGroup} style={{ marginBottom: 0 }}>
-                                        <label className={styles.label}>Password</label>
-                                        <button className={styles.btnSecondary}>
-                                            <RefreshCw size={14} /> Change Password
-                                        </button>
-                                    </div>
-                                </div>
+                                    </>
+                                )}
                             </>
                         )}
 
@@ -174,39 +361,6 @@ export default function SettingsPage() {
                             </>
                         )}
 
-                        {activeTab === 'Privacy' && (
-                            <>
-                                <h2 className={styles.sectionTitle}>Privacy Settings</h2>
-                                <div className={styles.card}>
-                                    <div className={styles.settingRow}>
-                                        <div>
-                                            <h3 className={styles.settingName}>Profile Visibility</h3>
-                                            <p className={styles.settingDesc}>Make your profile visible to everyone on the platform</p>
-                                        </div>
-                                        <label className={styles.switch}>
-                                            <input type="checkbox" defaultChecked />
-                                            <span className={styles.slider}></span>
-                                        </label>
-                                    </div>
-                                    <div className={styles.settingRow} style={{ marginTop: '1.5rem' }}>
-                                        <div>
-                                            <h3 className={styles.settingName}>Search Engine Indexing</h3>
-                                            <p className={styles.settingDesc}>Allow search engines to index your public questions and profile</p>
-                                        </div>
-                                        <label className={styles.switch}>
-                                            <input type="checkbox" defaultChecked />
-                                            <span className={styles.slider}></span>
-                                        </label>
-                                    </div>
-                                    <div className={styles.formGroup} style={{ marginTop: '2rem', borderTop: '1px solid #f1f5f9', paddingTop: '1.5rem' }}>
-                                        <Link href="/privacy-policy" style={{ color: '#10b981', textDecoration: 'none', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                            Read Our Detailed Privacy Policy &rarr;
-                                        </Link>
-                                    </div>
-                                </div>
-                            </>
-                        )}
-
                         {activeTab === 'Display' && (
                             <>
                                 <h2 className={styles.sectionTitle}>Display & Interface</h2>
@@ -217,19 +371,16 @@ export default function SettingsPage() {
                                             <p className={styles.settingDesc}>Switch between light and dark themes</p>
                                         </div>
                                         <label className={styles.switch}>
-                                            <input type="checkbox" />
+                                            <input
+                                                type="checkbox"
+                                                checked={mounted && theme === 'dark'}
+                                                onChange={(e) => setTheme(e.target.checked ? 'dark' : 'light')}
+                                            />
                                             <span className={styles.slider}></span>
                                         </label>
                                     </div>
 
-                                    <div className={styles.formGroup}>
-                                        <label className={styles.label}>Language</label>
-                                        <select className={styles.select} defaultValue="English">
-                                            <option value="English">English</option>
-                                            <option value="Bengali">Bengali (বাংলা)</option>
-                                            <option value="Arabic">Arabic (العربية)</option>
-                                        </select>
-                                    </div>
+
 
                                     <div className={styles.formGroup}>
                                         <label className={styles.label}>Font Size</label>
@@ -240,16 +391,7 @@ export default function SettingsPage() {
                                         </select>
                                     </div>
 
-                                    <div className={styles.settingRow} style={{ marginTop: '0.5rem' }}>
-                                        <div>
-                                            <h3 className={styles.settingName}>Compact View</h3>
-                                            <p className={styles.settingDesc}>Reduce spacing between elements to show more content</p>
-                                        </div>
-                                        <label className={styles.switch}>
-                                            <input type="checkbox" />
-                                            <span className={styles.slider}></span>
-                                        </label>
-                                    </div>
+
                                 </div>
                             </>
                         )}
@@ -257,7 +399,13 @@ export default function SettingsPage() {
                         {/* Actions */}
                         <div className={styles.actionsCard}>
                             <button className={styles.btnCancel}>Cancel</button>
-                            <button className={styles.btnSave}>Save Changes</button>
+                            <button
+                                className={styles.btnSave}
+                                onClick={handleProfileUpdate}
+                                disabled={isUpdatingProfile}
+                            >
+                                {isUpdatingProfile ? "Saving..." : "Save Changes"}
+                            </button>
                         </div>
 
                         {/* Footer */}

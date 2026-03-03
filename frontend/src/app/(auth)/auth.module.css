@@ -8,7 +8,7 @@
     font-family: var(--font-geist-sans), sans-serif;
     text-transform: uppercase;
     margin-bottom: 2.5rem;
-    color: #111827;
+    color: var(--foreground, #111827);
     letter-spacing: 0.025em;
     text-align: left;
 }
@@ -30,13 +30,13 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: #111827;
+    color: var(--foreground, #111827);
 }
 
 .inputField {
     height: 3rem;
     border-radius: 0;
-    border-color: #e5e7eb;
+    border-color: var(--border, #e5e7eb);
 }
 
 .inputField:focus-visible {
@@ -53,7 +53,7 @@
 
 .forgotPassword {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--muted-foreground, #6b7280);
     text-decoration: underline;
     transition: color 0.2s;
 }
@@ -89,7 +89,7 @@
 .footerText {
     font-size: 0.875rem;
     font-weight: 500;
-    color: #111827;
+    color: var(--foreground, #111827);
     margin-top: 2rem;
     text-align: left;
 }
@@ -113,11 +113,11 @@
     display: flex;
     height: 3rem;
     width: 100%;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--border, #e5e7eb);
     background-color: white;
     padding: 0.5rem 0.75rem;
     font-size: 0.875rem;
-    color: #111827;
+    color: var(--foreground, #111827);
     border-radius: 0;
 }
 

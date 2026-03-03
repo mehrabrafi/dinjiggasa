@@ -11,6 +11,7 @@ import {
 import { QuestionsService } from './questions.service';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 
 @Controller('questions')
 export class QuestionsController {
@@ -75,6 +76,24 @@ export class QuestionsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('saved/all')
+  findSavedQuestions(@Request() req: any) {
+    return this.questionsService.findSavedQuestions(req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('saved/unsave-all')
+  unsaveAll(@Request() req: any) {
+    return this.questionsService.unsaveAll(req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('draft/all')
+  findDraftQuestions(@Request() req: any) {
+    return this.questionsService.findDraftQuestions(req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post(':id/vote')
   voteQuestion(
     @Param('id') id: string,
@@ -84,9 +103,24 @@ export class QuestionsController {
     return this.questionsService.voteQuestion(id, req.user.id, dto.value);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/save')
+  toggleSaveQuestion(@Param('id') id: string, @Request() req: any) {
+    return this.questionsService.toggleSaveQuestion(id, req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/is-saved')
+  checkSaved(@Param('id') id: string, @Request() req: any) {
+    return this.questionsService.checkSaved(id, req.user.id);
+  }
+
+  @UseGuards(OptionalJwtAuthGuard)
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.questionsService.findOne(id);
+  findOne(@Param('id') id: string, @Request() req: any) {
+    const userId = req.user?.id;
+    const ip = req.ip;
+    return this.questionsService.findOne(id, userId, ip);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -103,9 +137,40 @@ export class QuestionsController {
   @Post(':id/answers')
   answerQuestion(
     @Param('id') id: string,
-    @Body() dto: { content: string },
+    @Body() dto: { content: string, categories: string[], voiceUrl?: string },
     @Request() req: any
   ) {
-    return this.questionsService.answerQuestion(id, req.user.id, dto.content);
+    return this.questionsService.answerQuestion(id, req.user.id, dto.content, dto.categories, dto.voiceUrl);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/draft')
+  saveDraft(
+    @Param('id') id: string,
+    @Body() dto: { content: string, voiceUrl?: string },
+    @Request() req: any
+  ) {
+    return this.questionsService.saveDraft(id, req.user.id, dto.content, dto.voiceUrl);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/draft')
+  getDraft(@Param('id') id: string, @Request() req: any) {
+    return this.questionsService.getDraft(id, req.user.id);
+  }
+
+  @Get('tags/all')
+  findAllTags() {
+    return this.questionsService.findAllTags();
+  }
+
+  @Get('tags/trending')
+  getTrendingTopics() {
+    return this.questionsService.getTrendingTopicsWithCounts();
+  }
+
+  @Get('stats/global')
+  getGlobalStats() {
+    return this.questionsService.getGlobalStats();
   }
 }

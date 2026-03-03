@@ -16,7 +16,10 @@ interface Scholar {
     reputation: number;
 }
 
+import { useAuthStore } from '@/store/auth.store'
+
 export default function ScholarsPage() {
+    const { user } = useAuthStore()
     const [scholars, setScholars] = useState<Scholar[]>([])
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState('All')
@@ -97,7 +100,9 @@ export default function ScholarsPage() {
 
                                 <div className={styles.cardActions}>
                                     <button className={styles.viewProfileBtn}>View Profile</button>
-                                    <button className={`${styles.askBtn} ${styles.askBtnPrimary}`}>Ask Question</button>
+                                    {(!user || (user?.role !== 'SCHOLAR' && user?.role !== 'ADMIN')) && (
+                                        <button className={`${styles.askBtn} ${styles.askBtnPrimary}`}>Ask Question</button>
+                                    )}
                                 </div>
                             </div>
                         ))}

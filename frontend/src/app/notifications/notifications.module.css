@@ -14,12 +14,12 @@
 .title {
     font-size: 2rem;
     font-weight: 800;
-    color: #111827;
+    color: var(--foreground, #111827);
 }
 
 .markAllBtn {
-    background-color: #f3f4f6;
-    color: #4b5563;
+    background-color: var(--muted, #f3f4f6);
+    color: var(--muted-foreground, #4b5563);
     padding: 0.5rem 1rem;
     border-radius: 0.5rem;
     font-size: 0.8rem;
@@ -31,7 +31,7 @@
 .tabs {
     display: flex;
     gap: 2rem;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--border, #e5e7eb);
     margin-bottom: 2rem;
 }
 
@@ -39,7 +39,7 @@
     padding-bottom: 0.75rem;
     font-size: 0.9rem;
     font-weight: 600;
-    color: #9ca3af;
+    color: var(--muted-foreground, #9ca3af);
     background: none;
     border: none;
     cursor: pointer;
@@ -65,7 +65,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 1rem 0;
-    border-bottom: 1px solid #f9fafb;
+    border-bottom: 1px solid var(--background, #f9fafb);
     position: relative;
 }
 
@@ -129,12 +129,12 @@
 
 .userName {
     font-weight: 700;
-    color: #111827;
+    color: var(--foreground, #111827);
 }
 
 .notifText {
     font-size: 0.95rem;
-    color: #111827;
+    color: var(--foreground, #111827);
 }
 
 .voiceIcon {
@@ -145,7 +145,7 @@
 
 .subtext {
     font-size: 0.85rem;
-    color: #6b7280;
+    color: var(--muted-foreground, #6b7280);
 }
 
 .notifRight {
@@ -157,7 +157,7 @@
 
 .time {
     font-size: 0.8rem;
-    color: #9ca3af;
+    color: var(--muted-foreground, #9ca3af);
 }
 
 .unreadDot {
@@ -174,7 +174,7 @@
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    color: #9ca3af;
+    color: var(--muted-foreground, #9ca3af);
     font-size: 0.85rem;
     background: none;
     border: none;
@@ -183,4 +183,88 @@
 
 .chevronIcon {
     transform: rotate(90deg);
+}
+
+/* ============================
+   MOBILE RESPONSIVENESS
+   ============================ */
+@media (max-width: 768px) {
+    .mainContent {
+        padding: 1rem;
+        max-width: 100%;
+        padding-bottom: 5rem;
+    }
+
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .title {
+        font-size: 1.5rem;
+    }
+
+    .tabs {
+        gap: 1.25rem;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .tab {
+        white-space: nowrap;
+        font-size: 0.8rem;
+    }
+
+    .notifItem {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .notifLeft {
+        gap: 0.75rem;
+    }
+
+    .avatar,
+    .notifIconPill {
+        width: 40px;
+        height: 40px;
+    }
+
+    .notifText {
+        font-size: 0.85rem;
+    }
+
+    .subtext {
+        font-size: 0.775rem;
+    }
+
+    .notifRight {
+        flex-direction: row;
+        width: 100%;
+        justify-content: space-between;
+        align-items: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .mainContent {
+        padding: 0.75rem;
+        padding-bottom: 5rem;
+    }
+
+    .title {
+        font-size: 1.25rem;
+    }
+
+    .notifText {
+        font-size: 0.8rem;
+    }
 }

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import styles from './scholar-panel.module.css'
 import {
     LayoutDashboard,
+    Home,
     MessageCircleQuestion,
     BarChart3,
     LogOut,
@@ -26,6 +27,19 @@ import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import api from '@/lib/axios'
 
+interface ScholarStats {
+    totalAnswers: number
+    totalUpvotes: number
+    pendingQuestions: number
+    answersThisWeek: number
+    peopleHelped: number
+    totalViews: number
+    topTopic: string
+    responseRate: number
+    totalDirected: number
+    totalAnswered: number
+}
+
 export default function ScholarPanel() {
     const { user, logout, isAuthenticated } = useAuthStore()
     const router = useRouter()
@@ -34,6 +48,7 @@ export default function ScholarPanel() {
     const [questions, setQuestions] = useState<any[]>([])
     const [urgentQuestions, setUrgentQuestions] = useState<any[]>([])
     const [isLoading, setIsLoading] = useState(true)
+    const [stats, setStats] = useState<ScholarStats | null>(null)
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -49,22 +64,24 @@ export default function ScholarPanel() {
 
         setIsAuthorized(true)
 
-        const fetchQuestions = async () => {
+        const fetchData = async () => {
             try {
-                const [directedRes, urgentRes] = await Promise.all([
+                const [directedRes, urgentRes, statsRes] = await Promise.all([
                     api.get('/questions/directed'),
-                    api.get('questions/urgent/all')
+                    api.get('questions/urgent/all'),
+                    api.get('/scholars/stats')
                 ])
                 setQuestions(directedRes.data)
                 setUrgentQuestions(urgentRes.data)
+                setStats(statsRes.data)
             } catch (err) {
-                console.error("Failed to load questions", err)
+                console.error("Failed to load data", err)
             } finally {
                 setIsLoading(false)
             }
         }
 
-        fetchQuestions()
+        fetchData()
     }, [isAuthenticated, user, router])
 
     const scholarName = user?.name || "Scholar"
@@ -73,7 +90,6 @@ export default function ScholarPanel() {
         try {
             await api.post(`/questions/${id}/accept`)
             toast.success("Question accepted!")
-            // Update local state to show 'Answer Now'
             setQuestions(questions.map(q => q.id === id ? { ...q, acceptedById: user?.id } : q))
         } catch (err: any) {
             console.error("Failed to accept question", err)
@@ -97,6 +113,13 @@ export default function ScholarPanel() {
         router.push('/login')
     }
 
+    const formatNumber = (num: number): string => {
+        if (num >= 1000) {
+            return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k'
+        }
+        return num.toLocaleString()
+    }
+
     if (!isAuthorized) {
         return (
             <div style={{
@@ -113,274 +136,267 @@ export default function ScholarPanel() {
         )
     }
 
+    // Normal pending questions: (directed or accepted by user) AND not urgent AND not answered by user
+    const pendingQuestionsList = questions.filter(q =>
+        !q.isUrgent && !q.answers?.some((a: any) => a.authorId === user?.id)
+    )
+
+    // Total new (normal + urgent) unanswered questions for the sidebar badge
+    const totalNewCount = questions.filter(q =>
+        !q.answers?.some((a: any) => a.authorId === user?.id)
+    ).length
+
+    const pendingDirected = questions.filter(q =>
+        q.acceptedById !== user?.id &&
+        !q.isUrgent &&
+        !q.answers?.some((a: any) => a.authorId === user?.id)
+    )
+
     return (
-        <div className={styles.container}>
-            {/* Sidebar */}
-            <aside className={styles.sidebar}>
-                <div className={styles.profileInfo}>
-                    <div className={styles.avatarWrapper}>
-                        <img
-                            src={user?.avatar || `https://ui-avatars.com/api/?name=${scholarName}&background=10b981&color=fff&bold=true`}
-                            alt={scholarName}
-                            className={styles.avatar}
-                        />
-                        <div className={styles.onlineBadge}></div>
-                    </div>
-                    <div className={styles.nameContainer}>
-                        <span className={styles.scholarName}>{scholarName}</span>
-                        <span className={styles.verifiedBadge}>
-                            <div className={styles.verifiedIcon}><Check size={10} strokeWidth={4} /></div> Verified Scholar
-                        </span>
-                    </div>
-                </div>
+        <>
+            <header className={styles.header}>
+                <h1 className={styles.welcomeTitle}>Welcome back, {scholarName.split(' ')[0]}</h1>
+                <p className={styles.welcomeSubtitle}>Here's what's happening with your questions today.</p>
+            </header>
 
-                <nav className={styles.navSection}>
-                    <Link
-                        href="/scholar-panel"
-                        className={`${styles.navItem} ${activeTab === 'dashboard' ? styles.navItemActive : ''}`}
-                        onClick={() => setActiveTab('dashboard')}
-                    >
-                        <LayoutDashboard size={20} />
-                        Dashboard
-                    </Link>
-                    <Link
-                        href="/scholar-panel/new-questions"
-                        className={`${styles.navItem} ${activeTab === 'questions' ? styles.navItemActive : ''}`}
-                        onClick={() => setActiveTab('questions')}
-                    >
-                        <MessageCircleQuestion size={20} />
-                        New Questions
-                        <span className={styles.navBadge}>3</span>
-                    </Link>
-                    <Link
-                        href="/scholar-panel/analytics"
-                        className={`${styles.navItem} ${activeTab === 'analytics' ? styles.navItemActive : ''}`}
-                        onClick={() => setActiveTab('analytics')}
-                    >
-                        <BarChart3 size={20} />
-                        Analytics
-                    </Link>
-                </nav>
-
-                {/* Verification Status Widget in Sidebar */}
-                <div className={styles.verifWidget}>
-                    <div className={styles.verifTitle}>
-                        <CheckCircle2 size={14} /> Verification Status
-                    </div>
-                    <p className={styles.verifText}>
-                        Your scholar credentials are up to date and verified until Dec 2024.
-                    </p>
-                </div>
-
-                <button className={styles.logOutBtn} onClick={handleLogout}>
-                    <LogOut size={20} />
-                    Log Out
-                </button>
-            </aside>
-
-            {/* Main Content */}
-            <main className={styles.mainContent}>
-                <header className={styles.header}>
-                    <h1 className={styles.welcomeTitle}>Welcome back, {scholarName.split(' ')[0]}</h1>
-                    <p className={styles.welcomeSubtitle}>Here's what's happening with your questions today.</p>
-                </header>
-
-                <div className={styles.dashboardGrid}>
-                    {/* Left Column */}
-                    <section>
-                        <div className={styles.statsGrid}>
-                            <div className={styles.statCard}>
-                                <div className={styles.statHeader}>
-                                    <div className={styles.statIconWrapper} style={{ backgroundColor: '#eff6ff', color: '#10b981' }}>
-                                        <Inbox size={18} />
-                                    </div>
-                                    <span className={styles.statChange} style={{ backgroundColor: '#ecfdf5', color: '#10b981' }}>+12%</span>
+            <div className={styles.dashboardGrid}>
+                {/* Left Column */}
+                <section>
+                    <div className={styles.statsGrid}>
+                        <div className={styles.statCard}>
+                            <div className={styles.statHeader}>
+                                <div className={styles.statIconWrapper} style={{ backgroundColor: '#eff6ff', color: 'var(--primary)' }}>
+                                    <Inbox size={18} />
                                 </div>
-                                <div className={styles.statLabel}>Total Answers</div>
-                                <div className={styles.statValue}>1,240</div>
+                                {stats && stats.totalAnswers > 0 && (
+                                    <span className={styles.statChange} style={{ backgroundColor: '#ecfdf5', color: '#10b981' }}>
+                                        {stats.answersThisWeek > 0 ? `+${stats.answersThisWeek} this week` : '—'}
+                                    </span>
+                                )}
                             </div>
-
-                            <div className={styles.statCard}>
-                                <div className={styles.statHeader}>
-                                    <div className={styles.statIconWrapper} style={{ backgroundColor: '#fff7ed', color: '#f97316' }}>
-                                        <MessageSquareQuote size={18} />
-                                    </div>
-                                    <span className={styles.statChange} style={{ backgroundColor: '#ecfdf5', color: '#10b981' }}>+2%</span>
-                                </div>
-                                <div className={styles.statLabel}>Unanswered Requests</div>
-                                <div className={styles.statValue}>15</div>
-                            </div>
-
-                            <div className={styles.statCard}>
-                                <div className={styles.statHeader}>
-                                    <div className={styles.statIconWrapper} style={{ backgroundColor: '#f5f3ff', color: '#8b5cf6' }}>
-                                        <TrendingUp size={18} />
-                                    </div>
-                                    <span className={styles.statChange} style={{ backgroundColor: '#f1f5f9', color: '#64748b' }}>-</span>
-                                </div>
-                                <div className={styles.statLabel}>Followers</div>
-                                <div className={styles.statValue}>8.5k</div>
+                            <div className={styles.statLabel}>Total Answers</div>
+                            <div className={styles.statValue}>
+                                {isLoading ? '...' : formatNumber(stats?.totalAnswers || 0)}
                             </div>
                         </div>
 
-                        {urgentQuestions.length > 0 && (
-                            <>
-                                <div className={styles.sectionHeader} style={{ marginBottom: '1rem' }}>
-                                    <h2 className={styles.sectionTitle} style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        🚨 Urgent Questions
-                                    </h2>
+                        <div className={styles.statCard}>
+                            <div className={styles.statHeader}>
+                                <div className={styles.statIconWrapper} style={{ backgroundColor: '#fff7ed', color: '#f97316' }}>
+                                    <MessageSquareQuote size={18} />
                                 </div>
+                            </div>
+                            <div className={styles.statLabel}>Pending Questions</div>
+                            <div className={styles.statValue}>
+                                {isLoading ? '...' : stats?.pendingQuestions || 0}
+                            </div>
+                        </div>
 
-                                <div className={styles.questionsList} style={{ marginBottom: '2.5rem' }}>
-                                    {urgentQuestions.map((question) => (
-                                        <div key={question.id} className={styles.questionCard} style={{ borderLeft: '4px solid #ef4444', backgroundColor: '#fffcfc' }}>
-                                            <div className={styles.questionMeta}>
+                        <div className={styles.statCard}>
+                            <div className={styles.statHeader}>
+                                <div className={styles.statIconWrapper} style={{ backgroundColor: '#f5f3ff', color: '#8b5cf6' }}>
+                                    <ThumbsUp size={18} />
+                                </div>
+                            </div>
+                            <div className={styles.statLabel}>Total Upvotes</div>
+                            <div className={styles.statValue}>
+                                {isLoading ? '...' : formatNumber(stats?.totalUpvotes || 0)}
+                            </div>
+                        </div>
+                    </div>
+
+                    {urgentQuestions.length > 0 && (
+                        <>
+                            <div className={styles.sectionHeader} style={{ marginBottom: '1rem' }}>
+                                <h2 className={styles.sectionTitle} style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    🚨 Urgent Questions
+                                </h2>
+                            </div>
+
+                            <div className={styles.questionsList} style={{ marginBottom: '2.5rem' }}>
+                                {urgentQuestions.map((question) => (
+                                    <div key={question.id} className={styles.questionCard} style={{ borderLeft: '4px solid #ef4444', backgroundColor: '#fffcfc' }}>
+                                        <div className={styles.askerInfo}>
+                                            <img
+                                                src={question.author?.avatar || `https://ui-avatars.com/api/?name=${question.author?.name || 'User'}&background=006D5B&color=fff&bold=true`}
+                                                alt={question.author?.name}
+                                                className={styles.askerAvatar}
+                                            />
+                                            <div className={styles.askerText}>
+                                                Asked by <span className={styles.askerNameText}>{question.author?.name || 'User'}</span>
+                                                {question.author?.gender && (
+                                                    <span className={styles.genderTag}>Gender: {question.author.gender}</span>
+                                                )}
+                                                <span className={styles.questionDot}>•</span>
+                                                {new Date(question.createdAt).toLocaleDateString()}
+                                            </div>
+                                            <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem' }}>
                                                 <span className={styles.categoryBadge} style={{ backgroundColor: '#fee2e2', color: '#ef4444', fontWeight: 'bold' }}>
                                                     URGENT
                                                 </span>
-                                                <span className={styles.questionDot}>•</span>
-                                                <span className={styles.categoryBadge} style={{ backgroundColor: '#ecfdf5', color: '#10b981' }}>
-                                                    {question.tags?.[0]?.name || "General"}
-                                                </span>
-                                                <span className={styles.questionDot}>•</span>
-                                                <span className={styles.questionAuthor}>Asked by {question.author?.name || 'User'}</span>
-                                                <span className={styles.questionDot}>•</span>
-                                                <span className={styles.questionAuthor}>{new Date(question.createdAt).toLocaleDateString()}</span>
-                                            </div>
-                                            <h3 className={styles.questionTitle}>{question.title}</h3>
-                                            <p className={styles.questionExcerpt}>
-                                                {question.body}
-                                            </p>
-                                            <div className={styles.actionsRow} style={{ display: 'flex', gap: '1rem', width: '100%', marginTop: 'auto' }}>
-                                                {question.acceptedById === user?.id ? (
-                                                    <Link href={`/scholar-panel/answer/${question.id}`} style={{ textDecoration: 'none', width: '100%' }}>
-                                                        <button className={styles.answerBtn} style={{ width: '100%', justifyContent: 'center' }}>
-                                                            <MessageCircleQuestion size={16} strokeWidth={3} /> Answer Now
-                                                        </button>
-                                                    </Link>
-                                                ) : (
-                                                    <Link href={`/question/${question.id}`} style={{ textDecoration: 'none', width: '100%' }}>
-                                                        <button className={styles.acceptBtn} style={{ width: '100%', justifyContent: 'center' }}>
-                                                            <ArrowRight size={16} strokeWidth={3} /> View Question
-                                                        </button>
-                                                    </Link>
+                                                {question.tags?.[0] && (
+                                                    <span className={styles.categoryBadge} style={{ backgroundColor: '#ecfdf5', color: 'var(--primary)' }}>
+                                                        {question.tags[0].name}
+                                                    </span>
                                                 )}
                                             </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </>
-                        )}
-
-                        <div className={styles.sectionHeader}>
-                            <h2 className={styles.sectionTitle}>Pending Questions</h2>
-                            <Link href="/scholar-panel/questions" className={styles.viewAll}>View All</Link>
-                        </div>
-
-                        <div className={styles.questionsList}>
-                            {isLoading ? (
-                                <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>Loading questions...</div>
-                            ) : questions.length === 0 ? (
-                                <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No pending questions.</div>
-                            ) : (
-                                questions.map((question) => (
-                                    <div key={question.id} className={styles.questionCard}>
-                                        <div className={styles.questionMeta}>
-                                            {question.isUrgent && (
-                                                <>
-                                                    <span className={styles.categoryBadge} style={{ backgroundColor: '#fee2e2', color: '#ef4444', fontWeight: 'bold' }}>
-                                                        🚨 URGENT
-                                                    </span>
-                                                    <span className={styles.questionDot}>•</span>
-                                                </>
-                                            )}
-                                            <span className={styles.categoryBadge} style={{ backgroundColor: '#ecfdf5', color: '#10b981' }}>
-                                                {question.tags?.[0]?.name || "General"}
-                                            </span>
-                                            <span className={styles.questionDot}>•</span>
-                                            <span className={styles.questionAuthor}>Asked by {question.author.name}</span>
-                                            <span className={styles.questionDot}>•</span>
-                                            <span className={styles.questionAuthor}>{new Date(question.createdAt).toLocaleDateString()}</span>
                                         </div>
                                         <h3 className={styles.questionTitle}>{question.title}</h3>
                                         <p className={styles.questionExcerpt}>
                                             {question.body}
                                         </p>
-                                        <div className={styles.actionsRow} style={{ display: 'flex', gap: '1rem', width: '100%', marginTop: 'auto' }}>
+                                        <div className={styles.actionsRow} style={{ display: 'flex', gap: '1rem', marginTop: 'auto' }}>
                                             {question.acceptedById === user?.id ? (
-                                                <Link href={`/scholar-panel/answer/${question.id}`} style={{ textDecoration: 'none', width: '100%' }}>
-                                                    <button className={styles.answerBtn} style={{ width: '100%', justifyContent: 'center' }}>
+                                                <Link href={`/scholar-panel/answer/${question.id}`} style={{ textDecoration: 'none' }}>
+                                                    <button className={styles.answerBtn}>
                                                         <MessageCircleQuestion size={16} strokeWidth={3} /> Answer Now
                                                     </button>
                                                 </Link>
                                             ) : (
-                                                <>
-                                                    <button className={styles.acceptBtn} onClick={() => handleAccept(question.id)} style={{ flex: 1, justifyContent: 'center' }}>
-                                                        <CheckCircle2 size={16} strokeWidth={3} /> Accept
+                                                <Link href={`/questions/${question.id}`} style={{ textDecoration: 'none' }}>
+                                                    <button className={styles.acceptBtn}>
+                                                        <ArrowRight size={16} strokeWidth={3} /> View Question
                                                     </button>
-                                                    <button className={styles.declineBtn} onClick={() => handleDecline(question.id)} style={{ flex: 1, justifyContent: 'center' }}>
-                                                        <XCircle size={16} strokeWidth={3} /> Decline
-                                                    </button>
-                                                </>
+                                                </Link>
                                             )}
                                         </div>
                                     </div>
-                                ))
-                            )}
-                        </div>
-                    </section>
-
-                    {/* Right Column */}
-                    <aside className={styles.rightSidebar}>
-                        {/* Impact Card */}
-                        <div className={styles.impactCard}>
-                            <h3 className={styles.impactTitle}>Your Impact</h3>
-                            <p className={styles.impactSubtitle}>This week&apos;s community engagement</p>
-
-                            <div className={styles.impactValue}>
-                                42 <span className={styles.impactUnit}>people helped</span>
+                                ))}
                             </div>
+                        </>
+                    )}
 
-                            <div className={styles.progressBar}>
-                                <div className={styles.progressFill} style={{ width: '70%', background: 'linear-gradient(to right, #34d399, #10b981)' }}></div>
-                            </div>
+                    <div className={styles.sectionHeader}>
+                        <h2 className={styles.sectionTitle}>Pending Questions</h2>
+                        <Link href="/scholar-panel/new-questions" className={styles.viewAll}>View All</Link>
+                    </div>
 
-                            <div className={styles.progressLabelRow}>
-                                <span className={styles.goalLabel}>Weekly Goal</span>
-                                <span className={styles.topBadge}>Top 5%</span>
-                            </div>
-
-                            <div className={styles.impactBgIcon}>
-                                <Award size={100} />
-                            </div>
-                        </div>
-
-                        {/* Quick Analytics */}
-                        <div className={styles.analyticsCard}>
-                            <h3 className={styles.analyticsTitle}>Quick Analytics</h3>
-
-                            <div className={styles.analyticsList}>
-                                <div className={styles.analyticsItem}>
-                                    <span className={styles.analyticsLabel}>Avg. Response Time</span>
-                                    <span className={styles.analyticsValue}>4h 12m</span>
+                    <div className={styles.questionsList}>
+                        {isLoading ? (
+                            <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>Loading questions...</div>
+                        ) : pendingQuestionsList.length === 0 ? (
+                            <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No pending questions.</div>
+                        ) : (
+                            pendingQuestionsList.map((question) => (
+                                <div key={`pending-${question.id}`} className={styles.questionCard}>
+                                    <div className={styles.askerInfo}>
+                                        <img
+                                            src={question.author.avatar || `https://ui-avatars.com/api/?name=${question.author.name}&background=006D5B&color=fff&bold=true`}
+                                            alt={question.author.name}
+                                            className={styles.askerAvatar}
+                                        />
+                                        <div className={styles.askerText}>
+                                            Asked by <span className={styles.askerNameText}>{question.author.name}</span>
+                                            {question.author.gender && (
+                                                <span className={styles.genderTag}>Gender: {question.author.gender}</span>
+                                            )}
+                                            <span className={styles.questionDot}>•</span>
+                                            {new Date(question.createdAt).toLocaleDateString()}
+                                        </div>
+                                        {question.isUrgent && (
+                                            <div style={{ marginLeft: 'auto' }}>
+                                                <span className={styles.categoryBadge} style={{ backgroundColor: '#fee2e2', color: '#ef4444', fontWeight: 'bold' }}>
+                                                    🚨 URGENT
+                                                </span>
+                                            </div>
+                                        )}
+                                        {!question.isUrgent && question.tags?.[0] && (
+                                            <div style={{ marginLeft: 'auto' }}>
+                                                <span className={styles.categoryBadge} style={{ backgroundColor: '#ecfdf5', color: 'var(--primary)' }}>
+                                                    {question.tags[0].name}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <h3 className={styles.questionTitle}>{question.title}</h3>
+                                    <p className={styles.questionExcerpt}>
+                                        {question.body}
+                                    </p>
+                                    <div className={styles.actionsRow} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+                                        {question.acceptedById === user?.id ? (
+                                            <Link href={`/scholar-panel/answer/${question.id}`} style={{ textDecoration: 'none' }}>
+                                                <button className={styles.answerBtn}>
+                                                    <MessageCircleQuestion size={16} strokeWidth={3} /> Answer Now
+                                                </button>
+                                            </Link>
+                                        ) : (
+                                            <>
+                                                <button className={styles.acceptBtn} onClick={() => handleAccept(question.id)}>
+                                                    <CheckCircle2 size={16} strokeWidth={3} /> Accept
+                                                </button>
+                                                <button className={styles.declineBtn} onClick={() => handleDecline(question.id)}>
+                                                    <XCircle size={16} strokeWidth={3} /> Decline
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className={styles.analyticsItem}>
-                                    <span className={styles.analyticsLabel}>Satisfaction Rate</span>
-                                    <span className={styles.analyticsValue} style={{ color: '#10b981' }}>98%</span>
-                                </div>
-                                <div className={styles.analyticsItem}>
-                                    <span className={styles.analyticsLabel}>Top Topic</span>
-                                    <span className={styles.analyticsValue}>Fiqh</span>
-                                </div>
-                            </div>
+                            ))
+                        )}
+                    </div>
+                </section>
 
-                            <Link href="/scholar-panel/analytics" className={styles.viewReport}>
-                                View Full Report <ArrowRight size={14} />
-                            </Link>
+                {/* Right Column */}
+                <aside className={styles.rightSidebar}>
+                    {/* Impact Card */}
+                    <div className={styles.impactCard}>
+                        <h3 className={styles.impactTitle}>Your Impact</h3>
+                        <p className={styles.impactSubtitle}>This week&apos;s community engagement</p>
+
+                        <div className={styles.impactValue}>
+                            {isLoading ? '...' : stats?.peopleHelped || 0} <span className={styles.impactUnit}>people helped</span>
                         </div>
-                    </aside>
-                </div>
-            </main>
-        </div>
+
+                        <div className={styles.progressBar}>
+                            <div className={styles.progressFill} style={{
+                                width: `${Math.min((stats?.answersThisWeek || 0) * 10, 100)}%`,
+                                background: 'linear-gradient(to right, #34d399, var(--primary))'
+                            }}></div>
+                        </div>
+
+                        <div className={styles.progressLabelRow}>
+                            <span className={styles.goalLabel}>Weekly Goal</span>
+                            <span className={styles.topBadge}>
+                                {stats?.responseRate ? `${stats.responseRate}% Response` : '—'}
+                            </span>
+                        </div>
+
+                        <div className={styles.impactBgIcon}>
+                            <Award size={100} />
+                        </div>
+                    </div>
+
+                    {/* Quick Analytics */}
+                    <div className={styles.analyticsCard}>
+                        <h3 className={styles.analyticsTitle}>Quick Analytics</h3>
+
+                        <div className={styles.analyticsList}>
+                            <div className={styles.analyticsItem}>
+                                <span className={styles.analyticsLabel}>Response Rate</span>
+                                <span className={styles.analyticsValue}>
+                                    {isLoading ? '...' : `${stats?.responseRate || 0}%`}
+                                </span>
+                            </div>
+                            <div className={styles.analyticsItem}>
+                                <span className={styles.analyticsLabel}>Answers This Week</span>
+                                <span className={styles.analyticsValue} style={{ color: 'var(--primary)' }}>
+                                    {isLoading ? '...' : stats?.answersThisWeek || 0}
+                                </span>
+                            </div>
+                            <div className={styles.analyticsItem}>
+                                <span className={styles.analyticsLabel}>Top Topic</span>
+                                <span className={styles.analyticsValue}>
+                                    {isLoading ? '...' : stats?.topTopic || 'General'}
+                                </span>
+                            </div>
+                        </div>
+
+                        <Link href="/scholar-panel/analytics" className={styles.viewReport}>
+                            View Full Report <ArrowRight size={14} />
+                        </Link>
+                    </div>
+                </aside>
+            </div>
+        </>
     )
 }

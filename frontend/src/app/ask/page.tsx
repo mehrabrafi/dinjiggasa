@@ -40,6 +40,14 @@ export default function AskQuestionPage() {
     }, [title]);
 
     useEffect(() => {
+        // Scholars cannot ask questions
+        if (isAuthenticated && (user?.role === 'SCHOLAR' || user?.role === 'ADMIN')) {
+            import('react-hot-toast').then(m => m.default.error("Scholars are not permitted to ask questions. You can only provide answers through the Scholar Panel."))
+            router.push("/")
+        }
+    }, [isAuthenticated, user, router])
+
+    useEffect(() => {
         const fetchScholars = async () => {
             try {
                 const res = await api.get("/scholars")
