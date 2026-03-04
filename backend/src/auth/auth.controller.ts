@@ -1,12 +1,14 @@
-import { Body, Controller, Post, HttpCode, HttpStatus } from '@nestjs/common';
+import { Body, Controller, Post, Get, Patch, Param, HttpCode, HttpStatus, UseGuards, Req } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
-import { UseGuards, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
+import { Roles } from './guards/roles.decorator';
+import { Role } from '@prisma/client';
 
 @Controller('auth')
 export class AuthController {
@@ -35,5 +37,33 @@ export class AuthController {
   @Post('profile')
   updateProfile(@Req() req: Request, @Body() dto: UpdateProfileDto) {
     return this.authService.updateProfile((req.user as any).id, dto);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.MODERATOR)
+  @Get('users')
+  findAll() {
+    return this.authService.findAll();
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.MODERATOR)
+  @Patch('users/:id/verify')
+  updateVerification(@Param('id') id: string, @Body('isVerified') isVerified: boolean) {
+    return this.authService.updateVerification(id, isVerified);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.MODERATOR)
+  @Patch('users/:id/role')
+  updateRole(@Param('id') id: string, @Body('role') role: Role, @Req() req: any) {
+    return this.authService.updateRole(id, role, req.user.role);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.MODERATOR)
+  @Patch('users/:id/ban')
+  updateBanStatus(@Param('id') id: string, @Body('isBanned') isBanned: boolean) {
+    return this.authService.updateBanStatus(id, isBanned);
   }
 }

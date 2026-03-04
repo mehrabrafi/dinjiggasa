@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Search, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react"
+import Link from 'next/link'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import api from '@/lib/axios'
 import styles from './scholars.module.css'
@@ -99,7 +100,9 @@ export default function ScholarsPage() {
                                 </div>
 
                                 <div className={styles.cardActions}>
-                                    <button className={styles.viewProfileBtn}>View Profile</button>
+                                    <Link href={`/scholars/${scholar.id}`}>
+                                        <button className={styles.viewProfileBtn}>View Profile</button>
+                                    </Link>
                                     {(!user || (user?.role !== 'SCHOLAR' && user?.role !== 'ADMIN')) && (
                                         <button className={`${styles.askBtn} ${styles.askBtnPrimary}`}>Ask Question</button>
                                     )}

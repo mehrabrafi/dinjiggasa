@@ -1,11 +1,12 @@
 "use client"
 
-import { PlayCircle, Bell, MessageSquare, ArrowUp, ArrowDown, TrendingUp, GraduationCap, Share, CheckCircle2, Heart, BarChart3, HelpCircle, Activity } from "lucide-react"
+import { PlayCircle, Bell, MessageSquare, ArrowUp, ArrowDown, TrendingUp, GraduationCap, Share, CheckCircle2, Heart, BarChart3, HelpCircle, Activity, Flag } from "lucide-react"
 import Link from "next/link"
 import React, { useEffect, useState } from "react"
 import api from "@/lib/axios"
 import DashboardLayout from "@/components/layout/DashboardLayout"
 import styles from "./dashboard.module.css"
+import ReportModal from "@/components/modals/ReportModal"
 
 export default function Dashboard() {
   const [questions, setQuestions] = useState<any[]>([])
@@ -13,6 +14,21 @@ export default function Dashboard() {
   const [userId, setUserId] = useState<string | null>(null)
   const [stats, setStats] = useState<any>(null)
   const [topScholars, setTopScholars] = useState<any[]>([])
+
+  // Report Modal State
+  const [reportModal, setReportModal] = useState({
+    isOpen: false,
+    questionId: '',
+    title: ''
+  })
+
+  const openReportModal = (questionId: string, title: string) => {
+    setReportModal({
+      isOpen: true,
+      questionId,
+      title
+    })
+  }
 
   useEffect(() => {
     // Optionally we can get userId from auth store. Using a simple logic here if available or rely on JWT.
@@ -194,7 +210,11 @@ export default function Dashboard() {
 
                   <div className={styles.cardAuthorRow}>
                     <img src={question.answers[0].author?.avatar || `https://ui-avatars.com/api/?name=${question.answers[0].author?.name}&background=10b981&color=fff`} alt={question.answers[0].author?.name} className={styles.cardAuthorAvatar} />
-                    <span><span className={styles.cardAuthorName}>{question.answers[0].author?.name}</span> • {new Date(question.answers[0].createdAt || question.createdAt).toLocaleDateString()}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span className={styles.cardAuthorName}>{question.answers[0].author?.name}</span>
+                      {question.answers[0].author?.isVerified && <CheckCircle2 size={14} color="#006D5B" fill="#006D5B1A" />}
+                      • {new Date(question.answers[0].createdAt || question.createdAt).toLocaleDateString()}
+                    </span>
                   </div>
 
                   <p className={styles.cardText}>
@@ -230,6 +250,13 @@ export default function Dashboard() {
             )
           })
         )}
+
+        <ReportModal
+          isOpen={reportModal.isOpen}
+          onClose={() => setReportModal({ ...reportModal, isOpen: false })}
+          questionId={reportModal.questionId}
+          title={reportModal.title}
+        />
       </main>
 
       {/* Right Sidebar */}
@@ -307,7 +334,10 @@ export default function Dashboard() {
                   className={styles.scholarAvatar}
                 />
                 <div className={styles.scholarInfo}>
-                  <span className={styles.scholarName}>{scholar.name}</span>
+                  <span className={styles.scholarName} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {scholar.name}
+                    {scholar.isVerified && <CheckCircle2 size={14} color="#006D5B" fill="#006D5B1A" />}
+                  </span>
                   <span className={styles.scholarDesc}>{scholar.specialization || "Islamic Scholar"}</span>
                 </div>
               </div>

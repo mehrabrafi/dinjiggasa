@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Post,
+  Delete,
   UseGuards,
   Request,
   Query,
@@ -24,8 +25,8 @@ export class QuestionsController {
   }
 
   @Get()
-  findAll() {
-    return this.questionsService.findAll();
+  findAll(@Query('tag') tag?: string) {
+    return this.questionsService.findAll({ tag });
   }
 
   @UseGuards(JwtAuthGuard)
@@ -52,9 +53,9 @@ export class QuestionsController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post(':id/delete')
+  @Delete(':id')
   deleteQuestion(@Param('id') id: string, @Request() req: any) {
-    return this.questionsService.deleteQuestion(id, req.user.id);
+    return this.questionsService.deleteQuestion(id, req.user.id, req.user.role);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -91,6 +92,26 @@ export class QuestionsController {
   @Get('draft/all')
   findDraftQuestions(@Request() req: any) {
     return this.questionsService.findDraftQuestions(req.user.id);
+  }
+
+  @Get('tags/all')
+  findAllTags() {
+    return this.questionsService.findAllTags();
+  }
+
+  @Get('tags/trending')
+  getTrendingTopics() {
+    return this.questionsService.getTrendingTopicsWithCounts();
+  }
+
+  @Get('stats/global')
+  getGlobalStats() {
+    return this.questionsService.getGlobalStats();
+  }
+
+  @Get('search')
+  search(@Query('q') q: string) {
+    return this.questionsService.search(q);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -159,18 +180,9 @@ export class QuestionsController {
     return this.questionsService.getDraft(id, req.user.id);
   }
 
-  @Get('tags/all')
-  findAllTags() {
-    return this.questionsService.findAllTags();
-  }
-
-  @Get('tags/trending')
-  getTrendingTopics() {
-    return this.questionsService.getTrendingTopicsWithCounts();
-  }
-
-  @Get('stats/global')
-  getGlobalStats() {
-    return this.questionsService.getGlobalStats();
+  @UseGuards(JwtAuthGuard)
+  @Delete('answers/:id')
+  deleteAnswer(@Param('id') id: string, @Request() req: any) {
+    return this.questionsService.deleteAnswer(id, req.user.id, req.user.role);
   }
 }

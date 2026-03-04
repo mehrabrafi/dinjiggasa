@@ -1,0 +1,119 @@
+fix: downgrade prisma to v6 to fix PrismaClientInitializationError
+
+# Conflicts:
+#	package-lock.json
+#	package.json
+#	prisma/schema.prisma
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# interactive rebase in progress; onto d3db6a9
+# Last command done (1 command done):
+#    pick 73aa1f3 # fix: downgrade prisma to v6 to fix PrismaClientInitializationError
+# Next commands to do (2 remaining commands):
+#    pick 9c51307 # Update notifications and fix answer API unwrapping
+#    pick e852bb7 # feat(backend): implement answer voting and include ratings in question details
+# You are currently rebasing branch 'main' on 'd3db6a9'.
+#
+# Changes to be committed:
+#	new file:   dist/generated/prisma/browser.d.ts
+#	new file:   dist/generated/prisma/browser.js
+#	new file:   dist/generated/prisma/browser.js.map
+#	new file:   dist/generated/prisma/client.d.ts
+#	new file:   dist/generated/prisma/client.js
+#	new file:   dist/generated/prisma/client.js.map
+#	new file:   dist/generated/prisma/commonInputTypes.d.ts
+#	new file:   dist/generated/prisma/commonInputTypes.js
+#	new file:   dist/generated/prisma/commonInputTypes.js.map
+#	new file:   dist/generated/prisma/enums.d.ts
+#	new file:   dist/generated/prisma/enums.js
+#	new file:   dist/generated/prisma/enums.js.map
+#	new file:   dist/generated/prisma/internal/class.d.ts
+#	new file:   dist/generated/prisma/internal/class.js
+#	new file:   dist/generated/prisma/internal/class.js.map
+#	new file:   dist/generated/prisma/internal/prismaNamespace.d.ts
+#	new file:   dist/generated/prisma/internal/prismaNamespace.js
+#	new file:   dist/generated/prisma/internal/prismaNamespace.js.map
+#	new file:   dist/generated/prisma/internal/prismaNamespaceBrowser.d.ts
+#	new file:   dist/generated/prisma/internal/prismaNamespaceBrowser.js
+#	new file:   dist/generated/prisma/internal/prismaNamespaceBrowser.js.map
+#	new file:   dist/generated/prisma/models.d.ts
+#	new file:   dist/generated/prisma/models.js
+#	new file:   dist/generated/prisma/models.js.map
+#	new file:   dist/generated/prisma/models/Answer.d.ts
+#	new file:   dist/generated/prisma/models/Answer.js
+#	new file:   dist/generated/prisma/models/Answer.js.map
+#	new file:   dist/generated/prisma/models/Question.d.ts
+#	new file:   dist/generated/prisma/models/Question.js
+#	new file:   dist/generated/prisma/models/Question.js.map
+#	new file:   dist/generated/prisma/models/Tag.d.ts
+#	new file:   dist/generated/prisma/models/Tag.js
+#	new file:   dist/generated/prisma/models/Tag.js.map
+#	new file:   dist/generated/prisma/models/User.d.ts
+#	new file:   dist/generated/prisma/models/User.js
+#	new file:   dist/generated/prisma/models/User.js.map
+#	new file:   dist/generated/prisma/models/Vote.d.ts
+#	new file:   dist/generated/prisma/models/Vote.js
+#	new file:   dist/generated/prisma/models/Vote.js.map
+#	new file:   dist/src/app.controller.d.ts
+#	new file:   dist/src/app.controller.js
+#	new file:   dist/src/app.controller.js.map
+#	new file:   dist/src/app.module.d.ts
+#	new file:   dist/src/app.module.js
+#	new file:   dist/src/app.module.js.map
+#	new file:   dist/src/app.service.d.ts
+#	new file:   dist/src/app.service.js
+#	new file:   dist/src/app.service.js.map
+#	new file:   dist/src/auth/auth.controller.d.ts
+#	new file:   dist/src/auth/auth.controller.js
+#	new file:   dist/src/auth/auth.controller.js.map
+#	new file:   dist/src/auth/auth.module.d.ts
+#	new file:   dist/src/auth/auth.module.js
+#	new file:   dist/src/auth/auth.module.js.map
+#	new file:   dist/src/auth/auth.service.d.ts
+#	new file:   dist/src/auth/auth.service.js
+#	new file:   dist/src/auth/auth.service.js.map
+#	new file:   dist/src/auth/dto/login.dto.d.ts
+#	new file:   dist/src/auth/dto/login.dto.js
+#	new file:   dist/src/auth/dto/login.dto.js.map
+#	new file:   dist/src/auth/dto/signup.dto.d.ts
+#	new file:   dist/src/auth/dto/signup.dto.js
+#	new file:   dist/src/auth/dto/signup.dto.js.map
+#	new file:   dist/src/auth/guards/jwt-auth.guard.d.ts
+#	new file:   dist/src/auth/guards/jwt-auth.guard.js
+#	new file:   dist/src/auth/guards/jwt-auth.guard.js.map
+#	new file:   dist/src/auth/jwt.strategy.d.ts
+#	new file:   dist/src/auth/jwt.strategy.js
+#	new file:   dist/src/auth/jwt.strategy.js.map
+#	new file:   dist/src/main.d.ts
+#	new file:   dist/src/main.js
+#	new file:   dist/src/main.js.map
+#	new file:   dist/src/prisma/prisma.module.d.ts
+#	new file:   dist/src/prisma/prisma.module.js
+#	new file:   dist/src/prisma/prisma.module.js.map
+#	new file:   dist/src/prisma/prisma.service.d.ts
+#	new file:   dist/src/prisma/prisma.service.js
+#	new file:   dist/src/prisma/prisma.service.js.map
+#	new file:   dist/src/questions/dto/create-question.dto.d.ts
+#	new file:   dist/src/questions/dto/create-question.dto.js
+#	new file:   dist/src/questions/dto/create-question.dto.js.map
+#	new file:   dist/src/questions/questions.controller.d.ts
+#	new file:   dist/src/questions/questions.controller.js
+#	new file:   dist/src/questions/questions.controller.js.map
+#	new file:   dist/src/questions/questions.module.d.ts
+#	new file:   dist/src/questions/questions.module.js
+#	new file:   dist/src/questions/questions.module.js.map
+#	new file:   dist/src/questions/questions.service.d.ts
+#	new file:   dist/src/questions/questions.service.js
+#	new file:   dist/src/questions/questions.service.js.map
+#	new file:   dist/tsconfig.build.tsbuildinfo
+#	new file:   package-lock.json
+#	new file:   package.json
+#	new file:   prisma/schema.prisma
+#
+# Untracked files:
+#	.env
+#	generated/
+#	node_modules/
+#

@@ -11,6 +11,11 @@ export class QuestionsService {
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
+
+    if ((user as any).isBanned) {
+      throw new BadRequestException('You have been restricted from asking questions. Please contact support for more information.');
+    }
+
     if (user.role === 'SCHOLAR') {
       throw new BadRequestException('Scholars cannot ask questions. Your role is intended for providing answers.');
     }
@@ -52,29 +57,42 @@ export class QuestionsService {
       },
       include: {
         author: {
-          select: { id: true, name: true, role: true, avatar: true, gender: true },
+          select: { id: true, name: true, role: true, avatar: true, gender: true, isVerified: true },
         },
         tags: true,
         directedScholars: {
-          select: { id: true, name: true, avatar: true },
+          select: { id: true, name: true, avatar: true, isVerified: true },
         },
       },
     });
   }
 
-  async findAll() {
+  async findAll(options?: { tag?: string }) {
+    const whereClause: any = {};
+    if (options?.tag) {
+      whereClause.tags = {
+        some: {
+          name: {
+            equals: options.tag,
+            mode: 'insensitive'
+          }
+        }
+      };
+    }
+
     return this.prisma.question.findMany({
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
       include: {
         author: {
-          select: { id: true, name: true, role: true, avatar: true, gender: true },
+          select: { id: true, name: true, role: true, avatar: true, gender: true, isVerified: true },
         },
         tags: true,
         answers: {
           take: 1,
           orderBy: { createdAt: 'desc' },
           include: {
-            author: { select: { name: true, avatar: true, specialization: true } }
+            author: { select: { name: true, avatar: true, specialization: true, isVerified: true } }
           }
         },
         ratings: {
@@ -146,6 +164,7 @@ export class QuestionsService {
             avatar: true,
             reputation: true,
             gender: true,
+            isVerified: true,
           },
         },
         tags: true,
@@ -158,6 +177,7 @@ export class QuestionsService {
                 role: true,
                 avatar: true,
                 reputation: true,
+                isVerified: true,
               },
             },
             ratings: {
@@ -303,11 +323,21 @@ export class QuestionsService {
     });
   }
 
-  async deleteQuestion(id: string, authorId: string) {
+  async deleteQuestion(id: string, requesterId: string, role: string) {
     const question = await this.prisma.question.findUnique({ where: { id } });
     if (!question) throw new NotFoundException('Question not found');
-    if (question.authorId !== authorId) throw new NotFoundException('Unauthorized');
-    if (question.acceptedById) throw new NotFoundException('Cannot delete an accepted question');
+
+    const isModerator = role === 'MODERATOR' || role === 'ADMIN';
+    const isOwner = question.authorId === requesterId;
+
+    if (!isOwner && !isModerator) {
+      throw new NotFoundException('Unauthorized');
+    }
+
+    // Only owners are restricted from deleting accepted questions
+    if (isOwner && !isModerator && question.acceptedById) {
+      throw new NotFoundException('Cannot delete an accepted question');
+    }
 
     return this.prisma.question.delete({ where: { id } });
   }
@@ -377,6 +407,11 @@ export class QuestionsService {
 
     if (!question) {
       throw new NotFoundException('Question not found');
+    }
+
+    const scholar = await this.prisma.user.findUnique({ where: { id: scholarId } });
+    if ((scholar as any)?.isBanned) {
+      throw new BadRequestException('Your account has been restricted. You cannot provide answers at this time.');
     }
 
     if (!categories || categories.length === 0) {
@@ -700,6 +735,9 @@ export class QuestionsService {
   async getGlobalStats() {
     const totalQuestions = await this.prisma.question.count();
     const totalAnswers = await this.prisma.answer.count();
+    const totalScholars = await this.prisma.user.count({
+      where: { role: 'SCHOLAR' },
+    });
     const answeredQuestionsCount = await this.prisma.question.count({
       where: { answers: { some: {} } },
     });
@@ -721,8 +759,60 @@ export class QuestionsService {
     return {
       totalQuestions,
       totalAnswers,
+      totalScholars,
       peopleHelped,
       responseRate,
     };
+  }
+
+  async deleteAnswer(id: string, requesterId: string, role: string) {
+    const answer = await this.prisma.answer.findUnique({ where: { id } });
+    if (!answer) throw new NotFoundException('Answer not found');
+
+    const isModerator = role === 'MODERATOR' || role === 'ADMIN';
+    const isOwner = answer.authorId === requesterId;
+
+    if (!isOwner && !isModerator) {
+      throw new NotFoundException('Unauthorized');
+    }
+
+    return this.prisma.answer.delete({ where: { id } });
+  }
+
+  async search(query: string) {
+    if (!query || query.trim().length < 2) {
+      return { questions: [], scholars: [], topics: [] };
+    }
+
+    const q = query.trim();
+
+    const questions = await this.prisma.question.findMany({
+      where: {
+        OR: [
+          { title: { contains: q, mode: 'insensitive' } },
+          { body: { contains: q, mode: 'insensitive' } },
+        ],
+      },
+      take: 8,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        author: {
+          select: { id: true, name: true, avatar: true, gender: true },
+        },
+        tags: true,
+        answers: {
+          take: 1,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            author: { select: { name: true, avatar: true } },
+          },
+        },
+        _count: {
+          select: { answers: true },
+        },
+      },
+    });
+
+    return { questions, scholars: [], topics: [] };
   }
 }

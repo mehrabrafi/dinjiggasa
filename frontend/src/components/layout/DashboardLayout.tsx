@@ -1,11 +1,23 @@
 "use client"
 
 import { useAuthStore } from "@/store/auth.store"
-import { Search, Home, Bookmark, Settings, Bell, List, Users, ArrowLeft, MessageSquare, PlusCircle, HelpCircle, GraduationCap, Menu, X } from "lucide-react"
+import { Search, Home, Bookmark, Settings, Bell, List, Users, ArrowLeft, MessageSquare, PlusCircle, HelpCircle, GraduationCap, Menu, X, ChevronRight, CheckCircle2, Clock, Hash, SearchX } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import styles from "@/app/dashboard.module.css"
+import searchStyles from "./SearchDropdown.module.css"
+import api from "@/lib/axios"
+
+// Highlight matching text helper
+function highlightMatch(text: string, query: string) {
+    if (!query || query.length < 2) return text
+    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+    const parts = text.split(regex)
+    return parts.map((part, i) =>
+        regex.test(part) ? <mark key={i}>{part}</mark> : part
+    )
+}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const { user, isAuthenticated } = useAuthStore()
@@ -14,6 +26,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const [mounted, setMounted] = useState(false)
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
+    // Search State
+    const [searchQuery, setSearchQuery] = useState("")
+    const [searchResults, setSearchResults] = useState<any>(null)
+    const [isSearching, setIsSearching] = useState(false)
+    const [showDropdown, setShowDropdown] = useState(false)
+    const searchInputRef = useRef<HTMLInputElement>(null)
+    const searchWrapperRef = useRef<HTMLDivElement>(null)
+    const debounceRef = useRef<NodeJS.Timeout | null>(null)
+
     useEffect(() => {
         setMounted(true)
     }, [])
@@ -21,7 +42,80 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     // Close mobile menu on route change
     useEffect(() => {
         setMobileMenuOpen(false)
+        // Close search dropdown on navigation
+        setShowDropdown(false)
+        setSearchQuery("")
+        setSearchResults(null)
     }, [pathname])
+
+    // Debounced search
+    const performSearch = useCallback(async (query: string) => {
+        if (!query || query.trim().length < 2) {
+            setSearchResults(null)
+            setIsSearching(false)
+            return
+        }
+        setIsSearching(true)
+        try {
+            const res = await api.get('/questions/search', { params: { q: query.trim() } })
+            setSearchResults(res.data)
+        } catch (err) {
+            console.error("Search failed", err)
+            setSearchResults({ questions: [], scholars: [], topics: [] })
+        } finally {
+            setIsSearching(false)
+        }
+    }, [])
+
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value
+        setSearchQuery(value)
+        setShowDropdown(true)
+
+        if (debounceRef.current) clearTimeout(debounceRef.current)
+
+        if (value.trim().length < 2) {
+            setSearchResults(null)
+            setIsSearching(false)
+            return
+        }
+
+        setIsSearching(true)
+        debounceRef.current = setTimeout(() => {
+            performSearch(value)
+        }, 350)
+    }
+
+    const handleSearchFocus = () => {
+        if (searchQuery.trim().length >= 2) {
+            setShowDropdown(true)
+        }
+    }
+
+    const closeSearch = () => {
+        setShowDropdown(false)
+    }
+
+    // Keyboard handler
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                closeSearch()
+                searchInputRef.current?.blur()
+            }
+        }
+        document.addEventListener('keydown', handleKeyDown)
+        return () => document.removeEventListener('keydown', handleKeyDown)
+    }, [])
+
+    // Cleanup debounce on unmount
+    useEffect(() => {
+        return () => {
+            if (debounceRef.current) clearTimeout(debounceRef.current)
+        }
+    }, [])
+
+    const hasResults = searchResults && searchResults.questions?.length > 0
 
     const mainNav = [
         { name: "Home", icon: <Home size={20} />, href: "/" },
@@ -58,13 +152,74 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
 
                 <div className={styles.headerCenter}>
-                    <div className={styles.searchBar}>
-                        <Search size={18} color="#9ca3af" />
-                        <input
-                            type="text"
-                            placeholder="Search questions, topics, or people..."
-                            className={styles.searchInput}
-                        />
+                    <div className={searchStyles.searchWrapper} ref={searchWrapperRef}>
+                        <div className={styles.searchBar}>
+                            <Search size={18} color="#9ca3af" />
+                            <input
+                                ref={searchInputRef}
+                                type="text"
+                                placeholder="Search questions, topics, or scholars..."
+                                className={styles.searchInput}
+                                value={searchQuery}
+                                onChange={handleSearchChange}
+                                onFocus={handleSearchFocus}
+                                autoComplete="off"
+                            />
+                        </div>
+
+                        {/* Search Dropdown */}
+                        {showDropdown && searchQuery.trim().length >= 2 && (
+                            <>
+                                <div className={searchStyles.searchBackdrop} onClick={closeSearch} />
+                                <div className={searchStyles.searchDropdown}>
+                                    {isSearching ? (
+                                        <div className={searchStyles.loadingState}>
+                                            <div className={searchStyles.loadingSpinner} />
+                                            <span className={searchStyles.loadingText}>Searching...</span>
+                                        </div>
+                                    ) : !hasResults ? (
+                                        <div className={searchStyles.emptyState}>
+                                            <SearchX size={32} className={searchStyles.emptyIcon} />
+                                            <span className={searchStyles.emptyTitle}>No results found</span>
+                                            <span className={searchStyles.emptySubtitle}>Try a different search term</span>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {/* Questions Section */}
+                                            {searchResults.questions?.length > 0 && (
+                                                <>
+                                                    <div className={searchStyles.sectionHeader}>
+                                                        <span className={searchStyles.sectionIcon}><HelpCircle size={12} /></span>
+                                                        Questions
+                                                    </div>
+                                                    {searchResults.questions.map((q: any) => (
+                                                        <Link
+                                                            key={q.id}
+                                                            href={`/questions/${q.id}`}
+                                                            className={searchStyles.questionItem}
+                                                            onClick={closeSearch}
+                                                        >
+                                                            <div className={searchStyles.questionContent}>
+                                                                <div className={searchStyles.questionTitle}>
+                                                                    {highlightMatch(q.title, searchQuery)}
+                                                                </div>
+                                                            </div>
+                                                        </Link>
+                                                    ))}
+                                                </>
+                                            )}
+
+                                            {/* Footer Hint */}
+                                            <div className={searchStyles.dropdownFooter}>
+                                                <span className={searchStyles.kbdHint}>
+                                                    <span className={searchStyles.kbd}>Esc</span> to close
+                                                </span>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
 

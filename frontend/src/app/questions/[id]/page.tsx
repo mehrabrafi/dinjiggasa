@@ -1,13 +1,14 @@
 "use client"
 
 import { useEffect, useState, use } from 'react'
-import { ArrowLeft, CheckCircle2, MessageSquare, Share2, ThumbsUp, ThumbsDown, Check, Bookmark } from "lucide-react"
+import { ArrowLeft, CheckCircle2, MessageSquare, Share2, ThumbsUp, ThumbsDown, Check, Bookmark, Flag } from "lucide-react"
 import Link from "next/link"
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import styles from './page.module.css'
 import api from '@/lib/axios'
 import dynamic from 'next/dynamic'
 import '@uiw/react-markdown-preview/markdown.css'
+import ReportModal from '@/components/modals/ReportModal'
 
 const MarkdownPreview = dynamic(() => import('@uiw/react-markdown-preview'), { ssr: false })
 
@@ -50,6 +51,23 @@ export default function QuestionDetailsPage({ params: paramsPromise }: { params:
     const [loading, setLoading] = useState(true)
     const [userId, setUserId] = useState<string | null>(null)
     const [isSaved, setIsSaved] = useState(false)
+
+    // Report Modal State
+    const [reportModal, setReportModal] = useState({
+        isOpen: false,
+        questionId: '',
+        answerId: '',
+        title: ''
+    })
+
+    const openReportModal = (questionId?: string, answerId?: string, title?: string) => {
+        setReportModal({
+            isOpen: true,
+            questionId: questionId || '',
+            answerId: answerId || '',
+            title: title || ''
+        })
+    }
 
     useEffect(() => {
         const token = localStorage.getItem('auth-storage')
@@ -180,7 +198,7 @@ export default function QuestionDetailsPage({ params: paramsPromise }: { params:
                                 <div className={styles.scholarInfo}>
                                     <div className={styles.scholarNameRow}>
                                         <span className={styles.scholarName}>{scholar.name}</span>
-                                        {scholar.isVerified !== false && <CheckCircle2 size={16} fill="#10b981" color="#fff" />}
+                                        {scholar.isVerified && <CheckCircle2 size={16} color="#006D5B" fill="#006D5B1A" />}
                                     </div>
                                     <span className={styles.scholarMeta}>
                                         {scholar.specialization || 'Imam & Scholar'} • {scholar.role === 'SCHOLAR' ? 'Authored' : 'Verified'}
@@ -217,7 +235,13 @@ export default function QuestionDetailsPage({ params: paramsPromise }: { params:
                             >
                                 <ThumbsUp size={16} /> {(question.ratings?.filter(r => r.value === 1).length || 0) - (question.ratings?.filter(r => r.value === -1).length || 0)} Upvotes
                             </div>
-                            <div className={styles.footerActions}>
+                            <div className={styles.footerActions} style={{ display: 'flex', gap: '12px' }}>
+                                <button
+                                    onClick={() => openReportModal(undefined, featuredAnswer.id, `Answer by ${scholar.name}`)}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748b', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
+                                >
+                                    <Flag size={18} /> Report
+                                </button>
                                 <div className={styles.actionBtn}>
                                     <Share2 size={18} /> Share
                                 </div>
@@ -234,6 +258,13 @@ export default function QuestionDetailsPage({ params: paramsPromise }: { params:
                     <span>© 2026 DinJiggasa</span>
                 </div>
             </div>
+            <ReportModal
+                isOpen={reportModal.isOpen}
+                onClose={() => setReportModal({ ...reportModal, isOpen: false })}
+                questionId={reportModal.questionId}
+                answerId={reportModal.answerId}
+                title={reportModal.title}
+            />
         </DashboardLayout>
     )
 }

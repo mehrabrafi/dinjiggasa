@@ -14,6 +14,7 @@ datasource db {
 enum Role {
   USER
   SCHOLAR
+  MODERATOR
   ADMIN
 }
 
@@ -31,6 +32,7 @@ model User {
   specialization String?
   bio        String?  @db.Text
   isVerified Boolean  @default(false)
+  isBanned   Boolean  @default(false)
   urgentQuota Int      @default(1)
   lastUrgentReset DateTime @default(now())
 
@@ -46,6 +48,8 @@ model User {
 
   notifications         Notification[] @relation("UserNotifications")
   sentNotifications     Notification[] @relation("SenderNotifications")
+
+  reportsSent Report[] @relation("Reporter")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -94,6 +98,8 @@ model Question {
   ratings   Rating[]
   savedBy   User[]   @relation("SavedQuestions")
   viewRecords QuestionView[]
+
+  reports   Report[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -149,6 +155,8 @@ model Answer {
 
   ratings    Rating[]
 
+  reports    Report[]
+
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
@@ -181,4 +189,25 @@ model Tag {
   id        String     @id @default(uuid())
   name      String     @unique
   questions Question[] 
+}
+// Report Model
+model Report {
+  id         String   @id @default(uuid())
+  reason     String
+  details    String?  @db.Text
+  status     String   @default("PENDING") // PENDING, RESOLVED, DISMISSED
+
+  // Who reported
+  reporterId String
+  reporter   User     @relation("Reporter", fields: [reporterId], references: [id])
+
+  // What was reported
+  questionId String?
+  question   Question? @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  answerId   String?
+  answer     Answer?   @relation(fields: [answerId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }

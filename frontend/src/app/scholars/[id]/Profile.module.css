@@ -1,0 +1,519 @@
+.profileContainer {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+}
+
+/* Banner & Header section */
+.banner {
+    height: 180px;
+    background: linear-gradient(to right, #cd9d7c, #9c6b4d);
+    background-image: url('https://images.unsplash.com/photo-1542816417-0983c9c9ad53?auto=format&fit=crop&w=1200&q=80');
+    background-size: cover;
+    background-position: center;
+    border-radius: 24px 24px 0 0;
+    position: relative;
+}
+
+.profileHeader {
+    background: white;
+    border-radius: 0 0 24px 24px;
+    padding: 0 2rem 1.5rem;
+    position: relative;
+    border: 1px solid #f1f5f9;
+    border-top: none;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.headerMain {
+    display: flex;
+    align-items: flex-end;
+    gap: 2rem;
+    margin-top: -80px;
+    margin-bottom: 1.5rem;
+}
+
+.avatarWrapper {
+    position: relative;
+}
+
+.avatar {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    border: 6px solid white;
+    object-fit: cover;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.verifiedBadge {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.headerInfo {
+    flex: 1;
+    padding-bottom: 0.5rem;
+}
+
+.scholarName {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0 0 0.25rem;
+}
+
+.credentials {
+    font-size: 1rem;
+    color: var(--primary, #006D5B);
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+
+.metaGrid {
+    display: flex;
+    gap: 1.5rem;
+    font-size: 0.875rem;
+    color: #64748b;
+}
+
+.metaItem {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.headerActions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.followBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border: 1px solid #e2e8f0;
+    background: white;
+    border-radius: 10px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.followBtn:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+
+.askBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background: #10b981;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
+}
+
+.askBtn:hover {
+    background: #059669;
+    transform: translateY(-1px);
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    gap: 2.5rem;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 1.25rem;
+}
+
+.tab {
+    background: none;
+    border: none;
+    padding: 0 0 0.75rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.2s;
+}
+
+.tabActive {
+    color: var(--primary, #006D5B);
+}
+
+.tabActive::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--primary, #006D5B);
+    border-radius: 3px 3px 0 0;
+}
+
+.tabBadge {
+    background: #ecfdf5;
+    color: #10b981;
+    font-size: 0.65rem;
+    padding: 1px 6px;
+    border-radius: 6px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+/* Page Layout Grid */
+.layoutGrid {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 2rem;
+}
+
+@media (max-width: 1024px) {
+    .layoutGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Content Area */
+.mainContent {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.contentCard {
+    background: white;
+    border-radius: 20px;
+    padding: 1.5rem;
+    border: 1px solid #f1f5f9;
+    transition: transform 0.2s;
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+
+.topicTag {
+    background: #ecfdf5;
+    color: #10b981;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+}
+
+.pinnedLabel {
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+.cardTitle {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 0.75rem;
+    line-height: 1.4;
+}
+
+.cardDesc {
+    font-size: 0.9375rem;
+    color: #475569;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+}
+
+/* Audio Player */
+.audioPlayer {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1.5rem;
+}
+
+.wave {
+    flex: 1;
+    height: 4px;
+    background: #e2e8f0;
+    border-radius: 2px;
+    position: relative;
+}
+
+.waveProgress {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    background: #10b981;
+    border-radius: 2px;
+}
+
+.audioTime {
+    font-size: 0.75rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.playBtn {
+    background: white;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Card Actions */
+.cardActions {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid #f1f5f9;
+}
+
+.action {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #64748b;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.action:hover {
+    color: #1e293b;
+}
+
+.voteGroup {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.saveAction {
+    margin-left: auto;
+}
+
+/* Sidebar Widgets */
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.widget {
+    background: white;
+    border-radius: 20px;
+    padding: 1.5rem;
+    border: 1px solid #f1f5f9;
+}
+
+.widgetTitle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 1.25rem;
+}
+
+/* Office Hours */
+.hoursList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.hourItem {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+}
+
+.day {
+    color: #64748b;
+}
+
+.time {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.consultNote {
+    margin-top: 1.25rem;
+    padding: 0.75rem;
+    background: #f0fdfa;
+    border-radius: 8px;
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: #0d9488;
+    line-height: 1.4;
+}
+
+/* Contribution Stats */
+.statsGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.statBox {
+    background: #ffffff;
+    border: 1px solid #f1f5f9;
+    padding: 1.25rem 1rem;
+    border-radius: 16px;
+    text-align: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.statBox:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+}
+
+.statVal {
+    display: block;
+    font-size: 1.75rem;
+    font-weight: 800;
+    margin-bottom: 0.375rem;
+    letter-spacing: -0.025em;
+}
+
+/* Specific colors for stats */
+.statsGrid div:nth-child(1) .statVal {
+    color: #10b981;
+}
+
+/* Answers - Green */
+.statsGrid div:nth-child(2) .statVal {
+    color: #6366f1;
+}
+
+/* Voice - Indigo */
+.statsGrid div:nth-child(3) .statVal {
+    color: #f43f5e;
+}
+
+/* Helped - Rose */
+.statsGrid div:nth-child(4) .statVal {
+    color: #f59e0b;
+}
+
+/* Rate - Amber */
+
+.statLabel {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+/* Similar Scholars */
+.scholarList {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.similarScholar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.smallAvatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.smallInfo {
+    flex: 1;
+}
+
+.smallName {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.smallTitle {
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.addBtn {
+    color: #10b981;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+}
+
+/* Specialties */
+.tagCloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.specTag {
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    color: #475569;
+    font-weight: 500;
+}
+
+.loadMore {
+    background: none;
+    border: none;
+    color: #10b981;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 2rem auto;
+    cursor: pointer;
+}

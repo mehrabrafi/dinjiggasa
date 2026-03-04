@@ -286,6 +286,9 @@ export class ScholarsService {
                 question: {
                     include: {
                         tags: true,
+                        ratings: {
+                            select: { value: true },
+                        },
                     },
                 },
                 ratings: {
@@ -298,16 +301,21 @@ export class ScholarsService {
             take: 5,
         });
 
-        const topPerforming = topAnswers.map(a => ({
-            id: a.id,
-            questionId: a.questionId,
-            topic: a.question.title,
-            category: a.question.tags?.[0]?.name || 'General',
-            views: a.question.views,
-            upvotes: a.ratings.filter(r => r.value > 0).length,
-            isAccepted: a.isAccepted,
-            createdAt: a.createdAt,
-        }));
+        const topPerforming = topAnswers.map(a => {
+            const answerUpvotes = a.ratings.filter(r => r.value > 0).length;
+            const questionUpvotes = a.question.ratings.filter(r => r.value > 0).length;
+
+            return {
+                id: a.id,
+                questionId: a.questionId,
+                topic: a.question.title,
+                category: a.question.tags?.[0]?.name || 'General',
+                views: a.question.views,
+                upvotes: answerUpvotes + questionUpvotes,
+                isAccepted: a.isAccepted,
+                createdAt: a.createdAt,
+            };
+        });
 
         return {
             totalAnswers,
@@ -331,6 +339,7 @@ export class ScholarsService {
                 name: true,
                 avatar: true,
                 specialization: true,
+                isVerified: true,
             }
         });
 

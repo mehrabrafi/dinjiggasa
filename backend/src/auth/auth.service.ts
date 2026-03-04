@@ -81,6 +81,8 @@ export class AuthService {
         avatar: user.avatar,
         gender: user.gender,
         madhab: user.madhab,
+        isVerified: user.isVerified,
+        isBanned: user.isBanned,
       },
     };
   }
@@ -138,5 +140,60 @@ export class AuthService {
       message: 'Profile updated successfully',
       user: updatedUser,
     };
+  }
+
+  async findAll() {
+    return this.prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isVerified: true,
+        isBanned: true,
+        avatar: true,
+        createdAt: true,
+        specialization: true
+      },
+    });
+  }
+
+  async updateVerification(userId: string, isVerified: boolean) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { isVerified },
+    });
+  }
+
+  async updateRole(userId: string, targetRole: Role, requesterRole: string) {
+    const userToUpdate = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!userToUpdate) throw new ConflictException('User not found');
+
+    // Prevent any role modification of ADMINs
+    if (userToUpdate.role === Role.ADMIN) {
+      throw new UnauthorizedException('Cannot modify Administrator roles');
+    }
+
+    // Only allow setting ADMIN role if the requester is an ADMIN
+    if (targetRole === Role.ADMIN && requesterRole !== Role.ADMIN) {
+      throw new UnauthorizedException('Only administrators can promote to Admin role');
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { role: targetRole },
+    });
+  }
+
+  async updateBanStatus(userId: string, isBanned: boolean) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new ConflictException('User not found');
+    if (user.role === Role.ADMIN) throw new UnauthorizedException('Cannot ban Admin');
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { isBanned },
+    });
   }
 }

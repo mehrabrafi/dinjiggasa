@@ -8,6 +8,7 @@ import { QuestionsModule } from './questions/questions.module';
 import { ScholarsModule } from './scholars/scholars.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { UploadModule } from './upload/upload.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -19,7 +20,8 @@ import { UploadModule } from './upload/upload.module';
     QuestionsModule,
     ScholarsModule,
     NotificationsModule,
-    UploadModule
+    UploadModule,
+    ReportsModule
   ],
   controllers: [AppController],
   providers: [AppService],

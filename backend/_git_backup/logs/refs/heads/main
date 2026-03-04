@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 078629fa19fbc45c3d7c501bbc153b582e766e08 mehrabrafi <mehrabalrafipersonal@gmail.com> 1772262299 +0500	commit (initial): chore: setup nestjs and prisma schema
+078629fa19fbc45c3d7c501bbc153b582e766e08 078629fa19fbc45c3d7c501bbc153b582e766e08 mehrabrafi <mehrabalrafipersonal@gmail.com> 1772262299 +0500	Branch: renamed refs/heads/master to refs/heads/main
+078629fa19fbc45c3d7c501bbc153b582e766e08 c597cd29a0ffdab9842938243087762ed0307a09 mehrabrafi <mehrabalrafipersonal@gmail.com> 1772262717 +0500	commit: feat: implement auth module with signup, login and jwt strategy
+c597cd29a0ffdab9842938243087762ed0307a09 22479650420e2200777e864b88eb2a90f0ff6f7d mehrabrafi <mehrabalrafipersonal@gmail.com> 1772263324 +0500	commit: feat: implement questions module
+22479650420e2200777e864b88eb2a90f0ff6f7d f309ee731225b96459292e6162b0e370abf17871 mehrabrafi <mehrabalrafipersonal@gmail.com> 1772263675 +0500	commit: feat: replace vote system with rating system
+f309ee731225b96459292e6162b0e370abf17871 73aa1f3fe962de4957c50e663f46c420cb04d73b mehrabrafi <mehrabalrafipersonal@gmail.com> 1772265033 +0500	commit: fix: downgrade prisma to v6 to fix PrismaClientInitializationError
+73aa1f3fe962de4957c50e663f46c420cb04d73b 9c51307f250fbec14161052b43365d8d9e2bba97 mehrabrafi <mehrabalrafipersonal@gmail.com> 1772392789 +0500	commit: Update notifications and fix answer API unwrapping
+9c51307f250fbec14161052b43365d8d9e2bba97 e852bb737bfbafa96a48e20352fbcd7f11a09225 mehrabrafi <mehrabalrafipersonal@gmail.com> 1772462102 +0500	commit: feat(backend): implement answer voting and include ratings in question details
