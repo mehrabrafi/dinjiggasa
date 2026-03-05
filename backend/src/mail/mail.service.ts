@@ -214,4 +214,40 @@ export class MailService {
 
     return this.sendMail(user, subject, htmlBody);
   }
+
+  async sendPasswordResetEmail(user: { email: string; name: string }, url: string) {
+    const subject = `Reset Your Password - DinJiggasa`;
+
+    const htmlBody = `
+      <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #1f2937;">
+        <div style="background-color: #006D5B; padding: 20px; border-radius: 12px 12px 0 0; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 24px;">DinJiggasa</h1>
+        </div>
+        <div style="padding: 30px; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 0 0 12px 12px;">
+          <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 16px;">Assalamu Alaikum, ${user.name}</h2>
+          <p style="font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
+            We received a request to reset your password. Click the button below to set a new password:
+          </p>
+          <div style="text-align: center; margin-bottom: 30px;">
+            <a href="${url}" style="background-color: #006D5B; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">
+              Reset Password
+            </a>
+          </div>
+          <p style="font-size: 14px; color: #6b7280; line-height: 1.5;">
+            This link will expire in 1 hour. If you did not request a password reset, please ignore this email.
+          </p>
+          <p style="font-size: 14px; color: #6b7280; line-height: 1.5; margin-top: 10px;">
+            If the button doesn't work, copy and paste this link into your browser:<br>
+            <a href="${url}" style="color: #006D5B; word-break: break-all;">${url}</a>
+          </p>
+          <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+          <p style="font-size: 12px; color: #9ca3af; text-align: center;">
+            This is an automated notification from DinJiggasa. Please do not reply to this email.
+          </p>
+        </div>
+      </div>
+    `;
+
+    return this.sendMail(user, subject, htmlBody);
+  }
 }

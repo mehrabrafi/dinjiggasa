@@ -37,6 +37,8 @@ model User {
   otpExpiresAt DateTime?
   otpAttempts Int      @default(0)
   lastOtpSentAt DateTime?
+  passwordResetToken String? @unique
+  passwordResetTokenExpiresAt DateTime?
   urgentQuota Int      @default(1)
   lastUrgentReset DateTime @default(now())
 

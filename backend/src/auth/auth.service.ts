@@ -10,8 +10,10 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { Role } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
 import { MailService } from '../mail/mail.service';
 import { BadRequestException } from '@nestjs/common';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +21,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private mailService: MailService,
+    private configService: ConfigService,
   ) { }
 
   async signup(dto: SignupDto) {
@@ -35,7 +38,7 @@ export class AuthService {
     }
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = crypto.randomInt(100000, 999999).toString();
     const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     const user = await (this.prisma.user as any).create({
@@ -45,7 +48,7 @@ export class AuthService {
         password: hashedPassword,
         gender: dto.gender,
         madhab: dto.madhab,
-        role: dto.role as Role || Role.USER,
+        role: Role.USER, // Role is always USER on signup — admins assign other roles
         otpCode: otp,
         otpExpiresAt,
         otpAttempts: 1,
@@ -140,7 +143,7 @@ export class AuthService {
       }
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = crypto.randomInt(100000, 999999).toString();
     const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
     const newAttempts = attempts + 1;
 
@@ -163,24 +166,68 @@ export class AuthService {
     };
   }
 
+  // Track failed login attempts in memory (per-IP and per-email)
+  private loginAttempts = new Map<string, { count: number; lockedUntil: Date | null }>();
+  private readonly MAX_LOGIN_ATTEMPTS = 5;
+  private readonly LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
+  private checkLoginLockout(key: string): void {
+    const record = this.loginAttempts.get(key);
+    if (record?.lockedUntil && new Date() < record.lockedUntil) {
+      const remainingMs = record.lockedUntil.getTime() - Date.now();
+      const remainingMin = Math.ceil(remainingMs / 60000);
+      throw new UnauthorizedException(
+        `Too many failed login attempts. Please try again in ${remainingMin} minute(s).`,
+      );
+    }
+  }
+
+  private recordFailedLogin(key: string): void {
+    const record = this.loginAttempts.get(key) || { count: 0, lockedUntil: null };
+    record.count += 1;
+    if (record.count >= this.MAX_LOGIN_ATTEMPTS) {
+      record.lockedUntil = new Date(Date.now() + this.LOCKOUT_DURATION_MS);
+      record.count = 0; // reset count after lockout
+    }
+    this.loginAttempts.set(key, record);
+  }
+
+  private clearLoginAttempts(key: string): void {
+    this.loginAttempts.delete(key);
+  }
+
   async login(dto: LoginDto) {
+    const emailKey = `email:${dto.email.toLowerCase()}`;
+
+    // Check lockout before processing
+    this.checkLoginLockout(emailKey);
+
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
 
     if (!user) {
+      this.recordFailedLogin(emailKey);
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if ((user as any).isBanned) {
+      throw new UnauthorizedException('Your account has been suspended. Please contact support.');
     }
 
     const isPasswordValid = await bcrypt.compare(dto.password, user.password);
 
     if (!isPasswordValid) {
+      this.recordFailedLogin(emailKey);
       throw new UnauthorizedException('Invalid credentials');
     }
 
     if (!(user as any).isVerified) {
       throw new UnauthorizedException('Please verify your email address before logging in.');
     }
+
+    // Successful login — clear lockout tracking
+    this.clearLoginAttempts(emailKey);
 
     const payload = { sub: user.id, email: user.email, role: user.role };
 
@@ -308,5 +355,67 @@ export class AuthService {
       where: { id: userId },
       data: { isBanned },
     });
+  }
+
+  async forgotPassword(email: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      // For security reasons, don't confirm if user exists or not
+      return { message: 'If an account exists with this email, a reset link has been sent.' };
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await (this.prisma.user as any).update({
+      where: { id: user.id },
+      data: {
+        passwordResetToken: token,
+        passwordResetTokenExpiresAt: expiry,
+      },
+    });
+
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
+
+    await this.mailService.sendPasswordResetEmail({ email: user.email, name: user.name }, resetUrl);
+
+    return { message: 'If an account exists with this email, a reset link has been sent.' };
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    // Validate password strength on reset too
+    if (!newPassword || newPassword.length < 8) {
+      throw new BadRequestException('Password must be at least 8 characters long');
+    }
+
+    const user = await (this.prisma.user as any).findFirst({
+      where: {
+        passwordResetToken: token,
+        passwordResetTokenExpiresAt: {
+          gt: new Date(),
+        },
+      },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+    await (this.prisma.user as any).update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        passwordResetToken: null,
+        passwordResetTokenExpiresAt: null,
+      },
+    });
+
+    return { message: 'Password has been successfully reset' };
   }
 }

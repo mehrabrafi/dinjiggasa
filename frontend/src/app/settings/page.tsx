@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { Bell, Lock, Moon, UserCircle, User, Camera, RefreshCw, LogOut } from "lucide-react"
+import { Lock, Moon, UserCircle, User, Camera, RefreshCw, LogOut } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuthStore } from "@/store/auth.store"
@@ -148,9 +148,7 @@ export default function SettingsPage() {
                     <button className={`${styles.navItem} ${activeTab === 'Profile' ? styles.navItemActive : ''}`} onClick={() => setActiveTab('Profile')}>
                         <UserCircle size={18} className={styles.navIcon} /> Profile
                     </button>
-                    <button className={`${styles.navItem} ${activeTab === 'Notifications' ? styles.navItemActive : ''}`} onClick={() => setActiveTab('Notifications')}>
-                        <Bell size={18} className={styles.navIcon} /> Notifications
-                    </button>
+
                     <button className={`${styles.navItem} ${activeTab === 'Display' ? styles.navItemActive : ''}`} onClick={() => setActiveTab('Display')}>
                         <Moon size={18} className={styles.navIcon} /> Display
                     </button>
@@ -313,53 +311,7 @@ export default function SettingsPage() {
                             </>
                         )}
 
-                        {activeTab === 'Notifications' && (
-                            <>
-                                <h2 className={styles.sectionTitle}>Notifications</h2>
-                                <div className={styles.card}>
-                                    <div className={styles.settingRow}>
-                                        <div>
-                                            <h3 className={styles.settingName}>Reply Notifications</h3>
-                                            <p className={styles.settingDesc}>Get notified when someone replies to your questions</p>
-                                        </div>
-                                        <label className={styles.switch}>
-                                            <input type="checkbox" defaultChecked />
-                                            <span className={styles.slider}></span>
-                                        </label>
-                                    </div>
-                                    <div className={styles.settingRow} style={{ marginTop: '1.5rem' }}>
-                                        <div>
-                                            <h3 className={styles.settingName}>Scholar Mentions</h3>
-                                            <p className={styles.settingDesc}>Get notified when a scholar mentions you or your question</p>
-                                        </div>
-                                        <label className={styles.switch}>
-                                            <input type="checkbox" defaultChecked />
-                                            <span className={styles.slider}></span>
-                                        </label>
-                                    </div>
-                                    <div className={styles.settingRow} style={{ marginTop: '1.5rem' }}>
-                                        <div>
-                                            <h3 className={styles.settingName}>Weekly Digest</h3>
-                                            <p className={styles.settingDesc}>Receive a weekly summary of top questions and answers</p>
-                                        </div>
-                                        <label className={styles.switch}>
-                                            <input type="checkbox" />
-                                            <span className={styles.slider}></span>
-                                        </label>
-                                    </div>
-                                    <div className={styles.settingRow} style={{ marginTop: '1.5rem' }}>
-                                        <div>
-                                            <h3 className={styles.settingName}>Push Notifications</h3>
-                                            <p className={styles.settingDesc}>Get real-time updates directly on your device</p>
-                                        </div>
-                                        <label className={styles.switch}>
-                                            <input type="checkbox" />
-                                            <span className={styles.slider}></span>
-                                        </label>
-                                    </div>
-                                </div>
-                            </>
-                        )}
+
 
                         {activeTab === 'Display' && (
                             <>
