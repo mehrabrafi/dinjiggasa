@@ -24,7 +24,10 @@ services:
       - db
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        - NEXT_PUBLIC_API_URL=https://deenjiggasa.info/api/v1
     restart: always
     environment:
       # Browser needs to hit the public IP/domain

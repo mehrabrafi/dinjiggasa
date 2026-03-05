@@ -9,6 +9,11 @@ RUN npm install
 
 # Copy source code and build
 COPY . .
+
+# Pass build arguments for Next.js environment variables (baked in at build time)
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
 RUN npm run build
 
 # Stage 2: Run the app
