@@ -1,13 +1,13 @@
 "use client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { authService } from "@/services/auth.service"
 import { useRouter, useSearchParams } from "next/navigation"
 import toast from "react-hot-toast"
 import styles from "../auth.module.css"
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
     const [password, setPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
     const [isLoading, setIsLoading] = useState(false)
@@ -92,3 +92,12 @@ export default function ResetPasswordPage() {
         </div>
     )
 }
+
+export default function ResetPasswordPage() {
+    return (
+        <Suspense fallback={<div style={{ textAlign: 'center', padding: '20px' }}>Loading...</div>}>
+            <ResetPasswordForm />
+        </Suspense>
+    )
+}
+
