@@ -19,7 +19,7 @@ services:
       PORT: 3001
       JWT_SECRET: your_random_secret_here
       # Update these to match your server IP or Domain
-      FRONTEND_URL: http://65.0.103.245
+      FRONTEND_URL: https://deenjiggasa.info
     depends_on:
       - db
 
@@ -28,7 +28,7 @@ services:
     restart: always
     environment:
       # Browser needs to hit the public IP/domain
-      NEXT_PUBLIC_API_URL: http://65.0.103.245/api/v1
+      NEXT_PUBLIC_API_URL: https://deenjiggasa.info/api/v1
     depends_on:
       - backend
 
