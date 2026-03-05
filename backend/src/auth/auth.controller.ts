@@ -20,6 +20,18 @@ export class AuthController {
   }
 
   @HttpCode(HttpStatus.OK)
+  @Post('verify-otp')
+  verifyOTP(@Body() dto: { email: string; code: string }) {
+    return this.authService.verifyOTP(dto.email, dto.code);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('resend-otp')
+  resendOTP(@Body() dto: { email: string }) {
+    return this.authService.resendOTP(dto.email);
+  }
+
+  @HttpCode(HttpStatus.OK)
   @Post('login')
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);

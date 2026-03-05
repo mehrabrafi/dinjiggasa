@@ -33,6 +33,10 @@ model User {
   bio        String?  @db.Text
   isVerified Boolean  @default(false)
   isBanned   Boolean  @default(false)
+  otpCode    String?
+  otpExpiresAt DateTime?
+  otpAttempts Int      @default(0)
+  lastOtpSentAt DateTime?
   urgentQuota Int      @default(1)
   lastUrgentReset DateTime @default(now())
 

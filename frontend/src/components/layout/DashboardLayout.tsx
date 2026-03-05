@@ -290,13 +290,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                     </nav>
 
-                    {/* Daily Hadith Widget */}
-                    <div className={styles.dailyHadith} style={{ marginTop: '2rem', padding: '1rem', background: '#f0f9f6', borderRadius: '1rem', border: '1px solid #e0f2f1' }}>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase' as const }}>Daily Hadith</span>
-                        <p style={{ fontSize: '0.8rem', fontStyle: 'italic', marginTop: '0.5rem', color: '#4b5563' }}>
-                            "The best among you are those who have the best manners and character."
-                        </p>
-                    </div>
+                    {/* Removed hardcoded Daily Hadith widget */}
+
                 </aside>
 
                 {children}

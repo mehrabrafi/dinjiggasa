@@ -1,10 +1,16 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateQuestionDto } from './dto/create-question.dto';
+import { MailService } from '../mail/mail.service';
+
 
 @Injectable()
 export class QuestionsService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) { }
+
 
   async create(userId: string, dto: CreateQuestionDto) {
     const { title, body, scholarIds, isUrgent } = dto;
@@ -43,7 +49,7 @@ export class QuestionsService {
       });
     }
 
-    return this.prisma.question.create({
+    const question = await this.prisma.question.create({
       data: {
         title,
         body: body ?? '',
@@ -61,10 +67,25 @@ export class QuestionsService {
         },
         tags: true,
         directedScholars: {
-          select: { id: true, name: true, avatar: true, isVerified: true },
+          select: { id: true, name: true, email: true, avatar: true, isVerified: true },
         },
       },
     });
+
+    // Send email notifications to directed scholars
+    if (question.directedScholars && question.directedScholars.length > 0) {
+      question.directedScholars.forEach(scholar => {
+        if (scholar.email) {
+          this.mailService.sendQuestionDirectionNotification(
+            { email: scholar.email, name: scholar.name },
+            question.title,
+            question.id
+          ).catch(err => console.error(`Failed to send direction email to ${scholar.email}:`, err));
+        }
+      });
+    }
+
+    return question;
   }
 
   async findAll(options?: { tag?: string }) {
@@ -346,13 +367,18 @@ export class QuestionsService {
     const question = await this.prisma.question.findUnique({
       where: { id },
       include: {
-        directedScholars: { select: { id: true } },
+        author: { select: { email: true, name: true } },
       },
     });
 
     if (!question) throw new NotFoundException('Question not found');
 
-    // Make sure the scholar is allowed to accept it (either directed or open question scenario, assuming any scholar can accept for now but prefer directed ones)
+    const scholar = await this.prisma.user.findUnique({
+      where: { id: scholarId },
+      select: { name: true }
+    });
+
+    // Make sure the scholar is allowed to accept it
     const updated = await this.prisma.question.update({
       where: { id },
       data: { acceptedById: scholarId },
@@ -368,15 +394,33 @@ export class QuestionsService {
       },
     });
 
+    // Send email notification to user
+    if (question.author?.email) {
+      this.mailService.sendQuestionAcceptedNotification(
+        { email: question.author.email, name: question.author.name },
+        question.title,
+        question.id,
+        scholar?.name || 'A scholar'
+      ).catch(err => console.error('Failed to send acceptance email:', err));
+    }
+
     return updated;
   }
 
   async declineQuestion(id: string, scholarId: string) {
     const question = await this.prisma.question.findUnique({
       where: { id },
+      include: {
+        author: { select: { email: true, name: true } },
+      }
     });
 
     if (!question) throw new NotFoundException('Question not found');
+
+    const scholar = await this.prisma.user.findUnique({
+      where: { id: scholarId },
+      select: { name: true }
+    });
 
     const updated = await this.prisma.question.update({
       where: { id },
@@ -397,13 +441,25 @@ export class QuestionsService {
       },
     });
 
+    // Send email notification to user
+    if (question.author?.email) {
+      this.mailService.sendQuestionDeclinedNotification(
+        { email: question.author.email, name: question.author.name },
+        question.title,
+        question.id,
+        scholar?.name || 'A scholar'
+      ).catch(err => console.error('Failed to send decline email:', err));
+    }
+
     return updated;
   }
 
   async answerQuestion(questionId: string, scholarId: string, content: string, categories: string[], voiceUrl?: string) {
     const question = await this.prisma.question.findUnique({
       where: { id: questionId },
+      include: { author: { select: { email: true, name: true } } }
     });
+
 
     if (!question) {
       throw new NotFoundException('Question not found');
@@ -468,6 +524,16 @@ export class QuestionsService {
         questionId: question.id,
       },
     });
+
+    // Send email notification
+    if (question.author?.email) {
+      this.mailService.sendAnswerNotification(
+        { email: question.author.email, name: question.author.name },
+        question.title,
+        question.id
+      ).catch(err => console.error('Failed to send answer email:', err));
+    }
+
 
     return answer;
   }

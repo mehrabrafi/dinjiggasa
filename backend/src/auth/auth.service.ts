@@ -10,12 +10,15 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { Role } from '@prisma/client';
+import { MailService } from '../mail/mail.service';
+import { BadRequestException } from '@nestjs/common';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private mailService: MailService,
   ) { }
 
   async signup(dto: SignupDto) {
@@ -24,12 +27,18 @@ export class AuthService {
     });
 
     if (userExists) {
+      if (!(userExists as any).isVerified) {
+        // User exists but not verified, re-send OTP with backoff
+        return this.resendOTP(userExists.email);
+      }
       throw new ConflictException('User with this email already exists');
     }
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    const user = await this.prisma.user.create({
+    const user = await (this.prisma.user as any).create({
       data: {
         name: dto.name,
         email: dto.email,
@@ -37,6 +46,11 @@ export class AuthService {
         gender: dto.gender,
         madhab: dto.madhab,
         role: dto.role as Role || Role.USER,
+        otpCode: otp,
+        otpExpiresAt,
+        otpAttempts: 1,
+        lastOtpSentAt: new Date(),
+        isVerified: false,
       },
       select: {
         id: true,
@@ -48,9 +62,104 @@ export class AuthService {
       },
     });
 
+    // Send the OTP email
+    this.mailService.sendOTP({ email: user.email, name: user.name }, otp)
+      .catch((err) => console.error('Failed to send signup OTP:', err));
+
     return {
-      message: 'Signup successful',
+      message:
+        'Signup initiated. Please check your email for the verification code.',
       user,
+      waitTime: 60, // First wait time is 60s
+      nextRequestAt: new Date(Date.now() + 60 * 1000),
+    };
+  }
+
+  private calculateWaitTime(attempts: number): number {
+    const waitTimes = [0, 60, 120, 300, 600, 1800, 3600]; // in seconds
+    return waitTimes[attempts] || 3600;
+  }
+
+  async verifyOTP(email: string, code: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    if (user.isVerified) {
+      return { message: 'Email already verified' };
+    }
+
+    if (!(user as any).otpCode || (user as any).otpCode !== code) {
+      throw new UnauthorizedException('Invalid verification code');
+    }
+
+    if (!(user as any).otpExpiresAt || new Date() > (user as any).otpExpiresAt) {
+      throw new UnauthorizedException('Verification code has expired');
+    }
+
+    await (this.prisma.user as any).update({
+      where: { id: user.id },
+      data: {
+        isVerified: true,
+        otpCode: null,
+        otpExpiresAt: null,
+        otpAttempts: 0,
+        lastOtpSentAt: null,
+      },
+    });
+
+    return { message: 'Email verified successfully' };
+  }
+
+  async resendOTP(email: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    if (user.isVerified) {
+      return { message: 'Email already verified' };
+    }
+
+    const attempts = (user as any).otpAttempts || 0;
+    const lastSentAt = (user as any).lastOtpSentAt;
+    const waitTime = this.calculateWaitTime(attempts);
+
+    if (lastSentAt) {
+      const nextAllowedAt = new Date(new Date(lastSentAt).getTime() + waitTime * 1000);
+      if (new Date() < nextAllowedAt) {
+        const remainingSeconds = Math.ceil((nextAllowedAt.getTime() - new Date().getTime()) / 1000);
+        throw new BadRequestException(`Please wait ${remainingSeconds} seconds before requesting a new code.`);
+      }
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const newAttempts = attempts + 1;
+
+    await (this.prisma.user as any).update({
+      where: { id: user.id },
+      data: {
+        otpCode: otp,
+        otpExpiresAt,
+        otpAttempts: newAttempts,
+        lastOtpSentAt: new Date(),
+      },
+    });
+
+    await this.mailService.sendOTP({ email: user.email, name: user.name }, otp);
+
+    return {
+      message: 'Verification code resent successfully',
+      waitTime: this.calculateWaitTime(newAttempts),
+      nextRequestAt: new Date(Date.now() + this.calculateWaitTime(newAttempts) * 1000),
     };
   }
 
@@ -69,6 +178,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    if (!(user as any).isVerified) {
+      throw new UnauthorizedException('Please verify your email address before logging in.');
+    }
+
     const payload = { sub: user.id, email: user.email, role: user.role };
 
     return {
@@ -82,7 +195,7 @@ export class AuthService {
         gender: user.gender,
         madhab: user.madhab,
         isVerified: user.isVerified,
-        isBanned: user.isBanned,
+        isBanned: (user as any).isBanned,
       },
     };
   }
@@ -143,7 +256,7 @@ export class AuthService {
   }
 
   async findAll() {
-    return this.prisma.user.findMany({
+    return (this.prisma.user as any).findMany({
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -191,7 +304,7 @@ export class AuthService {
     if (!user) throw new ConflictException('User not found');
     if (user.role === Role.ADMIN) throw new UnauthorizedException('Cannot ban Admin');
 
-    return this.prisma.user.update({
+    return (this.prisma.user as any).update({
       where: { id: userId },
       data: { isBanned },
     });
