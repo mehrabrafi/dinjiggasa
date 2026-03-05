@@ -20,6 +20,8 @@ async function bootstrap() {
     process.env.FRONTEND_URL || 'http://localhost:3000',
     'https://dinjiggasa.info',
     'https://www.dinjiggasa.info',
+    'https://deenjiggasa.info',
+    'https://www.deenjiggasa.info',
   ].filter(Boolean);
 
   app.enableCors({
