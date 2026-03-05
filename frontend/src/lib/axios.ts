@@ -15,6 +15,12 @@ api.interceptors.request.use(
         if (token) {
             config.headers['Authorization'] = `Bearer ${token}`;
         }
+
+        // Ensure URLs don't start with a slash so they append to baseURL correctly
+        if (config.url && config.url.startsWith('/')) {
+            config.url = config.url.substring(1);
+        }
+
         return config;
     },
     (error) => {
