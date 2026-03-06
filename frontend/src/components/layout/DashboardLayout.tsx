@@ -224,11 +224,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
 
                 <div className={styles.headerRight}>
-                    <div className={styles.headerIconGroup}>
-                        <Link href="/notifications" style={{ display: 'flex', alignItems: 'center', color: 'inherit' }}>
-                            <Bell size={22} className={styles.headerIcon} />
-                        </Link>
-                    </div>
+                    {mounted && isAuthenticated && (
+                        <div className={styles.headerIconGroup}>
+                            <Link href="/notifications" style={{ display: 'flex', alignItems: 'center', color: 'inherit' }}>
+                                <Bell size={22} className={styles.headerIcon} />
+                            </Link>
+                        </div>
+                    )}
                     {(!mounted || (user?.role !== 'SCHOLAR' && user?.role !== 'ADMIN')) && (
                         <Link href="/ask">
                             <button className={styles.askButton}>
@@ -272,16 +274,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             ))}
                         </div>
 
-                        <div className={styles.sidebarSection}>
-                            <span className={styles.sectionTitle}>Your Activity</span>
-                            {personalNav.map((item) => (
-                                <Link key={item.name} href={item.href} style={{ textDecoration: 'none' }}>
-                                    <div className={`${styles.navItem} ${pathname === item.href ? styles.navItemActive : ''}`}>
-                                        {item.icon} {item.name}
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
+                        {mounted && isAuthenticated && (
+                            <div className={styles.sidebarSection}>
+                                <span className={styles.sectionTitle}>Your Activity</span>
+                                {personalNav.map((item) => (
+                                    <Link key={item.name} href={item.href} style={{ textDecoration: 'none' }}>
+                                        <div className={`${styles.navItem} ${pathname === item.href ? styles.navItemActive : ''}`}>
+                                            {item.icon} {item.name}
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
 
                         <div className={styles.sidebarSection}>
                             <span className={styles.sectionTitle}>Support</span>
@@ -312,10 +316,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <PlusCircle size={22} />
                     </div>
                 </Link>
-                <Link href="/my-questions" className={`${styles.mobileNavItem} ${pathname === '/my-questions' ? styles.mobileNavItemActive : ''}`}>
-                    <MessageSquare size={20} />
-                    <span>My Q&apos;s</span>
-                </Link>
+                {mounted && isAuthenticated && (
+                    <Link href="/my-questions" className={`${styles.mobileNavItem} ${pathname === '/my-questions' ? styles.mobileNavItemActive : ''}`}>
+                        <MessageSquare size={20} />
+                        <span>My Q&apos;s</span>
+                    </Link>
+                )}
                 <button className={`${styles.mobileNavItem} ${mobileMenuOpen ? styles.mobileNavItemActive : ''}`} onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
                     <Menu size={20} />
                     <span>Menu</span>
@@ -356,14 +362,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             ))}
                         </div>
 
-                        <div className={styles.mobileMenuSection}>
-                            <span className={styles.mobileMenuSectionTitle}>Your Activity</span>
-                            {personalNav.map((item) => (
-                                <Link key={item.name} href={item.href} className={`${styles.mobileMenuItem} ${pathname === item.href ? styles.mobileMenuItemActive : ''}`}>
-                                    {item.icon} {item.name}
-                                </Link>
-                            ))}
-                        </div>
+                        {mounted && isAuthenticated && (
+                            <div className={styles.mobileMenuSection}>
+                                <span className={styles.mobileMenuSectionTitle}>Your Activity</span>
+                                {personalNav.map((item) => (
+                                    <Link key={item.name} href={item.href} className={`${styles.mobileMenuItem} ${pathname === item.href ? styles.mobileMenuItemActive : ''}`}>
+                                        {item.icon} {item.name}
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
 
                         <div className={styles.mobileMenuSection}>
                             <span className={styles.mobileMenuSectionTitle}>Support</span>
