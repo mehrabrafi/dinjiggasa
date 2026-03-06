@@ -8,8 +8,8 @@ export default function PrivacyPolicyPage() {
         <div className={styles.layout}>
             <main className={styles.mainContent}>
                 <div className={styles.contentWrapper}>
-                    <Link href="/settings" className={styles.backBtn}>
-                        <ArrowLeft size={18} /> Back to Settings
+                    <Link href="/" className={styles.backBtn}>
+                        <ArrowLeft size={18} /> Back to Home
                     </Link>
 
                     <h1 className={styles.title}>Privacy Policy</h1>
