@@ -2,24 +2,58 @@
 
 import React, { useEffect, useState } from "react"
 import Link from "next/link"
-import { Search, Eye, CheckCircle2, Moon } from "lucide-react"
+import { Search, Eye, CheckCircle2, Moon, HelpCircle, Heart, Activity } from "lucide-react"
 import styles from "./LandingView.module.css"
 import api from "@/lib/axios"
+
+// Simple CountUp animation component
+const CountUp = ({ value, duration = 1000, suffix = "" }: { value: number, duration?: number, suffix?: string }) => {
+    const [displayValue, setDisplayValue] = useState(value);
+
+    useEffect(() => {
+        let start = displayValue;
+        const end = value;
+        if (start === end) return;
+
+        const startTime = performance.now();
+
+        const update = (currentTime: number) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+
+            const easeOut = 1 - (1 - progress) * (1 - progress);
+            const current = Math.floor(start + (end - start) * easeOut);
+
+            setDisplayValue(current);
+
+            if (progress < 1) {
+                requestAnimationFrame(update);
+            }
+        };
+
+        requestAnimationFrame(update);
+    }, [value]);
+
+    return <span>{displayValue.toLocaleString()}{suffix}</span>;
+};
 
 export default function LandingView() {
     const [questions, setQuestions] = useState<any[]>([])
     const [scholars, setScholars] = useState<any[]>([])
+    const [stats, setStats] = useState<any>(null)
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [questionsRes, scholarsRes] = await Promise.all([
+                const [questionsRes, scholarsRes, statsRes] = await Promise.all([
                     api.get('/questions'),
-                    api.get('/scholars')
+                    api.get('/scholars'),
+                    api.get('/questions/stats/global').catch(() => ({ data: null }))
                 ])
                 setQuestions(questionsRes.data)
                 setScholars(scholarsRes.data || [])
+                if (statsRes && statsRes.data) setStats(statsRes.data)
             } catch (error) {
                 console.error("Failed to load data", error)
             } finally {
@@ -80,6 +114,46 @@ export default function LandingView() {
                     <div className={styles.topicChip}>Hadith</div>
                     <div className={styles.topicChip}>History</div>
                     <div className={styles.topicChip}>Family Life</div>
+                </div>
+
+                {/* Statistics Section */}
+                <div className={styles.statsContainer}>
+                    <div className={styles.statBox}>
+                        <div className={styles.statIconWrapper} style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+                            <HelpCircle size={24} />
+                        </div>
+                        <div className={styles.statNumber}>
+                            {stats ? <CountUp value={stats.totalQuestions} /> : '...'}
+                        </div>
+                        <div className={styles.statLabel}>Total Questions</div>
+                    </div>
+                    <div className={styles.statBox}>
+                        <div className={styles.statIconWrapper} style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
+                            <CheckCircle2 size={24} />
+                        </div>
+                        <div className={styles.statNumber}>
+                            {stats ? <CountUp value={stats.totalAnswers} /> : '...'}
+                        </div>
+                        <div className={styles.statLabel}>Answers Provided</div>
+                    </div>
+                    <div className={styles.statBox}>
+                        <div className={styles.statIconWrapper} style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
+                            <Heart size={24} />
+                        </div>
+                        <div className={styles.statNumber}>
+                            {stats ? <CountUp value={stats.peopleHelped} /> : '...'}
+                        </div>
+                        <div className={styles.statLabel}>People Helped</div>
+                    </div>
+                    <div className={styles.statBox}>
+                        <div className={styles.statIconWrapper} style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>
+                            <Activity size={24} />
+                        </div>
+                        <div className={styles.statNumber}>
+                            {stats ? <CountUp value={stats.responseRate} suffix="%" /> : '...'}
+                        </div>
+                        <div className={styles.statLabel}>Response Rate</div>
+                    </div>
                 </div>
 
                 {scholars.length > 0 && (
