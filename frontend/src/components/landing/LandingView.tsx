@@ -39,20 +39,17 @@ const CountUp = ({ value, duration = 1000, suffix = "" }: { value: number, durat
 
 export default function LandingView() {
     const [questions, setQuestions] = useState<any[]>([])
-    const [scholars, setScholars] = useState<any[]>([])
     const [stats, setStats] = useState<any>(null)
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [questionsRes, scholarsRes, statsRes] = await Promise.all([
+                const [questionsRes, statsRes] = await Promise.all([
                     api.get('/questions'),
-                    api.get('/scholars'),
                     api.get('/questions/stats/global').catch(() => ({ data: null }))
                 ])
                 setQuestions(questionsRes.data)
-                setScholars(scholarsRes.data || [])
                 if (statsRes && statsRes.data) setStats(statsRes.data)
             } catch (error) {
                 console.error("Failed to load data", error)
@@ -156,29 +153,7 @@ export default function LandingView() {
                     </div>
                 </div>
 
-                {scholars.length > 0 && (
-                    <div className={styles.scholarSliderContainer}>
-                        <div className={styles.scholarTrack}>
-                            {/* Duplicate array for seamless infinite scroll */}
-                            {[...scholars, ...scholars, ...scholars].map((scholar, index) => (
-                                <Link href={`/scholars/${scholar.id}`} key={`${scholar.id}-${index}`} className={styles.scholarSlideCard}>
-                                    <img
-                                        src={scholar.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(scholar.name)}&background=006D5B&color=fff`}
-                                        alt={scholar.name}
-                                        className={styles.slideAvatar}
-                                    />
-                                    <div className={styles.slideInfo}>
-                                        <div className={styles.slideName}>
-                                            {scholar.name}
-                                            {scholar.isVerified && <CheckCircle2 size={14} color="#006D5B" fill="#006D5B1A" style={{ marginLeft: '4px' }} />}
-                                        </div>
-                                        <div className={styles.slideSpec}>{scholar.specialization || "Islamic Scholar"}</div>
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
-                    </div>
-                )}
+
 
                 <div className={styles.questionsList}>
                     {isLoading ? (
