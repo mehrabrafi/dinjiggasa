@@ -8,20 +8,25 @@ import api from "@/lib/axios"
 
 export default function LandingView() {
     const [questions, setQuestions] = useState<any[]>([])
+    const [scholars, setScholars] = useState<any[]>([])
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
-        const fetchFeed = async () => {
+        const fetchData = async () => {
             try {
-                const res = await api.get('/questions')
-                setQuestions(res.data)
+                const [questionsRes, scholarsRes] = await Promise.all([
+                    api.get('/questions'),
+                    api.get('/scholars')
+                ])
+                setQuestions(questionsRes.data)
+                setScholars(scholarsRes.data || [])
             } catch (error) {
-                console.error("Failed to load feed", error)
+                console.error("Failed to load data", error)
             } finally {
                 setIsLoading(false)
             }
         }
-        fetchFeed()
+        fetchData()
     }, [])
 
     return (
@@ -41,7 +46,6 @@ export default function LandingView() {
 
                 <nav className={styles.headerNav}>
                     <Link href="/" className={styles.navLink} style={{ color: '#1a202c', fontWeight: 600 }}>Home</Link>
-                    <Link href="/scholars" className={styles.navLink}>Scholars</Link>
                     <Link href="/about" className={styles.navLink}>About</Link>
                 </nav>
 
@@ -77,6 +81,30 @@ export default function LandingView() {
                     <div className={styles.topicChip}>History</div>
                     <div className={styles.topicChip}>Family Life</div>
                 </div>
+
+                {scholars.length > 0 && (
+                    <div className={styles.scholarSliderContainer}>
+                        <div className={styles.scholarTrack}>
+                            {/* Duplicate array for seamless infinite scroll */}
+                            {[...scholars, ...scholars, ...scholars].map((scholar, index) => (
+                                <Link href={`/scholars/${scholar.id}`} key={`${scholar.id}-${index}`} className={styles.scholarSlideCard}>
+                                    <img
+                                        src={scholar.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(scholar.name)}&background=006D5B&color=fff`}
+                                        alt={scholar.name}
+                                        className={styles.slideAvatar}
+                                    />
+                                    <div className={styles.slideInfo}>
+                                        <div className={styles.slideName}>
+                                            {scholar.name}
+                                            {scholar.isVerified && <CheckCircle2 size={14} color="#006D5B" fill="#006D5B1A" style={{ marginLeft: '4px' }} />}
+                                        </div>
+                                        <div className={styles.slideSpec}>{scholar.specialization || "Islamic Scholar"}</div>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 <div className={styles.questionsList}>
                     {isLoading ? (
