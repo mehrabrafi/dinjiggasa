@@ -42,13 +42,12 @@ export default function LandingView() {
                 <nav className={styles.headerNav}>
                     <Link href="/" className={styles.navLink} style={{ color: '#1a202c', fontWeight: 600 }}>Home</Link>
                     <Link href="/scholars" className={styles.navLink}>Scholars</Link>
-                    <Link href="/topics" className={styles.navLink}>Topics</Link>
                     <Link href="/about" className={styles.navLink}>About</Link>
                 </nav>
 
                 <div className={styles.headerRight}>
                     <Link href="/login" className={styles.loginLink}>Log In</Link>
-                    <Link href="/ask">
+                    <Link href="/login">
                         <button className={styles.askButton}>Ask Question</button>
                     </Link>
                 </div>
