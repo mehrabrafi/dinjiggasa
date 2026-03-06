@@ -7,8 +7,27 @@ import api from "@/lib/axios"
 import DashboardLayout from "@/components/layout/DashboardLayout"
 import styles from "./dashboard.module.css"
 import ReportModal from "@/components/modals/ReportModal"
+import { useAuthStore } from "@/store/auth.store"
+import LandingView from "@/components/landing/LandingView"
 
-export default function Dashboard() {
+export default function Home() {
+  const { isAuthenticated } = useAuthStore()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) return null
+
+  if (isAuthenticated) {
+    return <DashboardView />
+  }
+
+  return <LandingView />
+}
+
+function DashboardView() {
   const [questions, setQuestions] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
