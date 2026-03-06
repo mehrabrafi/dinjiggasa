@@ -142,9 +142,9 @@ export default function LandingView() {
             <footer className={styles.footer}>
                 <div>© 2026 DinJiggasa. Knowledge for everyone.</div>
                 <div className={styles.footerLinks}>
-                    <Link href="/privacy" className={styles.footerLink}>Privacy Policy</Link>
-                    <Link href="/terms" className={styles.footerLink}>Terms of Service</Link>
-                    <Link href="/contact" className={styles.footerLink}>Contact Support</Link>
+                    <Link href="/privacy-policy" className={styles.footerLink}>Privacy Policy</Link>
+                    <Link href="/terms-of-service" className={styles.footerLink}>Terms of Service</Link>
+                    <Link href="mailto:support@dinjiggasa.com" className={styles.footerLink}>Contact Support</Link>
                 </div>
             </footer>
 

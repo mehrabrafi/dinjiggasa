@@ -370,10 +370,10 @@ function DashboardView() {
 
         <footer className={styles.rightFooter}>
           <div className={styles.footerLinks}>
-            <a href="#" className={styles.footerLink}>About</a>
-            <a href="#" className={styles.footerLink}>Guidelines</a>
-            <a href="#" className={styles.footerLink}>Privacy</a>
-            <a href="#" className={styles.footerLink}>Terms</a>
+            <Link href="/about" className={styles.footerLink}>About</Link>
+            <Link href="/terms-of-service" className={styles.footerLink}>Guidelines</Link>
+            <Link href="/privacy-policy" className={styles.footerLink}>Privacy</Link>
+            <Link href="/terms-of-service" className={styles.footerLink}>Terms</Link>
           </div>
           <div className={styles.footerCopy}>© 2026 DinJiggasa Inc.</div>
         </footer>
