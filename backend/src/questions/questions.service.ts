@@ -474,10 +474,11 @@ export class QuestionsService {
       throw new BadRequestException('At least one category is required to answer a question');
     }
 
-    // Update tags for the question based on categories
+    // Update tags and set acceptedById for the question
     await this.prisma.question.update({
       where: { id: questionId },
       data: {
+        acceptedById: scholarId, // Ensure the question is marked as accepted by this scholar
         tags: {
           connectOrCreate: categories.map((cat) => ({
             where: { name: cat.trim().toLowerCase() },

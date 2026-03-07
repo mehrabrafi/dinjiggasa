@@ -67,7 +67,7 @@ export default function QuestionsView({ type, title }: QuestionsViewProps) {
             }
         }
         fetchAllData()
-    }, [user?.id])
+    }, [user?.id, type])
 
     // Filtered questions based on type
     const getFilteredQuestions = () => {

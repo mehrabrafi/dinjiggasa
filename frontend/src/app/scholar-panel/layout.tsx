@@ -72,7 +72,7 @@ export default function ScholarPanelLayout({ children }: { children: React.React
         }
 
         fetchCounts()
-    }, [isAuthorized, user?.id])
+    }, [isAuthorized, user?.id, pathname]) // Added pathname to refresh counts on navigation
 
     const handleLogout = () => {
         logout()
