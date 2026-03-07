@@ -11,10 +11,8 @@ export class ScholarsController {
         return this.scholarsService.findAll();
     }
 
-    @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.scholarsService.findOne(id);
-    }
+    // ⚠️ All specific string routes MUST come BEFORE :id
+    // Otherwise :id catches "stats", "my-answers", etc. as the id parameter
 
     @UseGuards(JwtAuthGuard)
     @Get('stats')
@@ -45,6 +43,7 @@ export class ScholarsController {
         return this.scholarsService.getTopScholars();
     }
 
+    // Parameterized routes MUST come AFTER all specific string routes
     @Get(':id/stats')
     getScholarStats(@Param('id') id: string) {
         return this.scholarsService.getScholarStats(id);
@@ -58,5 +57,11 @@ export class ScholarsController {
     @Get(':id/similar')
     getSimilarScholars(@Param('id') id: string) {
         return this.scholarsService.getSimilarScholars(id);
+    }
+
+    // :id MUST be the LAST @Get route to avoid catching specific routes
+    @Get(':id')
+    findOne(@Param('id') id: string) {
+        return this.scholarsService.findOne(id);
     }
 }
