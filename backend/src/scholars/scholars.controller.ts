@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, UseGuards, Request, Param } from '@nestjs/common';
 import { ScholarsService } from './scholars.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -9,6 +9,11 @@ export class ScholarsController {
     @Get()
     findAll() {
         return this.scholarsService.findAll();
+    }
+
+    @Get(':id')
+    findOne(@Param('id') id: string) {
+        return this.scholarsService.findOne(id);
     }
 
     @UseGuards(JwtAuthGuard)
@@ -32,5 +37,15 @@ export class ScholarsController {
     @Get('top')
     getTopScholars() {
         return this.scholarsService.getTopScholars();
+    }
+
+    @Get(':id/stats')
+    getScholarStats(@Param('id') id: string) {
+        return this.scholarsService.getScholarStats(id);
+    }
+
+    @Get(':id/answers')
+    getScholarAnswers(@Param('id') id: string) {
+        return this.scholarsService.getMyAnswers(id);
     }
 }

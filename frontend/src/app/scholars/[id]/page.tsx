@@ -26,61 +26,31 @@ export default function ScholarProfilePage() {
     const id = params.id
     const [activeTab, setActiveTab] = useState('Answers')
     const [scholar, setScholar] = useState<any>(null)
+    const [stats, setStats] = useState<any>(null)
+    const [answers, setAnswers] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        const fetchScholar = async () => {
+        const fetchScholarData = async () => {
             try {
-                // In a real app, we'd fetch specific scholar data
-                // For now, fetching all and finding by ID or using mock for the visual effect
-                const res = await api.get('/scholars')
-                const found = res.data.find((s: any) => s.id === id)
+                // Fetch basic info, stats and answers in parallel
+                const [infoRes, statsRes, answersRes] = await Promise.all([
+                    api.get(`/scholars/${id}`),
+                    api.get(`/scholars/${id}/stats`),
+                    api.get(`/scholars/${id}/answers`)
+                ])
 
-                // If not found in API yet, use realistic mock data matching the screenshot
-                if (found) {
-                    setScholar({
-                        id: found.id,
-                        name: found.name,
-                        avatar: found.avatar || `https://ui-avatars.com/api/?name=${found.name}&background=006D5B&color=fff`,
-                        credentials: found.educationalQualifications || "Consultant Scholar",
-                        bio: found.bio || "Biography details for this scholar will be available soon.",
-                        isVerified: found.isVerified,
-                        officeHours: found.officeHours || [],
-                        stats: {
-                            answers: "1.2k",
-                            voiceNotes: "450",
-                            peopleHelped: "18k",
-                            responseRate: "98%"
-                        },
-                        specialties: ["#Fiqh", "#Finance", "#Inheritance", "#Family Law", "#Contemporary Issues"]
-                    })
-                } else {
-                    // Default mock data matching the image if ID is not found
-                    setScholar({
-                        id: id,
-                        name: "Dr. Ahmed Al-Falahi",
-                        avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=160&q=80",
-                        credentials: "Scholar / Researcher",
-                        isVerified: true,
-                        bio: "This is a scholar on the DinJiggasa platform.",
-                        officeHours: [],
-                        stats: {
-                            answers: "1.2k",
-                            voiceNotes: "450",
-                            peopleHelped: "18k",
-                            responseRate: "98%"
-                        },
-                        specialties: ["#Fiqh", "#Finance", "#Inheritance", "#Family Law", "#Contemporary Issues"]
-                    })
-                }
+                setScholar(infoRes.data)
+                setStats(statsRes.data)
+                setAnswers(answersRes.data)
             } catch (err) {
-                console.error("Failed to fetch scholar", err)
+                console.error("Failed to fetch scholar data", err)
             } finally {
                 setLoading(false)
             }
         }
 
-        fetchScholar()
+        if (id) fetchScholarData()
     }, [id])
 
     if (loading) return (
@@ -116,8 +86,9 @@ export default function ScholarProfilePage() {
                         </div>
                         <div className={styles.headerInfo}>
                             <h1 className={styles.scholarName}>{scholar.name}</h1>
-                            <p className={styles.credentials}>{scholar.credentials}</p>
-
+                            <p className={styles.credentials}>
+                                {scholar.educationalQualifications ? scholar.educationalQualifications.split('\n')[0] : "DinJiggasa Scholar"}
+                            </p>
                         </div>
                         <div className={styles.headerActions}>
                             <button className={styles.askBtn}>
@@ -140,10 +111,10 @@ export default function ScholarProfilePage() {
                             Answers
                         </button>
                         <button
-                            className={`${styles.tab} ${activeTab === 'Voice Answers' ? styles.tabActive : ''}`}
-                            onClick={() => setActiveTab('Voice Answers')}
+                            className={`${styles.tab} ${activeTab === 'Qualifications' ? styles.tabActive : ''}`}
+                            onClick={() => setActiveTab('Qualifications')}
                         >
-                            Voice Answers <span className={styles.tabBadge}>New</span>
+                            Qualifications
                         </button>
                     </div>
                 </div>
@@ -153,31 +124,31 @@ export default function ScholarProfilePage() {
                     <div className={styles.mainContent}>
                         {activeTab === 'Answers' && (
                             <>
-                                <AnswerCard
-                                    topic="Fiqh of Fasting"
-                                    pinned={true}
-                                    created="2 days ago"
-                                    title="Is it permissible to use an inhaler while fasting during Ramadan?"
-                                    body="The use of an inhaler for asthma involves the delivery of medication directly to the lungs. According to the majority of contemporary scholars and the Fiqh Council, using a nebulizer or inhaler does not break the fast provided it does not reach the stomach in a form that constitutes nourishment..."
-                                    voice={true}
-                                    voiceDuration="2:14"
-                                    audioUrl="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
-                                />
-                                <AnswerCard
-                                    topic="Business Ethics"
-                                    created="5 days ago"
-                                    title="Can I invest in companies that have a small percentage of debt?"
-                                    body="Investment in stocks requires screening the company's activities and financials. While the core business must be permissible (Halal), many scholars allow investment if interest-bearing debt is less than 33% of total assets, though purification of dividend income corresponding to the haram portion is necessary. This is based on the rule of the majority taking the ruling of the whole..."
-                                />
-                                <AnswerCard
-                                    topic="Family"
-                                    created="1 week ago"
-                                    title="Rights of parents when they disagree with marriage choice"
-                                    body="Respecting parents is a cornerstone of our faith. However, in matters of marriage, while their advice should be heavily weighed, cultural preferences should not supersede religious compatibility. If the potential spouse is religiously committed and has good character, unreasonable rejection by parents requires careful mediation..."
-                                />
-                                <button className={styles.loadMore}>
-                                    Load More Answers <ChevronDown size={18} />
-                                </button>
+                                {answers && answers.length > 0 ? (
+                                    answers.map((ans, idx) => (
+                                        <AnswerCard
+                                            key={idx}
+                                            topic={ans.question.tags?.[0]?.name || "Uncategorized"}
+                                            created={new Date(ans.createdAt).toLocaleDateString()}
+                                            title={ans.question.title}
+                                            body={ans.content}
+                                            voice={!!ans.voiceUrl}
+                                            audioUrl={ans.voiceUrl}
+                                            helpfulCount={ans.ratings?.filter((r: any) => r.value > 0).length || 0}
+                                        />
+                                    ))
+                                ) : (
+                                    <div className={styles.contentCard} style={{ textAlign: 'center', padding: '3rem' }}>
+                                        <MessageSquare size={48} color="#cbd5e1" style={{ marginBottom: '1rem' }} />
+                                        <h3 className={styles.cardTitle}>No Answers Yet</h3>
+                                        <p className={styles.cardDesc}>{scholar.name} hasn't answered any questions yet.</p>
+                                    </div>
+                                )}
+                                {answers.length >= 10 && (
+                                    <button className={styles.loadMore}>
+                                        Load More Answers <ChevronDown size={18} />
+                                    </button>
+                                )}
                             </>
                         )}
 
@@ -188,11 +159,12 @@ export default function ScholarProfilePage() {
                             </div>
                         )}
 
-                        {activeTab === 'Voice Answers' && (
-                            <div className={styles.contentCard} style={{ textAlign: 'center', padding: '3rem' }}>
-                                <Mic size={48} color="#10b981" style={{ marginBottom: '1rem' }} />
-                                <h3 className={styles.cardTitle}>Audio Library</h3>
-                                <p className={styles.cardDesc}>Browse the collection of audio explanations provided by {scholar.name}.</p>
+                        {activeTab === 'Qualifications' && (
+                            <div className={styles.contentCard}>
+                                <h3 className={styles.cardTitle}>Educational Qualifications</h3>
+                                <div style={{ marginTop: '1rem', whiteSpace: 'pre-wrap' }}>
+                                    {scholar.educationalQualifications || "No qualifications listed yet."}
+                                </div>
                             </div>
                         )}
                     </div>
@@ -221,24 +193,28 @@ export default function ScholarProfilePage() {
                         {/* Contribution Stats */}
                         <div className={styles.widget}>
                             <h3 className={styles.widgetTitle}>Contribution Stats</h3>
-                            <div className={styles.statsGrid}>
-                                <div className={styles.statBox}>
-                                    <span className={styles.statVal}>{scholar.stats.answers}</span>
-                                    <span className={styles.statLabel}>Answers</span>
+                            {stats ? (
+                                <div className={styles.statsGrid}>
+                                    <div className={styles.statBox}>
+                                        <span className={styles.statVal}>{stats.totalAnswers}</span>
+                                        <span className={styles.statLabel}>Answers</span>
+                                    </div>
+                                    <div className={styles.statBox}>
+                                        <span className={styles.statVal}>{stats.totalUpvotes}</span>
+                                        <span className={styles.statLabel}>Helpful Votes</span>
+                                    </div>
+                                    <div className={styles.statBox}>
+                                        <span className={styles.statVal}>{stats.peopleHelped}</span>
+                                        <span className={styles.statLabel}>People Helped</span>
+                                    </div>
+                                    <div className={styles.statBox}>
+                                        <span className={styles.statVal}>{stats.responseRate}%</span>
+                                        <span className={styles.statLabel}>Response Rate</span>
+                                    </div>
                                 </div>
-                                <div className={styles.statBox}>
-                                    <span className={styles.statVal}>{scholar.stats.voiceNotes}</span>
-                                    <span className={styles.statLabel}>Voice Notes</span>
-                                </div>
-                                <div className={styles.statBox}>
-                                    <span className={styles.statVal}>{scholar.stats.peopleHelped}</span>
-                                    <span className={styles.statLabel}>People Helped</span>
-                                </div>
-                                <div className={styles.statBox}>
-                                    <span className={styles.statVal}>{scholar.stats.responseRate}</span>
-                                    <span className={styles.statLabel}>Response Rate</span>
-                                </div>
-                            </div>
+                            ) : (
+                                <p className={styles.cardDesc}>Loading stats...</p>
+                            )}
                         </div>
 
                         {/* Similar Scholars */}
@@ -261,15 +237,17 @@ export default function ScholarProfilePage() {
                             </div>
                         </div>
 
-                        {/* Specialties */}
-                        <div className={styles.widget}>
-                            <h3 className={styles.widgetTitle}>Specialties</h3>
-                            <div className={styles.tagCloud}>
-                                {scholar.specialties.map((spec: string, idx: number) => (
-                                    <span key={idx} className={styles.specTag}>{spec}</span>
-                                ))}
+                        {/* Specialties / Tags */}
+                        {scholar.specialization && (
+                            <div className={styles.widget}>
+                                <h3 className={styles.widgetTitle}>Specialties</h3>
+                                <div className={styles.tagCloud}>
+                                    {scholar.specialization.split(',').map((spec: string, idx: number) => (
+                                        <span key={idx} className={styles.specTag}>#{spec.trim()}</span>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </aside>
                 </div>
             </div>
@@ -277,7 +255,7 @@ export default function ScholarProfilePage() {
     )
 }
 
-function AnswerCard({ topic, pinned, created, title, body, voice, voiceDuration, audioUrl }: any) {
+function AnswerCard({ topic, pinned, created, title, body, voice, voiceDuration, audioUrl, helpfulCount }: any) {
     const [isPlaying, setIsPlaying] = useState(false)
     const [progress, setProgress] = useState(0)
     const audioRef = React.useRef<HTMLAudioElement | null>(null)
@@ -352,7 +330,7 @@ function AnswerCard({ topic, pinned, created, title, body, voice, voiceDuration,
 
             <div className={styles.cardActions}>
                 <div className={styles.voteGroup}>
-                    <button className={styles.action}><ArrowUp size={20} /> 245 Helpful</button>
+                    <button className={styles.action}><ArrowUp size={20} /> {helpfulCount} Helpful</button>
                     <button className={styles.action}><ArrowDown size={20} /></button>
                 </div>
                 <button className={styles.action}><Share2 size={18} /> Share</button>

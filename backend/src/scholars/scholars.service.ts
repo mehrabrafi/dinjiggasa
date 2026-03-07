@@ -25,6 +25,23 @@ export class ScholarsService {
         });
     }
 
+    async findOne(id: string) {
+        return this.prisma.user.findUnique({
+            where: { id },
+            select: {
+                id: true,
+                name: true,
+                avatar: true,
+                specialization: true,
+                bio: true,
+                educationalQualifications: true,
+                officeHours: true,
+                isVerified: true,
+                reputation: true,
+            } as any
+        });
+    }
+
     /**
      * Get comprehensive stats for a scholar's dashboard
      */
