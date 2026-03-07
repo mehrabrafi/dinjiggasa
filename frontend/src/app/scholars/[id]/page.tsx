@@ -17,6 +17,7 @@ import {
     UserPlus,
     MessageSquare,
     Play,
+    Pause,
     ChevronDown,
     Mic
 } from 'lucide-react'
@@ -63,14 +64,14 @@ export default function ScholarProfilePage() {
                     // Default mock data matching the image if ID is not found
                     setScholar({
                         id: id,
-                        name: "Sheikh Ahmed Al-Farsi",
-                        avatar: null,
+                        name: "Dr. Ahmed Al-Falahi",
+                        avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=160&q=80",
                         credentials: "PhD in Fiqh, Al-Azhar University",
                         location: "Cairo, Egypt",
                         followers: "15k",
                         title: "Senior Researcher",
                         isVerified: true,
-                        bio: "Sheikh Ahmed Al-Farsi is a renowned scholar specializing in Islamic Jurisprudence (Fiqh) and Contemporary Financial Issues. He has served as a senior researcher at several Islamic institutions and holds a doctorate from Al-Azhar University.",
+                        bio: "Dr. Ahmed Al-Falahi is a renowned scholar specializing in Islamic Jurisprudence (Fiqh) and Contemporary Financial Issues. He has served as a senior researcher at several Islamic institutions and holds a doctorate from Al-Azhar University.",
                         officeHours: [
                             { day: "Mon - Wed", time: "10:00 AM - 2:00 PM" },
                             { day: "Friday", time: "4:00 PM - 6:00 PM" }
@@ -185,6 +186,7 @@ export default function ScholarProfilePage() {
                                     body="The use of an inhaler for asthma involves the delivery of medication directly to the lungs. According to the majority of contemporary scholars and the Fiqh Council, using a nebulizer or inhaler does not break the fast provided it does not reach the stomach in a form that constitutes nourishment..."
                                     voice={true}
                                     voiceDuration="2:14"
+                                    audioUrl="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
                                 />
                                 <AnswerCard
                                     topic="Business Ethics"
@@ -298,7 +300,48 @@ export default function ScholarProfilePage() {
     )
 }
 
-function AnswerCard({ topic, pinned, created, title, body, voice, voiceDuration }: any) {
+function AnswerCard({ topic, pinned, created, title, body, voice, voiceDuration, audioUrl }: any) {
+    const [isPlaying, setIsPlaying] = useState(false)
+    const [progress, setProgress] = useState(0)
+    const audioRef = React.useRef<HTMLAudioElement | null>(null)
+    const waveRef = React.useRef<HTMLDivElement>(null)
+
+    const togglePlay = () => {
+        if (!audioRef.current) return
+        if (isPlaying) {
+            audioRef.current.pause()
+        } else {
+            audioRef.current.play().catch(e => console.error("Audio playback failed", e))
+        }
+        setIsPlaying(!isPlaying)
+    }
+
+    const handleTimeUpdate = () => {
+        if (!audioRef.current) return
+        const current = audioRef.current.currentTime
+        const duration = audioRef.current.duration
+        if (duration > 0) {
+            setProgress((current / duration) * 100)
+        }
+    }
+
+    const handleEnded = () => {
+        setIsPlaying(false)
+        setProgress(0)
+    }
+
+    const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!audioRef.current || !waveRef.current) return
+        const rect = waveRef.current.getBoundingClientRect()
+        const clickX = e.clientX - rect.left
+        const max = rect.width
+        const percentage = Math.max(0, Math.min(1, clickX / max))
+        const newTime = percentage * (audioRef.current.duration || 0)
+
+        audioRef.current.currentTime = newTime
+        setProgress(percentage * 100)
+    }
+
     return (
         <div className={styles.contentCard}>
             <div className={styles.cardHeader}>
@@ -312,11 +355,21 @@ function AnswerCard({ topic, pinned, created, title, body, voice, voiceDuration 
 
             {voice && (
                 <div className={styles.audioPlayer}>
-                    <div className={styles.playBtn}><Play size={14} fill="#10b981" color="#10b981" /></div>
+                    <button className={styles.playBtn} onClick={togglePlay}>
+                        {isPlaying ? <Pause size={14} fill="#10b981" color="#10b981" /> : <Play size={14} fill="#10b981" color="#10b981" />}
+                    </button>
                     <span className={styles.audioTime}>Audio explanation ({voiceDuration})</span>
-                    <div className={styles.wave}>
-                        <div className={styles.waveProgress} style={{ width: '35%' }}></div>
+                    <div className={styles.wave} ref={waveRef} onClick={handleSeek}>
+                        <div className={styles.waveProgress} style={{ width: `${progress}%` }}></div>
                     </div>
+                    {audioUrl && (
+                        <audio
+                            ref={audioRef}
+                            src={audioUrl}
+                            onTimeUpdate={handleTimeUpdate}
+                            onEnded={handleEnded}
+                        />
+                    )}
                 </div>
             )}
 
