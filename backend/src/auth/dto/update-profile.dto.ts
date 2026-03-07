@@ -19,4 +19,8 @@ export class UpdateProfileDto {
 
     @IsOptional()
     officeHours?: any;
+
+    @IsOptional()
+    @IsString()
+    specialization?: string;
 }

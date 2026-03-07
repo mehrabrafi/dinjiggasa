@@ -48,4 +48,9 @@ export class ScholarsController {
     getScholarAnswers(@Param('id') id: string) {
         return this.scholarsService.getMyAnswers(id);
     }
+
+    @Get(':id/similar')
+    getSimilarScholars(@Param('id') id: string) {
+        return this.scholarsService.getSimilarScholars(id);
+    }
 }

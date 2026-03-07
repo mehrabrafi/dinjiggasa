@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
+import Link from 'next/link'
 import {
     CheckCircle2,
     Calendar,
@@ -28,21 +29,24 @@ export default function ScholarProfilePage() {
     const [scholar, setScholar] = useState<any>(null)
     const [stats, setStats] = useState<any>(null)
     const [answers, setAnswers] = useState<any[]>([])
+    const [similarScholars, setSimilarScholars] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
         const fetchScholarData = async () => {
             try {
                 // Fetch basic info, stats and answers in parallel
-                const [infoRes, statsRes, answersRes] = await Promise.all([
+                const [infoRes, statsRes, answersRes, similarRes] = await Promise.all([
                     api.get(`/scholars/${id}`),
                     api.get(`/scholars/${id}/stats`),
-                    api.get(`/scholars/${id}/answers`)
+                    api.get(`/scholars/${id}/answers`),
+                    api.get(`/scholars/${id}/similar`)
                 ])
 
                 setScholar(infoRes.data)
                 setStats(statsRes.data)
                 setAnswers(answersRes.data)
+                setSimilarScholars(similarRes.data)
             } catch (err) {
                 console.error("Failed to fetch scholar data", err)
             } finally {
@@ -218,24 +222,25 @@ export default function ScholarProfilePage() {
                         </div>
 
                         {/* Similar Scholars */}
-                        <div className={styles.widget}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                                <h3 className={styles.widgetTitle} style={{ marginBottom: 0 }}>Similar Scholars</h3>
-                                <a href="#" style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>View All</a>
+                        {similarScholars && similarScholars.length > 0 && (
+                            <div className={styles.widget}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                                    <h3 className={styles.widgetTitle} style={{ marginBottom: 0 }}>Similar Scholars</h3>
+                                    <Link href="/scholars" style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>View All</Link>
+                                </div>
+                                <div className={styles.scholarList}>
+                                    {similarScholars.map((s: any) => (
+                                        <Link key={s.id} href={`/scholars/${s.id}`} style={{ textDecoration: 'none' }}>
+                                            <SimilarScholarItem
+                                                name={s.name}
+                                                title={s.specialization ? s.specialization.split(',')[0].trim() : "Scholar"}
+                                                img={s.avatar || `https://ui-avatars.com/api/?name=${s.name}&background=006D5B&color=fff`}
+                                            />
+                                        </Link>
+                                    ))}
+                                </div>
                             </div>
-                            <div className={styles.scholarList}>
-                                <SimilarScholarItem
-                                    name="Dr. Omar Suleiman"
-                                    title="Hadith Specialist"
-                                    img="https://ui-avatars.com/api/?name=Omar+Suleiman&background=006D5B&color=fff"
-                                />
-                                <SimilarScholarItem
-                                    name="Sheikh Yasir Qadhi"
-                                    title="Theology & History"
-                                    img="https://ui-avatars.com/api/?name=Yasir+Qadhi&background=006D5B&color=fff"
-                                />
-                            </div>
-                        </div>
+                        )}
 
                         {/* Specialties / Tags */}
                         {scholar.specialization && (

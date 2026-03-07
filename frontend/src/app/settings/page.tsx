@@ -35,6 +35,7 @@ export default function SettingsPage() {
         madhab: '',
         bio: '',
         educationalQualifications: '',
+        specialization: '',
         officeHours: [] as { day: string, time: string }[]
     });
 
@@ -47,6 +48,7 @@ export default function SettingsPage() {
                 madhab: user.madhab || 'Hanafi',
                 bio: user.bio || '',
                 educationalQualifications: user.educationalQualifications || '',
+                specialization: (user as any).specialization || '',
                 officeHours: (user as any).officeHours || []
             });
         }
@@ -256,7 +258,19 @@ export default function SettingsPage() {
 
                                             {user?.role === 'SCHOLAR' && (
                                                 <>
-                                                    <div className={styles.formGroup} style={{ marginTop: '1.5rem' }}>
+                                                    <div className={styles.formGroup}>
+                                                        <label className={styles.label}>Expertise / Specialization</label>
+                                                        <input
+                                                            type="text"
+                                                            className={styles.input}
+                                                            value={profileData.specialization}
+                                                            onChange={(e) => setProfileData({ ...profileData, specialization: e.target.value })}
+                                                            placeholder="e.g. Fiqh, Hadith, Islamic Finance (comma separated)"
+                                                        />
+                                                        <p className={styles.helpText}>List your areas of expertise to help users find you.</p>
+                                                    </div>
+
+                                                    <div className={styles.formGroup} style={{ marginBottom: '1.5rem' }}>
                                                         <label className={styles.label}>Biography / Description</label>
                                                         <textarea
                                                             className={styles.textarea}

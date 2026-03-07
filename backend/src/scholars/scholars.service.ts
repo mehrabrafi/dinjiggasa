@@ -388,4 +388,44 @@ export class ScholarsService {
             .sort((a, b) => b.responseRate - a.responseRate)
             .slice(0, 5);
     }
+
+    async getSimilarScholars(id: string) {
+        const currentScholar = await this.prisma.user.findUnique({
+            where: { id },
+            select: { specialization: true }
+        });
+
+        if (!currentScholar || !currentScholar.specialization) {
+            // If no specialization, return top scholars instead
+            return this.getTopScholars();
+        }
+
+        const specs = currentScholar.specialization.split(',').map(s => s.trim().toLowerCase());
+
+        const scholars = await this.prisma.user.findMany({
+            where: {
+                role: Role.SCHOLAR,
+                id: { not: id },
+            },
+            select: {
+                id: true,
+                name: true,
+                avatar: true,
+                specialization: true,
+                isVerified: true,
+            }
+        });
+
+        const similarityList = scholars.map(s => {
+            if (!s.specialization) return { ...s, similarity: 0 };
+            const otherSpecs = s.specialization.split(',').map(os => os.trim().toLowerCase());
+            const score = specs.filter(spec => otherSpecs.includes(spec)).length;
+            return { ...s, similarity: score };
+        });
+
+        return similarityList
+            .filter(s => s.similarity > 0)
+            .sort((a, b) => b.similarity - a.similarity)
+            .slice(0, 4);
+    }
 }
