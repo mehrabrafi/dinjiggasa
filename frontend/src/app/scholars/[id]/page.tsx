@@ -91,7 +91,7 @@ export default function ScholarProfilePage() {
                         <div className={styles.headerInfo}>
                             <h1 className={styles.scholarName}>{scholar.name}</h1>
                             <p className={styles.credentials}>
-                                {scholar.educationalQualifications ? scholar.educationalQualifications.split('\n')[0] : "DinJiggasa Scholar"}
+                                {scholar?.specialization || "DinJiggasa Scholar"}
                             </p>
                         </div>
                         <div className={styles.headerActions}>
