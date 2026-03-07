@@ -95,9 +95,11 @@ export default function ScholarProfilePage() {
                             </p>
                         </div>
                         <div className={styles.headerActions}>
-                            <button className={styles.askBtn}>
-                                <MessageSquare size={20} /> Ask Question
-                            </button>
+                            <Link href={`/ask?scholarId=${id}`}>
+                                <button className={styles.askBtn}>
+                                    <MessageSquare size={20} /> Ask Question
+                                </button>
+                            </Link>
                         </div>
                     </div>
 
@@ -178,7 +180,7 @@ export default function ScholarProfilePage() {
                         {scholar.officeHours && scholar.officeHours.length > 0 && (
                             <div className={styles.widget}>
                                 <h3 className={styles.widgetTitle}>
-                                    <Calendar size={18} color="#10b981" /> Office Hours
+                                    <Calendar size={18} color="#10b981" /> Active Hours
                                 </h3>
                                 <div className={styles.hoursList}>
                                     {scholar.officeHours.map((item: any, idx: number) => (
@@ -188,9 +190,7 @@ export default function ScholarProfilePage() {
                                         </div>
                                     ))}
                                 </div>
-                                <div className={styles.consultNote}>
-                                    <Info size={16} /> Online consultations available for premium members.
-                                </div>
+
                             </div>
                         )}
 
