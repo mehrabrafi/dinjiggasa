@@ -242,7 +242,8 @@ export class AuthService {
         gender: user.gender,
         madhab: user.madhab,
         bio: user.bio,
-        educationalQualifications: user.educationalQualifications,
+        educationalQualifications: (user as any).educationalQualifications,
+        officeHours: (user as any).officeHours,
         isVerified: user.isVerified,
         isBanned: (user as any).isBanned,
       },
@@ -280,7 +281,7 @@ export class AuthService {
     };
   }
 
-  async updateProfile(userId: string, dto: { name?: string; madhab?: string; bio?: string; educationalQualifications?: string; }) {
+  async updateProfile(userId: string, dto: { name?: string; madhab?: string; bio?: string; educationalQualifications?: string; officeHours?: any; }) {
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
       data: {
@@ -288,6 +289,7 @@ export class AuthService {
         ...(dto.madhab && { madhab: dto.madhab }),
         ...(dto.bio !== undefined && { bio: dto.bio }),
         ...(dto.educationalQualifications !== undefined && { educationalQualifications: dto.educationalQualifications }),
+        ...(dto.officeHours !== undefined && { officeHours: dto.officeHours }),
       },
       select: {
         id: true,
@@ -299,6 +301,7 @@ export class AuthService {
         avatar: true,
         bio: true,
         educationalQualifications: true,
+        officeHours: true,
       },
     });
 

@@ -42,13 +42,10 @@ export default function ScholarProfilePage() {
                         id: found.id,
                         name: found.name,
                         avatar: found.avatar || `https://ui-avatars.com/api/?name=${found.name}&background=006D5B&color=fff`,
-                        credentials: found.educationalQualifications || "PhD in Fiqh, Al-Azhar University",
-                        bio: found.bio || "Dr. Ahmed Al-Falahi is a renowned scholar specializing in Islamic Jurisprudence (Fiqh) and Contemporary Financial Issues. He has served as a senior researcher at several Islamic institutions and holds a doctorate from Al-Azhar University.",
+                        credentials: found.educationalQualifications || "Consultant Scholar",
+                        bio: found.bio || "Biography details for this scholar will be available soon.",
                         isVerified: found.isVerified,
-                        officeHours: [
-                            { day: "Mon - Wed", time: "10:00 AM - 2:00 PM" },
-                            { day: "Friday", time: "4:00 PM - 6:00 PM" }
-                        ],
+                        officeHours: found.officeHours || [],
                         stats: {
                             answers: "1.2k",
                             voiceNotes: "450",
@@ -63,13 +60,10 @@ export default function ScholarProfilePage() {
                         id: id,
                         name: "Dr. Ahmed Al-Falahi",
                         avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=160&q=80",
-                        credentials: "PhD in Fiqh, Al-Azhar University",
+                        credentials: "Scholar / Researcher",
                         isVerified: true,
-                        bio: "Dr. Ahmed Al-Falahi is a renowned scholar specializing in Islamic Jurisprudence (Fiqh) and Contemporary Financial Issues. He has served as a senior researcher at several Islamic institutions and holds a doctorate from Al-Azhar University.",
-                        officeHours: [
-                            { day: "Mon - Wed", time: "10:00 AM - 2:00 PM" },
-                            { day: "Friday", time: "4:00 PM - 6:00 PM" }
-                        ],
+                        bio: "This is a scholar on the DinJiggasa platform.",
+                        officeHours: [],
                         stats: {
                             answers: "1.2k",
                             voiceNotes: "450",
@@ -205,22 +199,24 @@ export default function ScholarProfilePage() {
 
                     <aside className={styles.sidebar}>
                         {/* Office Hours */}
-                        <div className={styles.widget}>
-                            <h3 className={styles.widgetTitle}>
-                                <Calendar size={18} color="#10b981" /> Office Hours
-                            </h3>
-                            <div className={styles.hoursList}>
-                                {scholar.officeHours.map((item: any, idx: number) => (
-                                    <div key={idx} className={styles.hourItem}>
-                                        <span className={styles.day}>{item.day}</span>
-                                        <span className={styles.time}>{item.time}</span>
-                                    </div>
-                                ))}
+                        {scholar.officeHours && scholar.officeHours.length > 0 && (
+                            <div className={styles.widget}>
+                                <h3 className={styles.widgetTitle}>
+                                    <Calendar size={18} color="#10b981" /> Office Hours
+                                </h3>
+                                <div className={styles.hoursList}>
+                                    {scholar.officeHours.map((item: any, idx: number) => (
+                                        <div key={idx} className={styles.hourItem}>
+                                            <span className={styles.day}>{item.day}</span>
+                                            <span className={styles.time}>{item.time}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className={styles.consultNote}>
+                                    <Info size={16} /> Online consultations available for premium members.
+                                </div>
                             </div>
-                            <div className={styles.consultNote}>
-                                <Info size={16} /> Online consultations available for premium members.
-                            </div>
-                        </div>
+                        )}
 
                         {/* Contribution Stats */}
                         <div className={styles.widget}>

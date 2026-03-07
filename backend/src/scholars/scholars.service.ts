@@ -17,9 +17,11 @@ export class ScholarsService {
                 avatar: true,
                 specialization: true,
                 bio: true,
+                educationalQualifications: true,
+                officeHours: true,
                 isVerified: true,
                 reputation: true,
-            }
+            } as any
         });
     }
 

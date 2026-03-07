@@ -16,4 +16,7 @@ export class UpdateProfileDto {
     @IsOptional()
     @IsString()
     educationalQualifications?: string;
+
+    @IsOptional()
+    officeHours?: any;
 }

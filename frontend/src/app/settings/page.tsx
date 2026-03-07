@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { Lock, Moon, UserCircle, User, Camera, RefreshCw, LogOut } from "lucide-react"
+import { Lock, Moon, UserCircle, User, Camera, RefreshCw, LogOut, Trash2, Plus } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuthStore } from "@/store/auth.store"
@@ -34,8 +34,11 @@ export default function SettingsPage() {
         name: '',
         madhab: '',
         bio: '',
-        educationalQualifications: ''
+        educationalQualifications: '',
+        officeHours: [] as { day: string, time: string }[]
     });
+
+    const [newOfficeHour, setNewOfficeHour] = useState({ day: '', time: '' });
 
     useEffect(() => {
         if (user) {
@@ -43,7 +46,8 @@ export default function SettingsPage() {
                 name: user.name || '',
                 madhab: user.madhab || 'Hanafi',
                 bio: user.bio || '',
-                educationalQualifications: user.educationalQualifications || ''
+                educationalQualifications: user.educationalQualifications || '',
+                officeHours: (user as any).officeHours || []
             });
         }
     }, [user]);
@@ -131,6 +135,27 @@ export default function SettingsPage() {
             setIsUpdatingProfile(false);
         }
     }
+
+    const addOfficeHour = () => {
+        if (!newOfficeHour.day || !newOfficeHour.time) {
+            toast.error("Please fill both day and time");
+            return;
+        }
+        setProfileData({
+            ...profileData,
+            officeHours: [...profileData.officeHours, newOfficeHour]
+        });
+        setNewOfficeHour({ day: '', time: '' });
+    };
+
+    const removeOfficeHour = (index: number) => {
+        const updated = [...profileData.officeHours];
+        updated.splice(index, 1);
+        setProfileData({
+            ...profileData,
+            officeHours: updated
+        });
+    };
 
     return (
         <div className={styles.layout}>
@@ -251,6 +276,52 @@ export default function SettingsPage() {
                                                             placeholder="List your degrees, ijazahs, or other relevant qualifications..."
                                                             rows={3}
                                                         />
+                                                    </div>
+
+                                                    <div className={styles.formGroup} style={{ marginTop: '1.5rem' }}>
+                                                        <label className={styles.label}>Office Hours</label>
+                                                        <div className={styles.officeHoursList}>
+                                                            {profileData.officeHours.map((hour, idx) => (
+                                                                <div key={idx} className={styles.officeHourItem}>
+                                                                    <div className={styles.officeHourInfo}>
+                                                                        <span className={styles.officeHourDay}>{hour.day}</span>
+                                                                        <span className={styles.officeHourTime}>{hour.time}</span>
+                                                                    </div>
+                                                                    <button
+                                                                        type="button"
+                                                                        className={styles.removeBtn}
+                                                                        onClick={() => removeOfficeHour(idx)}
+                                                                    >
+                                                                        <Trash2 size={16} />
+                                                                    </button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+
+                                                        <div className={styles.addOfficeHourRow}>
+                                                            <input
+                                                                type="text"
+                                                                className={styles.input}
+                                                                placeholder="e.g. Mon - Wed"
+                                                                value={newOfficeHour.day}
+                                                                onChange={(e) => setNewOfficeHour({ ...newOfficeHour, day: e.target.value })}
+                                                            />
+                                                            <input
+                                                                type="text"
+                                                                className={styles.input}
+                                                                placeholder="e.g. 10AM - 2PM"
+                                                                value={newOfficeHour.time}
+                                                                onChange={(e) => setNewOfficeHour({ ...newOfficeHour, time: e.target.value })}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                className={styles.btnAddSmall}
+                                                                onClick={addOfficeHour}
+                                                            >
+                                                                <Plus size={16} />
+                                                            </button>
+                                                        </div>
+                                                        <p className={styles.helpText}>Set your availability for consultations.</p>
                                                     </div>
                                                 </>
                                             )}

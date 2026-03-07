@@ -42,6 +42,7 @@ model User {
   passwordResetTokenExpiresAt DateTime?
   urgentQuota Int      @default(1)
   lastUrgentReset DateTime @default(now())
+  officeHours Json?
 
   // Relations
   questions Question[] @relation("AuthorQuestions")

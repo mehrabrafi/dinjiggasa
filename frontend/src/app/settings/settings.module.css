@@ -650,3 +650,81 @@ input:checked+.slider:before {
         font-size: 0.8rem;
     }
 }
+
+.officeHoursList {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.officeHourItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background-color: var(--background, #f8fafc);
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: 6px;
+}
+
+.officeHourInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.officeHourDay {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.officeHourTime {
+    font-size: 0.8rem;
+    color: var(--muted-foreground);
+}
+
+.removeBtn {
+    color: #ef4444;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.removeBtn:hover {
+    background-color: #fee2e2;
+}
+
+.addOfficeHourRow {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px dashed var(--border, #e2e8f0);
+}
+
+.addOfficeHourRow input {
+    flex: 1;
+}
+
+.btnAddSmall {
+    padding: 0.5rem 1rem;
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btnAddSmall:hover {
+    background-color: var(--primary-hover);
+}
