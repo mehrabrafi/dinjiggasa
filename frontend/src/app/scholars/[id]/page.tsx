@@ -5,7 +5,6 @@ import { useParams } from 'next/navigation'
 import {
     CheckCircle2,
     MapPin,
-    Users,
     BookOpen,
     Calendar,
     Clock,
@@ -14,7 +13,6 @@ import {
     ArrowDown,
     Share2,
     Bookmark,
-    UserPlus,
     MessageSquare,
     Play,
     Pause,
@@ -44,7 +42,6 @@ export default function ScholarProfilePage() {
                 if (found) {
                     setScholar({
                         ...found,
-                        followers: "15k",
                         location: "Cairo, Egypt",
                         title: "Senior Researcher",
                         credentials: "PhD in Fiqh, Al-Azhar University",
@@ -68,7 +65,6 @@ export default function ScholarProfilePage() {
                         avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=160&q=80",
                         credentials: "PhD in Fiqh, Al-Azhar University",
                         location: "Cairo, Egypt",
-                        followers: "15k",
                         title: "Senior Researcher",
                         isVerified: true,
                         bio: "Dr. Ahmed Al-Falahi is a renowned scholar specializing in Islamic Jurisprudence (Fiqh) and Contemporary Financial Issues. He has served as a senior researcher at several Islamic institutions and holds a doctorate from Al-Azhar University.",
@@ -134,17 +130,11 @@ export default function ScholarProfilePage() {
                                     <MapPin size={16} /> {scholar.location}
                                 </div>
                                 <div className={styles.metaItem}>
-                                    <Users size={16} /> {scholar.followers} Followers
-                                </div>
-                                <div className={styles.metaItem}>
                                     <BookOpen size={16} /> {scholar.title}
                                 </div>
                             </div>
                         </div>
                         <div className={styles.headerActions}>
-                            <button className={styles.followBtn}>
-                                <UserPlus size={18} /> Follow
-                            </button>
                             <button className={styles.askBtn}>
                                 <MessageSquare size={18} /> Ask Question
                             </button>
@@ -393,7 +383,6 @@ function SimilarScholarItem({ name, title, img }: any) {
                 <span className={styles.smallName}>{name}</span>
                 <span className={styles.smallTitle}>{title}</span>
             </div>
-            <button className={styles.addBtn}><UserPlus size={18} /></button>
         </div>
     )
 }

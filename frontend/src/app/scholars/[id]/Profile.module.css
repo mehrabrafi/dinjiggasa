@@ -96,25 +96,6 @@
     margin-top: 1rem;
 }
 
-.followBtn {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.625rem 1.25rem;
-    border: 1px solid #e2e8f0;
-    background: white;
-    border-radius: 10px;
-    font-weight: 600;
-    color: #475569;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.followBtn:hover {
-    background: #f8fafc;
-    border-color: #cbd5e1;
-}
-
 .askBtn {
     display: flex;
     align-items: center;
@@ -479,14 +460,6 @@
 .smallTitle {
     font-size: 0.75rem;
     color: #64748b;
-}
-
-.addBtn {
-    color: #10b981;
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0.25rem;
 }
 
 /* Specialties */
