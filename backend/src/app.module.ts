@@ -10,7 +10,6 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { UploadModule } from './upload/upload.module';
 import { ReportsModule } from './reports/reports.module';
 import { MailModule } from './mail/mail.module';
-import { FollowsModule } from './follows/follows.module';
 
 
 @Module({
@@ -28,8 +27,7 @@ import { FollowsModule } from './follows/follows.module';
     NotificationsModule,
     UploadModule,
     ReportsModule,
-    MailModule,
-    FollowsModule
+    MailModule
   ],
 
   controllers: [AppController],
