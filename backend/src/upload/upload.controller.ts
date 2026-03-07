@@ -20,8 +20,8 @@ const MAX_AVATAR_SIZE = 5 * 1024 * 1024;  // 5MB
 const MAX_VOICE_SIZE = 25 * 1024 * 1024;  // 25MB
 
 // Allowed MIME types
-const ALLOWED_IMAGE_TYPES = /^image\/(jpeg|jpg|png|gif|webp)$/;
-const ALLOWED_AUDIO_TYPES = /^audio\/(mpeg|mp3|wav|ogg|webm|mp4|m4a|aac)$/;
+const ALLOWED_IMAGE_TYPES = /^image\/(jpeg|jpg|png|gif|webp)(;.*)?$/;
+const ALLOWED_AUDIO_TYPES = /^(audio|video)\/(mpeg|mp3|wav|ogg|webm|mp4|m4a|aac|x-matroska)(;.*)?$/;
 
 @Controller('upload')
 export class UploadController {
