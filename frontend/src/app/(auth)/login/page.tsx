@@ -2,14 +2,22 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useAuthStore } from "@/store/auth.store"
 import { authService } from "@/services/auth.service"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import toast from "react-hot-toast"
 import styles from "../auth.module.css"
 
 export default function LoginPage() {
+    return (
+        <Suspense fallback={null}>
+            <LoginContent />
+        </Suspense>
+    )
+}
+
+function LoginContent() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [otpCode, setOtpCode] = useState("")
@@ -21,6 +29,8 @@ export default function LoginPage() {
 
     const login = useAuthStore((state) => state.login)
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const callbackUrl = searchParams.get('callbackUrl') || "/"
 
     useEffect(() => {
         let timer: any
@@ -39,7 +49,7 @@ export default function LoginPage() {
             const data = await authService.login({ email, password })
             login({ user: data.user, access_token: data.access_token })
             toast.success("Successfully logged in!")
-            router.push("/")
+            router.push(callbackUrl)
         } catch (error: any) {
             const message = error.response?.data?.message || ""
             if (message.includes("verify your email address")) {

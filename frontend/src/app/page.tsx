@@ -2,21 +2,42 @@
 
 import { PlayCircle, Bell, MessageSquare, ArrowUp, ArrowDown, TrendingUp, GraduationCap, Share, CheckCircle2, Heart, BarChart3, HelpCircle, Activity, Flag } from "lucide-react"
 import Link from "next/link"
-import React, { useEffect, useState } from "react"
+import React, { Suspense, useEffect, useState } from "react"
+import { useSearchParams, useRouter as useNextRouter } from "next/navigation"
 import api from "@/lib/axios"
 import DashboardLayout from "@/components/layout/DashboardLayout"
 import styles from "./dashboard.module.css"
 import ReportModal from "@/components/modals/ReportModal"
 import { useAuthStore } from "@/store/auth.store"
 import LandingView from "@/components/landing/LandingView"
+import toast from "react-hot-toast"
 
 export default function Home() {
+  return (
+    <Suspense fallback={null}>
+      <HomeContent />
+    </Suspense>
+  )
+}
+
+function HomeContent() {
   const { isAuthenticated } = useAuthStore()
   const [mounted, setMounted] = useState(false)
+  const searchParams = useSearchParams()
+  const nextRouter = useNextRouter()
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Show toast when user is redirected due to unauthorized role
+  useEffect(() => {
+    if (searchParams.get('unauthorized') === '1') {
+      toast.error("You don't have permission to access that page.")
+      // Clean the URL so the toast doesn't re-appear on refresh
+      nextRouter.replace('/')
+    }
+  }, [searchParams, nextRouter])
 
   if (!mounted) return null
 
