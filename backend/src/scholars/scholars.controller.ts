@@ -23,6 +23,12 @@ export class ScholarsController {
     }
 
     @UseGuards(JwtAuthGuard)
+    @Get('sidebar-counts')
+    getSidebarCounts(@Request() req: any) {
+        return this.scholarsService.getSidebarCounts(req.user.id);
+    }
+
+    @UseGuards(JwtAuthGuard)
     @Get('my-answers')
     getMyAnswers(@Request() req: any) {
         return this.scholarsService.getMyAnswers(req.user.id);

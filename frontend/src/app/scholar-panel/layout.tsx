@@ -55,28 +55,14 @@ export default function ScholarPanelLayout({ children }: { children: React.React
         const fetchCounts = async () => {
             if (!isAuthorized) return
             try {
-                const [directedRes, answersRes, draftsRes] = await Promise.all([
-                    api.get("/questions/directed"),
-                    api.get("/scholars/my-answers"),
-                    api.get("/questions/draft/all"),
-                ])
-
-                const directed = directedRes.data || []
-                const myAns = answersRes.data || []
-
-                const pending = directed.filter((q: any) =>
-                    !q.isUrgent && !q.answers?.some((a: any) => a.authorId === user?.id)
-                ).length
-
-                const urgent = directed.filter((q: any) =>
-                    q.isUrgent && !q.answers?.some((a: any) => a.authorId === user?.id)
-                ).length
+                const response = await api.get("/scholars/sidebar-counts")
+                const data = response.data
 
                 setCounts({
-                    pending,
-                    urgent,
-                    answered: myAns.length,
-                    drafts: (draftsRes.data || []).length
+                    pending: data.pending,
+                    urgent: data.urgent,
+                    answered: data.answered,
+                    drafts: data.drafts
                 })
             } catch (err) {
                 console.error("Failed to fetch sidebar counts:", err)

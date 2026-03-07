@@ -170,6 +170,51 @@ export class ScholarsService {
     }
 
     /**
+     * Get counts for the sidebar (pending, urgent, answered, drafts)
+     */
+    async getSidebarCounts(scholarId: string) {
+        const directed = await this.prisma.question.findMany({
+            where: {
+                OR: [
+                    { directedScholars: { some: { id: scholarId } } },
+                    { acceptedById: scholarId },
+                ],
+            },
+            select: {
+                id: true,
+                isUrgent: true,
+                answers: {
+                    where: { authorId: scholarId },
+                    select: { id: true }
+                }
+            }
+        });
+
+        const pending = directed.filter(q =>
+            !q.isUrgent && q.answers.length === 0
+        ).length;
+
+        const urgent = directed.filter(q =>
+            q.isUrgent && q.answers.length === 0
+        ).length;
+
+        const answeredCount = await this.prisma.answer.count({
+            where: { authorId: scholarId }
+        });
+
+        const draftsCount = await this.prisma.answerDraft.count({
+            where: { authorId: scholarId }
+        });
+
+        return {
+            pending,
+            urgent,
+            answered: answeredCount,
+            drafts: draftsCount
+        };
+    }
+
+    /**
      * Get questions that this scholar has answered
      */
     async getMyAnswers(scholarId: string) {

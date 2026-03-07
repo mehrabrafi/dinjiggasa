@@ -1,5 +1,4 @@
 import { Body, Controller, Post, Get, Patch, Param, HttpCode, HttpStatus, UseGuards, Req } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
@@ -15,47 +14,23 @@ import { Role } from '@prisma/client';
 export class AuthController {
   constructor(private readonly authService: AuthService) { }
 
-  // Strict rate limit on signup: 5 per minute
-  @Throttle({
-    short: { limit: 1, ttl: 1000 },
-    medium: { limit: 3, ttl: 10000 },
-    long: { limit: 5, ttl: 60000 },
-  })
   @Post('signup')
   signup(@Body() dto: SignupDto) {
     return this.authService.signup(dto);
   }
 
-  // Strict rate limit on OTP verification: 5 per minute
-  @Throttle({
-    short: { limit: 1, ttl: 1000 },
-    medium: { limit: 3, ttl: 10000 },
-    long: { limit: 5, ttl: 60000 },
-  })
   @HttpCode(HttpStatus.OK)
   @Post('verify-otp')
   verifyOTP(@Body() dto: { email: string; code: string }) {
     return this.authService.verifyOTP(dto.email, dto.code);
   }
 
-  // Strict rate limit on OTP resend: 3 per minute
-  @Throttle({
-    short: { limit: 1, ttl: 1000 },
-    medium: { limit: 2, ttl: 10000 },
-    long: { limit: 3, ttl: 60000 },
-  })
   @HttpCode(HttpStatus.OK)
   @Post('resend-otp')
   resendOTP(@Body() dto: { email: string }) {
     return this.authService.resendOTP(dto.email);
   }
 
-  // Strict rate limit on login: 10 per minute
-  @Throttle({
-    short: { limit: 2, ttl: 1000 },
-    medium: { limit: 5, ttl: 10000 },
-    long: { limit: 10, ttl: 60000 },
-  })
   @HttpCode(HttpStatus.OK)
   @Post('login')
   login(@Body() dto: LoginDto) {
@@ -104,24 +79,12 @@ export class AuthController {
     return this.authService.updateBanStatus(id, isBanned);
   }
 
-  // Strict rate limit on forgot password: 3 per minute
-  @Throttle({
-    short: { limit: 1, ttl: 1000 },
-    medium: { limit: 2, ttl: 10000 },
-    long: { limit: 3, ttl: 60000 },
-  })
   @HttpCode(HttpStatus.OK)
   @Post('forgot-password')
   forgotPassword(@Body('email') email: string) {
     return this.authService.forgotPassword(email);
   }
 
-  // Strict rate limit on reset password: 5 per minute
-  @Throttle({
-    short: { limit: 1, ttl: 1000 },
-    medium: { limit: 3, ttl: 10000 },
-    long: { limit: 5, ttl: 60000 },
-  })
   @HttpCode(HttpStatus.OK)
   @Post('reset-password')
   resetPassword(@Body() dto: { token: string; newPassword: string }) {
