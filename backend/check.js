@@ -1,0 +1,1 @@
+const { PrismaClient } = require('@prisma/client'); const p = new PrismaClient(); p.user.findFirst({where:{email:'ahmed.alfalahi@example.com'}}).then(u => console.log('role is:', u.role)).finally(()=>p.$disconnect());

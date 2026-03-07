@@ -42,11 +42,15 @@ export default function ScholarProfilePage() {
                 // If not found in API yet, use realistic mock data matching the screenshot
                 if (found) {
                     setScholar({
-                        ...found,
-                        followers: "15k",
+                        id: found.id,
+                        name: found.name,
+                        avatar: found.avatar || `https://ui-avatars.com/api/?name=${found.name}&background=006D5B&color=fff`,
+                        credentials: found.educationalQualifications || "PhD in Fiqh, Al-Azhar University",
+                        bio: found.bio || "Dr. Ahmed Al-Falahi is a renowned scholar specializing in Islamic Jurisprudence (Fiqh) and Contemporary Financial Issues. He has served as a senior researcher at several Islamic institutions and holds a doctorate from Al-Azhar University.",
                         location: "Cairo, Egypt",
+                        followers: "15k",
                         title: "Senior Researcher",
-                        credentials: "PhD in Fiqh, Al-Azhar University",
+                        isVerified: found.isVerified,
                         officeHours: [
                             { day: "Mon - Wed", time: "10:00 AM - 2:00 PM" },
                             { day: "Friday", time: "4:00 PM - 6:00 PM" }
@@ -121,7 +125,7 @@ export default function ScholarProfilePage() {
                             />
                             {scholar.isVerified && (
                                 <div className={styles.verifiedBadge}>
-                                    <CheckCircle2 size={32} color="#fff" fill="#3b82f6" />
+                                    <CheckCircle2 size={16} color="#fff" strokeWidth={3} />
                                 </div>
                             )}
                         </div>
@@ -130,19 +134,19 @@ export default function ScholarProfilePage() {
                             <p className={styles.credentials}>{scholar.credentials}</p>
                             <div className={styles.metaGrid}>
                                 <div className={styles.metaItem}>
-                                    <MapPin size={16} /> {scholar.location}
+                                    <MapPin size={18} /> {scholar.location}
                                 </div>
                                 <div className={styles.metaItem}>
-                                    <Users size={16} /> {scholar.followers} Followers
+                                    <Users size={18} /> {scholar.followers} Followers
                                 </div>
                                 <div className={styles.metaItem}>
-                                    <BookOpen size={16} /> {scholar.title}
+                                    <BookOpen size={18} /> {scholar.title}
                                 </div>
                             </div>
                         </div>
                         <div className={styles.headerActions}>
                             <button className={styles.askBtn}>
-                                <MessageSquare size={18} /> Ask Question
+                                <MessageSquare size={20} /> Ask Question
                             </button>
                         </div>
                     </div>
