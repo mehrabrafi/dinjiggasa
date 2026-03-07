@@ -31,6 +31,7 @@ model User {
   reputation Float   @default(0) // Based on average ratings received
   specialization String?
   bio        String?  @db.Text
+  educationalQualifications String? @db.Text
   isVerified Boolean  @default(false)
   isBanned   Boolean  @default(false)
   otpCode    String?

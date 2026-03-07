@@ -32,14 +32,18 @@ export default function SettingsPage() {
     const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
     const [profileData, setProfileData] = useState({
         name: '',
-        madhab: ''
+        madhab: '',
+        bio: '',
+        educationalQualifications: ''
     });
 
     useEffect(() => {
         if (user) {
             setProfileData({
                 name: user.name || '',
-                madhab: user.madhab || 'Hanafi'
+                madhab: user.madhab || 'Hanafi',
+                bio: user.bio || '',
+                educationalQualifications: user.educationalQualifications || ''
             });
         }
     }, [user]);
@@ -224,6 +228,33 @@ export default function SettingsPage() {
                                                 </select>
                                                 <p className={styles.helpText}>This helps scholars tailor their answers to your school of thought if applicable.</p>
                                             </div>
+
+                                            {user?.role === 'SCHOLAR' && (
+                                                <>
+                                                    <div className={styles.formGroup} style={{ marginTop: '1.5rem' }}>
+                                                        <label className={styles.label}>Biography / Description</label>
+                                                        <textarea
+                                                            className={styles.textarea}
+                                                            value={profileData.bio}
+                                                            onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
+                                                            placeholder="Tell us a bit about yourself..."
+                                                            rows={4}
+                                                        />
+                                                    </div>
+
+                                                    <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                                                        <label className={styles.label}>Educational Qualifications</label>
+                                                        <textarea
+                                                            className={styles.textarea}
+                                                            value={profileData.educationalQualifications}
+                                                            onChange={(e) => setProfileData({ ...profileData, educationalQualifications: e.target.value })}
+                                                            placeholder="List your degrees, ijazahs, or other relevant qualifications..."
+                                                            rows={3}
+                                                        />
+                                                    </div>
+                                                </>
+                                            )}
+
                                         </div>
                                     </>
                                 )}

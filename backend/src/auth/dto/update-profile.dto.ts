@@ -8,4 +8,12 @@ export class UpdateProfileDto {
     @IsOptional()
     @IsString()
     madhab?: string;
+
+    @IsOptional()
+    @IsString()
+    bio?: string;
+
+    @IsOptional()
+    @IsString()
+    educationalQualifications?: string;
 }
