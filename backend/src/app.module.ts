@@ -10,6 +10,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { UploadModule } from './upload/upload.module';
 import { ReportsModule } from './reports/reports.module';
 import { MailModule } from './mail/mail.module';
+import { LiveStreamModule } from './live-stream/live-stream.module';
 
 
 @Module({
@@ -27,7 +28,8 @@ import { MailModule } from './mail/mail.module';
     NotificationsModule,
     UploadModule,
     ReportsModule,
-    MailModule
+    MailModule,
+    LiveStreamModule,
   ],
 
   controllers: [AppController],
