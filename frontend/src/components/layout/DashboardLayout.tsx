@@ -1,7 +1,7 @@
 "use client"
 
 import { useAuthStore } from "@/store/auth.store"
-import { Search, Home, Bookmark, Settings, Bell, List, Users, ArrowLeft, MessageSquare, PlusCircle, HelpCircle, GraduationCap, Menu, X, ChevronRight, CheckCircle2, Clock, Hash, SearchX } from "lucide-react"
+import { Search, Home, Bookmark, Settings, Bell, List, Users, ArrowLeft, MessageSquare, PlusCircle, HelpCircle, GraduationCap, Menu, X, ChevronRight, CheckCircle2, Clock, Hash, SearchX, Video } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useState, useEffect, useRef, useCallback } from "react"
@@ -120,6 +120,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const mainNav = [
         { name: "Home", icon: <Home size={20} />, href: "/" },
         { name: "Scholars", icon: <Users size={20} />, href: "/scholars" },
+        { name: "Live", icon: <Video size={20} color="#ef4444" />, href: "/live" },
         { name: "Topics", icon: <List size={20} />, href: "/topics" },
     ]
 

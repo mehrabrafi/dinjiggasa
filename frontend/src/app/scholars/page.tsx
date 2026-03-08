@@ -15,6 +15,7 @@ interface Scholar {
     bio: string | null;
     isVerified: boolean;
     reputation: number;
+    isLive?: boolean; // We will use this to show if a scholar is currently live
 }
 
 import { useAuthStore } from '@/store/auth.store'
@@ -31,7 +32,14 @@ export default function ScholarsPage() {
         const fetchScholars = async () => {
             try {
                 const res = await api.get('/scholars')
-                setScholars(res.data)
+                // Mocking the first scholar as live for demonstration/testing
+                const fetchedScholars = res.data.map((scholar: Scholar, index: number) => {
+                    if (index === 0 || scholar.id === '12345') {
+                        return { ...scholar, isLive: true };
+                    }
+                    return scholar;
+                });
+                setScholars(fetchedScholars)
             } catch (error) {
                 console.error('Failed to fetch scholars:', error)
             } finally {
@@ -91,6 +99,11 @@ export default function ScholarsPage() {
                                             <CheckCircle2 size={12} fill="#10b981" color="#fff" /> Verified
                                         </div>
                                     )}
+                                    {scholar.isLive && (
+                                        <div className={styles.liveBadgeBadge}>
+                                            <span className={styles.livePulse}></span> Live
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div>
@@ -103,7 +116,12 @@ export default function ScholarsPage() {
                                     <Link href={`/scholars/${scholar.id}`}>
                                         <button className={styles.viewProfileBtn}>View Profile</button>
                                     </Link>
-                                    {(!user || (user?.role !== 'SCHOLAR' && user?.role !== 'ADMIN')) && (
+                                    {scholar.isLive && (
+                                        <Link href={`/live/${scholar.id}`}>
+                                            <button className={`${styles.askBtn} ${styles.askBtnPrimary}`} style={{ backgroundColor: '#ef4444' }}>Join Live</button>
+                                        </Link>
+                                    )}
+                                    {(!user || (user?.role !== 'SCHOLAR' && user?.role !== 'ADMIN')) && !scholar.isLive && (
                                         <button className={`${styles.askBtn} ${styles.askBtnPrimary}`}>Ask Question</button>
                                     )}
                                 </div>
