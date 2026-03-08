@@ -7,49 +7,50 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import api from '@/lib/axios';
 import styles from './live-list.module.css';
 
-interface Scholar {
+interface LiveScholar {
     id: string;
     name: string;
     avatar: string | null;
     specialization: string | null;
     bio: string | null;
     reputation: number;
-    isLive?: boolean;
+    isLive: boolean;
+    startedAt: string | null;
+    viewerCount: number;
 }
 
 export default function LiveListPage() {
-    const [liveScholars, setLiveScholars] = useState<Scholar[]>([]);
+    const [liveScholars, setLiveScholars] = useState<LiveScholar[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const fetchLiveScholars = async () => {
+        try {
+            const res = await api.get('/live/scholars');
+            setLiveScholars(res.data);
+        } catch (error) {
+            console.error('Failed to fetch live scholars:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchLiveScholars = async () => {
-            try {
-                // In a real scenario, this would be a dedicated backend endpoint like /scholars/live
-                // For demonstration, we fetch all and mock the first one as live (just like scholars page)
-                const res = await api.get('/scholars');
-
-                const fetchedScholars = res.data.map((scholar: Scholar, index: number) => {
-                    if (index === 0 || scholar.id === '12345') {
-                        return { ...scholar, isLive: true };
-                    }
-                    return scholar;
-                });
-
-                const currentlyLive = fetchedScholars.filter((s: Scholar) => s.isLive);
-                setLiveScholars(currentlyLive);
-            } catch (error) {
-                console.error('Failed to fetch live scholars:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchLiveScholars();
 
-        // Polling to update live status every 30 seconds
-        const interval = setInterval(fetchLiveScholars, 30000);
+        // Poll every 15 seconds to keep live status updated
+        const interval = setInterval(fetchLiveScholars, 15000);
         return () => clearInterval(interval);
     }, []);
+
+    const formatDuration = (startedAt: string | null) => {
+        if (!startedAt) return '';
+        const diff = Date.now() - new Date(startedAt).getTime();
+        const minutes = Math.floor(diff / 60000);
+        if (minutes < 1) return 'Just started';
+        if (minutes < 60) return `${minutes}m live`;
+        const hours = Math.floor(minutes / 60);
+        return `${hours}h ${minutes % 60}m live`;
+    };
 
     return (
         <DashboardLayout>
@@ -79,10 +80,10 @@ export default function LiveListPage() {
                                 <div className={styles.thumbnailContainer}>
                                     <div className={styles.liveBadge}>LIVE</div>
                                     <div className={styles.viewersBadge}>
-                                        <Users size={12} /> {Math.floor(Math.random() * 100) + 10}
+                                        <Users size={12} /> {scholar.viewerCount}
                                     </div>
                                     <img
-                                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(scholar.name)}&size=300&background=006D5B&color=fff`}
+                                        src={scholar.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(scholar.name)}&size=300&background=006D5B&color=fff`}
                                         alt={scholar.name}
                                         className={styles.thumbnail}
                                     />
@@ -102,7 +103,14 @@ export default function LiveListPage() {
                                     />
                                     <div className={styles.scholarDetails}>
                                         <h3 className={styles.scholarName}>{scholar.name}</h3>
-                                        <p className={styles.specialization}>{scholar.specialization}</p>
+                                        <p className={styles.specialization}>
+                                            {scholar.specialization}
+                                            {scholar.startedAt && (
+                                                <span style={{ marginLeft: '0.5rem', color: '#ef4444', fontSize: '0.7rem', fontWeight: 600 }}>
+                                                    • {formatDuration(scholar.startedAt)}
+                                                </span>
+                                            )}
+                                        </p>
                                     </div>
                                 </div>
                             </div>

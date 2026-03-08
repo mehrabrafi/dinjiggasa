@@ -9,6 +9,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { spawn, ChildProcess } from 'child_process';
 import { ConfigService } from '@nestjs/config';
+import { LiveStreamService } from './live-stream.service';
 
 @WebSocketGateway({
     cors: {
@@ -22,10 +23,15 @@ export class LiveStreamGateway implements OnGatewayDisconnect {
 
     private ffmpegProcesses: Map<string, ChildProcess> = new Map();
 
-    constructor(private configService: ConfigService) { }
+    constructor(
+        private configService: ConfigService,
+        private liveStreamService: LiveStreamService,
+    ) { }
 
     handleDisconnect(client: Socket) {
         this.stopStream(client.id);
+        // Clean up live status by client ID
+        this.liveStreamService.goOfflineByClientId(client.id);
     }
 
     @SubscribeMessage('start-stream')
@@ -63,6 +69,8 @@ export class LiveStreamGateway implements OnGatewayDisconnect {
         ffmpegProcess.on('close', (code, signal) => {
             console.log(`FFmpeg process for ${client.id} closed with code ${code} and signal ${signal}`);
             this.ffmpegProcesses.delete(client.id);
+            // Mark scholar as offline when ffmpeg process ends
+            this.liveStreamService.goOfflineByClientId(client.id);
             client.emit('stream-stopped');
         });
 
@@ -76,6 +84,9 @@ export class LiveStreamGateway implements OnGatewayDisconnect {
         });
 
         this.ffmpegProcesses.set(client.id, ffmpegProcess);
+
+        // Mark this scholar as live
+        this.liveStreamService.goLive(streamKey, client.id);
 
         console.log(`Stream started for client ${client.id} to ${rtmpUrl}`);
         client.emit('stream-started');
@@ -100,9 +111,9 @@ export class LiveStreamGateway implements OnGatewayDisconnect {
         if (ffmpegProcess) {
             // Send end to cleanly close stdin, allowing FFmpeg to process the final chunks
             ffmpegProcess.stdin?.end();
-            // Alternatively, we can kill immediately if stdin closing takes too long
-            // ffmpegProcess.kill('SIGINT');
             this.ffmpegProcesses.delete(clientId);
+            // Mark scholar as offline
+            this.liveStreamService.goOfflineByClientId(clientId);
             console.log(`Stream stopped for client ${clientId}`);
         }
     }
