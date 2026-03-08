@@ -34,9 +34,16 @@ export default function ScholarLiveStudio() {
     };
     const SOCKET_URL = getSocketUrl();
     useEffect(() => {
-        // Attempt to get camera permissions
+        // Attempt to get camera permissions with HD resolution
         navigator.mediaDevices
-            .getUserMedia({ video: true, audio: true })
+            .getUserMedia({
+                video: {
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
+                    frameRate: { ideal: 30 },
+                },
+                audio: true,
+            })
             .then((stream) => {
                 setMediaStream(stream);
                 if (videoRef.current) {
@@ -104,8 +111,11 @@ export default function ScholarLiveStudio() {
             setStatus('Live');
             setIsStreaming(true);
 
-            // Start Recording and pushing chunks
-            const options = { mimeType: 'video/webm;codecs=vp8,opus' };
+            // Start Recording and pushing chunks with higher bitrate for quality
+            const options: MediaRecorderOptions = {
+                mimeType: 'video/webm;codecs=vp8,opus',
+                videoBitsPerSecond: 2_500_000, // 2.5 Mbps for clear 720p
+            };
             const recorder = new MediaRecorder(mediaStream, options);
 
             recorder.ondataavailable = (e) => {

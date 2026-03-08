@@ -47,20 +47,24 @@ export class LiveStreamGateway implements OnGatewayDisconnect {
 
         const rtmpUrl = `rtmp://89.167.127.36/live/${streamKey}`;
 
-        // FFmpeg command to read buffer from stdin and output to RTMP
+        // FFmpeg command to read WebM from stdin and output to RTMP
+        // Using 'veryfast' preset for a good balance between quality and speed
         const ffmpegArgs = [
-            '-i', '-', // Read from stdin
-            '-c:v', 'libx264', // Video codec
-            '-preset', 'ultrafast', // Speed over quality for live streaming
-            '-tune', 'zerolatency', // Minimal latency
-            '-maxrate', '2500k', // Max bitrate
-            '-bufsize', '5000k',
+            '-i', '-',                 // Read from stdin (WebM chunks)
+            '-c:v', 'libx264',         // Video codec
+            '-preset', 'veryfast',     // Better quality than ultrafast, still fast enough for live
+            '-tune', 'zerolatency',    // Minimal latency
+            '-crf', '23',              // Quality target (lower = better, 23 is default/good)
+            '-maxrate', '3500k',       // Max bitrate for 720p
+            '-bufsize', '7000k',       // Buffer size = 2x maxrate
             '-pix_fmt', 'yuv420p',
-            '-g', '50', // Keyframe interval (assuming 25fps)
-            '-c:a', 'aac', // Audio codec
-            '-b:a', '128k', // Audio bitrate
-            '-ar', '44100', // Audio sample rate
-            '-f', 'flv', // Output format RTMP expects flv
+            '-g', '60',                // Keyframe every 2 seconds at 30fps
+            '-keyint_min', '60',       // Minimum keyframe interval
+            '-sc_threshold', '0',      // Disable scene change detection for consistent keyframes
+            '-c:a', 'aac',             // Audio codec
+            '-b:a', '128k',            // Audio bitrate
+            '-ar', '44100',            // Audio sample rate
+            '-f', 'flv',               // Output format RTMP expects flv
             rtmpUrl,
         ];
 
