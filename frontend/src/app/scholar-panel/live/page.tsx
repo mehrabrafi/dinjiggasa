@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { Video, Mic, MicOff, VideoOff, Play, Square, AlertCircle } from 'lucide-react';
 import styles from './live.module.css';
+import { useAuthStore } from '@/store/auth.store';
 
 export default function ScholarLiveStudio() {
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -14,11 +15,24 @@ export default function ScholarLiveStudio() {
     const [status, setStatus] = useState<string>('Ready to start');
     const [socket, setSocket] = useState<Socket | null>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const { user } = useAuthStore();
+    const scholarId = user?.id || '12345';
 
-    // You would normally fetch this from the user's profile/context
-    const scholarId = '12345'; // Change to dynamic in a real scenario
-    const SOCKET_URL = 'wss://stream.deenjiggasa.info'; // Updated to use the secure WebSocket connection
-
+    const getSocketUrl = () => {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+        if (apiUrl) {
+            try {
+                const url = new URL(apiUrl);
+                // In production, often the API is mapped to same domain via paths or a separate subdomain.
+                // Depending on the protocol, socket client figures out WSS/HTTPS.
+                return url.origin;
+            } catch (e) {
+                console.error("Invalid API URL logic:", e);
+            }
+        }
+        return 'https://deenjiggasa.info';
+    };
+    const SOCKET_URL = getSocketUrl();
     useEffect(() => {
         // Attempt to get camera permissions
         navigator.mediaDevices
