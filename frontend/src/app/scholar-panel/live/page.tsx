@@ -87,11 +87,10 @@ export default function ScholarLiveStudio() {
             return;
         }
 
-        // Connect to websocket backend — allow polling first, then upgrade to websocket
+        // Connect to websocket backend — must use websocket for binary streaming quality
         console.log('[LiveStream] Connecting to:', `${SOCKET_URL}/live-stream`);
         const newSocket = io(`${SOCKET_URL}/live-stream`, {
-            transports: ['polling', 'websocket'],
-            upgrade: true,
+            transports: ['websocket'],
             reconnectionAttempts: 3,
             timeout: 10000,
         });
@@ -104,7 +103,7 @@ export default function ScholarLiveStudio() {
 
         newSocket.on('connect_error', (err) => {
             console.error('[LiveStream] Connection error:', err.message);
-            setStatus(`Error: Cannot connect to streaming server`);
+            setStatus(`Error: Cannot connect to streaming server. Check your connection.`);
         });
 
         newSocket.on('stream-started', () => {
