@@ -1,38 +1,30 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Video, Mic, MicOff, VideoOff, Play, Square, AlertCircle } from 'lucide-react';
 import styles from './live.module.css';
 import { useAuthStore } from '@/store/auth.store';
+import api from '@/lib/axios';
+
+const OME_SIGNALLING_URL = 'wss://stream.deenjiggasa.info/app/stream';
 
 export default function ScholarLiveStudio() {
     const videoRef = useRef<HTMLVideoElement>(null);
+    const pcRef = useRef<RTCPeerConnection | null>(null);
+    const wsRef = useRef<WebSocket | null>(null);
     const [isStreaming, setIsStreaming] = useState(false);
     const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
     const [isVideoMuted, setIsVideoMuted] = useState(false);
     const [isAudioMuted, setIsAudioMuted] = useState(false);
     const [status, setStatus] = useState<string>('Ready to start');
-    const [socket, setSocket] = useState<Socket | null>(null);
-    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const { user } = useAuthStore();
     const scholarId = user?.id || '12345';
 
-    const getSocketUrl = () => {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-        if (apiUrl) {
-            try {
-                const url = new URL(apiUrl);
-                // In production, often the API is mapped to same domain via paths or a separate subdomain.
-                // Depending on the protocol, socket client figures out WSS/HTTPS.
-                return url.origin;
-            } catch (e) {
-                console.error("Invalid API URL logic:", e);
-            }
-        }
-        return 'https://deenjiggasa.info';
+    // Get the signalling URL for this scholar's stream
+    const getSignallingUrl = () => {
+        return `wss://stream.deenjiggasa.info/app/${scholarId}`;
     };
-    const SOCKET_URL = getSocketUrl();
+
     useEffect(() => {
         // Attempt to get camera permissions with HD resolution
         navigator.mediaDevices
@@ -42,7 +34,11 @@ export default function ScholarLiveStudio() {
                     height: { ideal: 720 },
                     frameRate: { ideal: 30 },
                 },
-                audio: true,
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    sampleRate: 48000,
+                },
             })
             .then((stream) => {
                 setMediaStream(stream);
@@ -57,11 +53,17 @@ export default function ScholarLiveStudio() {
 
         return () => {
             stopStreaming();
+        };
+    }, []);
+
+    // Cleanup media stream on unmount
+    useEffect(() => {
+        return () => {
             if (mediaStream) {
                 mediaStream.getTracks().forEach((track) => track.stop());
             }
         };
-    }, []);
+    }, [mediaStream]);
 
     const toggleVideo = () => {
         if (mediaStream) {
@@ -81,82 +83,149 @@ export default function ScholarLiveStudio() {
         }
     };
 
-    const startStreaming = () => {
+    const startStreaming = useCallback(async () => {
         if (!mediaStream) {
             setStatus('Error: No media stream');
             return;
         }
 
-        // Connect to websocket backend — must use websocket for binary streaming quality
-        console.log('[LiveStream] Connecting to:', `${SOCKET_URL}/live-stream`);
-        const newSocket = io(`${SOCKET_URL}/live-stream`, {
-            transports: ['websocket'],
-            reconnectionAttempts: 3,
-            timeout: 10000,
-        });
+        setStatus('Connecting to server...');
 
-        newSocket.on('connect', () => {
-            console.log('[LiveStream] Connected! Socket ID:', newSocket.id);
-            setStatus('Connected. Starting Stream...');
-            newSocket.emit('start-stream', { streamKey: scholarId });
-        });
+        try {
+            // Notify backend that this scholar is going live
+            try {
+                await api.post('/live/go-live');
+            } catch (e) {
+                console.warn('[LiveStream] Could not notify backend go-live:', e);
+            }
 
-        newSocket.on('connect_error', (err) => {
-            console.error('[LiveStream] Connection error:', err.message);
-            setStatus(`Error: Cannot connect to streaming server. Check your connection.`);
-        });
+            // Create RTCPeerConnection
+            const pc = new RTCPeerConnection({
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                ],
+            });
+            pcRef.current = pc;
 
-        newSocket.on('stream-started', () => {
-            setStatus('Live');
-            setIsStreaming(true);
+            // Add all tracks from the media stream to the peer connection
+            mediaStream.getTracks().forEach((track) => {
+                pc.addTrack(track, mediaStream);
+            });
 
-            // Start Recording and pushing chunks with higher bitrate for quality
-            const options: MediaRecorderOptions = {
-                mimeType: 'video/webm;codecs=vp8,opus',
-                videoBitsPerSecond: 2_500_000, // 2.5 Mbps for clear 720p
+            // Connect to OvenMediaEngine via WebSocket signalling
+            const signallingUrl = getSignallingUrl();
+            console.log('[LiveStream] Connecting to OME:', signallingUrl);
+
+            const ws = new WebSocket(signallingUrl);
+            wsRef.current = ws;
+
+            ws.onopen = () => {
+                console.log('[LiveStream] WebSocket connected to OME');
+                setStatus('Connected. Negotiating...');
+
+                // Send the "request_offer" command to OME
+                const requestOffer = {
+                    command: 'request_offer',
+                };
+                ws.send(JSON.stringify(requestOffer));
             };
-            const recorder = new MediaRecorder(mediaStream, options);
 
-            recorder.ondataavailable = (e) => {
-                if (e.data.size > 0 && newSocket.connected) {
-                    newSocket.emit('binary-stream', e.data);
+            ws.onmessage = async (event) => {
+                const message = JSON.parse(event.data);
+                console.log('[LiveStream] OME message:', message.command);
+
+                if (message.command === 'offer') {
+                    // OME sends us an offer, we set it as remote description
+                    const offer = new RTCSessionDescription({
+                        type: 'offer',
+                        sdp: message.sdp,
+                    });
+
+                    // Set ICE candidates from OME
+                    if (message.candidates) {
+                        for (const candidate of message.candidates) {
+                            try {
+                                await pc.addIceCandidate(new RTCIceCandidate({
+                                    candidate: candidate.candidate,
+                                    sdpMLineIndex: candidate.sdpMLineIndex,
+                                    sdpMid: candidate.sdpMid ? String(candidate.sdpMid) : undefined,
+                                }));
+                            } catch (e) {
+                                console.warn('[LiveStream] Error adding ICE candidate:', e);
+                            }
+                        }
+                    }
+
+                    await pc.setRemoteDescription(offer);
+
+                    // Create answer
+                    const answer = await pc.createAnswer();
+                    await pc.setLocalDescription(answer);
+
+                    // Send answer back to OME
+                    const answerMessage = {
+                        command: 'answer',
+                        sdp: answer.sdp,
+                    };
+                    ws.send(JSON.stringify(answerMessage));
+
+                    setStatus('🔴 Live');
+                    setIsStreaming(true);
+                    console.log('[LiveStream] Stream is LIVE!');
                 }
             };
 
-            // 1000ms timeslices is usually a good balance for live chunking
-            recorder.start(1000);
-            mediaRecorderRef.current = recorder;
-        });
+            ws.onerror = (err) => {
+                console.error('[LiveStream] WebSocket error:', err);
+                setStatus('Error: Connection to streaming server failed');
+            };
 
-        newSocket.on('stream-error', (err) => {
-            console.error('[LiveStream] Stream error:', err);
-            setStatus(`Error: ${err.message}`);
-            stopStreaming();
-        });
+            ws.onclose = (event) => {
+                console.log('[LiveStream] WebSocket closed:', event.code, event.reason);
+                if (isStreaming) {
+                    setStatus('Disconnected from server');
+                    stopStreaming();
+                }
+            };
 
-        newSocket.on('disconnect', (reason) => {
-            console.log('[LiveStream] Disconnected:', reason);
-            setStatus('Disconnected from server');
-            stopStreaming();
-        });
+            // Monitor ICE connection state
+            pc.oniceconnectionstatechange = () => {
+                console.log('[LiveStream] ICE state:', pc.iceConnectionState);
+                if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
+                    setStatus('Connection lost. Please try again.');
+                    stopStreaming();
+                }
+            };
 
-        setSocket(newSocket);
-    };
-
-    const stopStreaming = () => {
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-            mediaRecorderRef.current.stop();
+        } catch (err) {
+            console.error('[LiveStream] Error starting stream:', err);
+            setStatus('Error: Failed to start stream');
         }
-        if (socket) {
-            socket.emit('stop-stream');
-            socket.disconnect();
+    }, [mediaStream, scholarId]);
+
+    const stopStreaming = useCallback(async () => {
+        // Close WebRTC peer connection
+        if (pcRef.current) {
+            pcRef.current.close();
+            pcRef.current = null;
         }
-        setSocket(null);
+
+        // Close WebSocket
+        if (wsRef.current) {
+            wsRef.current.close();
+            wsRef.current = null;
+        }
+
+        // Notify backend that this scholar is going offline
+        try {
+            await api.post('/live/go-offline');
+        } catch (e) {
+            console.warn('[LiveStream] Could not notify backend go-offline:', e);
+        }
+
         setIsStreaming(false);
-        if (status !== 'Error: Camera permissions denied') {
-            setStatus('Stream Stopped');
-        }
-    };
+        setStatus('Stream Stopped');
+    }, []);
 
     return (
         <div className={styles.container}>
@@ -211,7 +280,8 @@ export default function ScholarLiveStudio() {
                 <ul>
                     <li>Ensure you have a stable internet connection.</li>
                     <li>Use a headset for better audio quality.</li>
-                    <li>Your live viewing URL will be: <b>YOUR_DOMAIN/live/{scholarId}</b></li>
+                    <li>Your live viewing URL will be: <b>deenjiggasa.info/live/{scholarId}</b></li>
+                    <li>Powered by OvenMediaEngine — Sub-second latency streaming!</li>
                 </ul>
             </div>
         </div>
