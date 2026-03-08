@@ -17,7 +17,7 @@ export default function ScholarLiveStudio() {
 
     // You would normally fetch this from the user's profile/context
     const scholarId = '12345'; // Change to dynamic in a real scenario
-    const SOCKET_URL = 'wss://stream.dinjiggasa.info'; // Updated to use the secure WebSocket connection
+    const SOCKET_URL = 'wss://stream.deenjiggasa.info'; // Updated to use the secure WebSocket connection
 
     useEffect(() => {
         // Attempt to get camera permissions
