@@ -11,7 +11,7 @@ export default function LiveViewer() {
     const [isPlaying, setIsPlaying] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const STREAM_URL = `http://89.167.127.36/stream/${scholarId}.m3u8`;
+    const STREAM_URL = `https://stream.dinjiggasa.info/stream/${scholarId}.m3u8`;
 
     useEffect(() => {
         let hls: Hls | null = null;
