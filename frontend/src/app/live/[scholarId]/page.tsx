@@ -14,7 +14,7 @@ export default function LiveViewer() {
     const [error, setError] = useState<string | null>(null);
     const [connecting, setConnecting] = useState(true);
 
-    // OvenMediaEngine WebRTC playback signalling URL
+    // OvenMediaEngine WebRTC playback signalling URL (no direction = playback by default)
     const getSignallingUrl = () => {
         return `wss://stream.deenjiggasa.info/app/${scholarId}`;
     };
@@ -27,34 +27,6 @@ export default function LiveViewer() {
             setConnecting(true);
             setError(null);
 
-            // Create RTCPeerConnection for receiving
-            pc = new RTCPeerConnection({
-                iceServers: [
-                    { urls: 'stun:stun.l.google.com:19302' },
-                ],
-            });
-            pcRef.current = pc;
-
-            // Handle incoming tracks (video/audio from OME)
-            pc.ontrack = (event) => {
-                console.log('[Viewer] Received track:', event.track.kind);
-                if (videoRef.current && event.streams[0]) {
-                    videoRef.current.srcObject = event.streams[0];
-                    videoRef.current.play().catch((e) => console.warn('Autoplay prevented:', e));
-                    setIsPlaying(true);
-                    setConnecting(false);
-                    setError(null);
-                }
-            };
-
-            pc.oniceconnectionstatechange = () => {
-                console.log('[Viewer] ICE state:', pc?.iceConnectionState);
-                if (pc?.iceConnectionState === 'disconnected' || pc?.iceConnectionState === 'failed') {
-                    setError('Stream connection lost. The scholar may have ended the stream.');
-                    setIsPlaying(false);
-                }
-            };
-
             // Connect via WebSocket to OME signalling server
             const signallingUrl = getSignallingUrl();
             console.log('[Viewer] Connecting to:', signallingUrl);
@@ -64,48 +36,115 @@ export default function LiveViewer() {
 
             ws.onopen = () => {
                 console.log('[Viewer] WebSocket connected');
-                // Request offer from OME for playback
                 ws?.send(JSON.stringify({ command: 'request_offer' }));
             };
 
             ws.onmessage = async (event) => {
                 const message = JSON.parse(event.data);
-                console.log('[Viewer] OME message:', message.command);
+                console.log('[Viewer] OME raw message:', JSON.stringify(message));
+
+                if (message.error) {
+                    console.error('[Viewer] OME error:', message.error);
+                    setError(`Stream error: ${message.error}`);
+                    setConnecting(false);
+                    return;
+                }
 
                 if (message.command === 'offer') {
+                    console.log('[Viewer] Received offer from OME');
+
+                    // Build ICE server config
+                    const peerConnectionConfig: RTCConfiguration = {};
+
+                    if (message.ice_servers) {
+                        peerConnectionConfig.iceServers = message.ice_servers.map((server: any) => ({
+                            urls: server.urls,
+                            username: server.user_name,
+                            credential: server.credential,
+                        }));
+                        peerConnectionConfig.iceTransportPolicy = 'relay';
+                    } else {
+                        peerConnectionConfig.iceServers = [
+                            { urls: 'stun:stun.l.google.com:19302' },
+                        ];
+                    }
+
+                    // Create RTCPeerConnection for receiving
+                    pc = new RTCPeerConnection(peerConnectionConfig);
+                    pcRef.current = pc;
+
+                    // Handle incoming tracks (video/audio from OME)
+                    pc.ontrack = (event) => {
+                        console.log('[Viewer] Received track:', event.track.kind);
+                        if (videoRef.current && event.streams[0]) {
+                            videoRef.current.srcObject = event.streams[0];
+                            videoRef.current.play().catch((e) => console.warn('Autoplay prevented:', e));
+                            setIsPlaying(true);
+                            setConnecting(false);
+                            setError(null);
+                        }
+                    };
+
+                    // Send ICE candidates to OME
+                    pc.onicecandidate = (e) => {
+                        if (e.candidate && e.candidate.candidate) {
+                            ws?.send(JSON.stringify({
+                                id: message.id,
+                                peer_id: message.peer_id,
+                                command: 'candidate',
+                                candidates: [e.candidate],
+                            }));
+                        }
+                    };
+
+                    pc.oniceconnectionstatechange = () => {
+                        console.log('[Viewer] ICE state:', pc?.iceConnectionState);
+                        if (pc?.iceConnectionState === 'connected') {
+                            setConnecting(false);
+                            setError(null);
+                        } else if (pc?.iceConnectionState === 'disconnected' || pc?.iceConnectionState === 'failed') {
+                            setError('Stream connection lost. The scholar may have ended the stream.');
+                            setIsPlaying(false);
+                        }
+                    };
+
+                    // Build SDP offer
+                    const offerSdp = typeof message.sdp === 'string'
+                        ? message.sdp
+                        : message.sdp?.sdp || message.sdp;
+
                     const offer = new RTCSessionDescription({
                         type: 'offer',
-                        sdp: message.sdp,
+                        sdp: typeof offerSdp === 'string' ? offerSdp : JSON.stringify(offerSdp),
                     });
+
+                    await pc.setRemoteDescription(offer);
 
                     // Add ICE candidates from OME
                     if (message.candidates) {
                         for (const candidate of message.candidates) {
-                            try {
-                                await pc?.addIceCandidate(new RTCIceCandidate({
-                                    candidate: candidate.candidate,
-                                    sdpMLineIndex: candidate.sdpMLineIndex,
-                                    sdpMid: candidate.sdpMid ? String(candidate.sdpMid) : undefined,
-                                }));
-                            } catch (e) {
-                                console.warn('[Viewer] Error adding ICE candidate:', e);
+                            if (candidate && candidate.candidate) {
+                                try {
+                                    await pc.addIceCandidate(new RTCIceCandidate(candidate));
+                                } catch (e) {
+                                    console.warn('[Viewer] Error adding ICE candidate:', e);
+                                }
                             }
                         }
                     }
 
-                    await pc?.setRemoteDescription(offer);
-
                     // Create and send answer
-                    const answer = await pc?.createAnswer();
-                    if (answer) {
-                        await pc?.setLocalDescription(answer);
-                        ws?.send(JSON.stringify({
-                            command: 'answer',
-                            sdp: answer.sdp,
-                        }));
-                    }
+                    const answer = await pc.createAnswer();
+                    await pc.setLocalDescription(answer);
 
-                    setConnecting(false);
+                    ws?.send(JSON.stringify({
+                        id: message.id,
+                        peer_id: message.peer_id,
+                        command: 'answer',
+                        sdp: answer,
+                    }));
+
+                    console.log('[Viewer] Answer sent to OME');
                 }
             };
 
@@ -117,10 +156,6 @@ export default function LiveViewer() {
 
             ws.onclose = () => {
                 console.log('[Viewer] WebSocket closed');
-                if (!error) {
-                    setError('Stream is currently offline.');
-                }
-                setConnecting(false);
             };
         };
 
@@ -137,7 +172,6 @@ export default function LiveViewer() {
     }, [scholarId]);
 
     const retryConnection = () => {
-        // Cleanup old connection
         if (pcRef.current) {
             pcRef.current.close();
             pcRef.current = null;
@@ -146,7 +180,6 @@ export default function LiveViewer() {
             wsRef.current.close();
             wsRef.current = null;
         }
-        // Reconnect via page reload
         window.location.reload();
     };
 

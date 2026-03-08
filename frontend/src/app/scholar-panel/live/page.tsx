@@ -6,8 +6,6 @@ import styles from './live.module.css';
 import { useAuthStore } from '@/store/auth.store';
 import api from '@/lib/axios';
 
-const OME_SIGNALLING_URL = 'wss://stream.deenjiggasa.info/app/stream';
-
 export default function ScholarLiveStudio() {
     const videoRef = useRef<HTMLVideoElement>(null);
     const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -20,13 +18,12 @@ export default function ScholarLiveStudio() {
     const { user } = useAuthStore();
     const scholarId = user?.id || '12345';
 
-    // Get the signalling URL for this scholar's stream
+    // Get the signalling URL for this scholar's stream (with ?direction=send for ingest)
     const getSignallingUrl = () => {
-        return `wss://stream.deenjiggasa.info/app/${scholarId}`;
+        return `wss://stream.deenjiggasa.info/app/${scholarId}?direction=send`;
     };
 
     useEffect(() => {
-        // Attempt to get camera permissions with HD resolution
         navigator.mediaDevices
             .getUserMedia({
                 video: {
@@ -56,7 +53,6 @@ export default function ScholarLiveStudio() {
         };
     }, []);
 
-    // Cleanup media stream on unmount
     useEffect(() => {
         return () => {
             if (mediaStream) {
@@ -99,19 +95,6 @@ export default function ScholarLiveStudio() {
                 console.warn('[LiveStream] Could not notify backend go-live:', e);
             }
 
-            // Create RTCPeerConnection
-            const pc = new RTCPeerConnection({
-                iceServers: [
-                    { urls: 'stun:stun.l.google.com:19302' },
-                ],
-            });
-            pcRef.current = pc;
-
-            // Add all tracks from the media stream to the peer connection
-            mediaStream.getTracks().forEach((track) => {
-                pc.addTrack(track, mediaStream);
-            });
-
             // Connect to OvenMediaEngine via WebSocket signalling
             const signallingUrl = getSignallingUrl();
             console.log('[LiveStream] Connecting to OME:', signallingUrl);
@@ -124,54 +107,116 @@ export default function ScholarLiveStudio() {
                 setStatus('Connected. Negotiating...');
 
                 // Send the "request_offer" command to OME
-                const requestOffer = {
+                ws.send(JSON.stringify({
                     command: 'request_offer',
-                };
-                ws.send(JSON.stringify(requestOffer));
+                }));
             };
 
             ws.onmessage = async (event) => {
                 const message = JSON.parse(event.data);
-                console.log('[LiveStream] OME message:', message.command);
+                console.log('[LiveStream] OME raw message:', JSON.stringify(message));
+
+                if (message.error) {
+                    console.error('[LiveStream] OME error:', message.error);
+                    setStatus(`Error: ${message.error}`);
+                    return;
+                }
 
                 if (message.command === 'offer') {
-                    // OME sends us an offer, we set it as remote description
-                    const offer = new RTCSessionDescription({
-                        type: 'offer',
-                        sdp: message.sdp,
+                    console.log('[LiveStream] Received offer from OME');
+
+                    // Build ICE server config from OME response
+                    const peerConnectionConfig: RTCConfiguration = {};
+
+                    if (message.ice_servers) {
+                        peerConnectionConfig.iceServers = message.ice_servers.map((server: any) => ({
+                            urls: server.urls,
+                            username: server.user_name,
+                            credential: server.credential,
+                        }));
+                        peerConnectionConfig.iceTransportPolicy = 'relay';
+                    } else {
+                        peerConnectionConfig.iceServers = [
+                            { urls: 'stun:stun.l.google.com:19302' },
+                        ];
+                    }
+
+                    // Create RTCPeerConnection
+                    const pc = new RTCPeerConnection(peerConnectionConfig);
+                    pcRef.current = pc;
+
+                    // Add all tracks from the media stream to the peer connection
+                    mediaStream.getTracks().forEach((track) => {
+                        pc.addTrack(track, mediaStream);
                     });
 
-                    // Set ICE candidates from OME
+                    // Handle ICE candidate events - send them to OME
+                    pc.onicecandidate = (e) => {
+                        if (e.candidate && e.candidate.candidate) {
+                            ws.send(JSON.stringify({
+                                id: message.id,
+                                peer_id: message.peer_id,
+                                command: 'candidate',
+                                candidates: [e.candidate],
+                            }));
+                        }
+                    };
+
+                    // Monitor ICE connection state
+                    pc.oniceconnectionstatechange = () => {
+                        const state = pc.iceConnectionState;
+                        console.log('[LiveStream] ICE state:', state);
+                        if (state === 'connected') {
+                            setStatus('🔴 Live');
+                            setIsStreaming(true);
+                            console.log('[LiveStream] Stream is LIVE!');
+                        } else if (state === 'disconnected' || state === 'failed') {
+                            setStatus('Connection lost. Please try again.');
+                            stopStreaming();
+                        }
+                    };
+
+                    // Build the offer SDP object
+                    // message.sdp can be a string or an object with {type, sdp}
+                    const offerSdp = typeof message.sdp === 'string'
+                        ? message.sdp
+                        : message.sdp?.sdp || message.sdp;
+
+                    const offer = new RTCSessionDescription({
+                        type: 'offer',
+                        sdp: typeof offerSdp === 'string' ? offerSdp : JSON.stringify(offerSdp),
+                    });
+
+                    // Set remote description (OME's offer)
+                    await pc.setRemoteDescription(offer);
+
+                    // Add ICE candidates from OME
                     if (message.candidates) {
                         for (const candidate of message.candidates) {
-                            try {
-                                await pc.addIceCandidate(new RTCIceCandidate({
-                                    candidate: candidate.candidate,
-                                    sdpMLineIndex: candidate.sdpMLineIndex,
-                                    sdpMid: candidate.sdpMid ? String(candidate.sdpMid) : undefined,
-                                }));
-                            } catch (e) {
-                                console.warn('[LiveStream] Error adding ICE candidate:', e);
+                            if (candidate && candidate.candidate) {
+                                try {
+                                    await pc.addIceCandidate(new RTCIceCandidate(candidate));
+                                } catch (e) {
+                                    console.warn('[LiveStream] Error adding ICE candidate:', e);
+                                }
                             }
                         }
                     }
-
-                    await pc.setRemoteDescription(offer);
 
                     // Create answer
                     const answer = await pc.createAnswer();
                     await pc.setLocalDescription(answer);
 
-                    // Send answer back to OME
-                    const answerMessage = {
+                    // Send answer back to OME (include id and peer_id!)
+                    ws.send(JSON.stringify({
+                        id: message.id,
+                        peer_id: message.peer_id,
                         command: 'answer',
-                        sdp: answer.sdp,
-                    };
-                    ws.send(JSON.stringify(answerMessage));
+                        sdp: answer,
+                    }));
 
-                    setStatus('🔴 Live');
-                    setIsStreaming(true);
-                    console.log('[LiveStream] Stream is LIVE!');
+                    console.log('[LiveStream] Answer sent to OME');
+                    setStatus('Connecting...');
                 }
             };
 
@@ -182,19 +227,6 @@ export default function ScholarLiveStudio() {
 
             ws.onclose = (event) => {
                 console.log('[LiveStream] WebSocket closed:', event.code, event.reason);
-                if (isStreaming) {
-                    setStatus('Disconnected from server');
-                    stopStreaming();
-                }
-            };
-
-            // Monitor ICE connection state
-            pc.oniceconnectionstatechange = () => {
-                console.log('[LiveStream] ICE state:', pc.iceConnectionState);
-                if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
-                    setStatus('Connection lost. Please try again.');
-                    stopStreaming();
-                }
             };
 
         } catch (err) {
@@ -204,25 +236,19 @@ export default function ScholarLiveStudio() {
     }, [mediaStream, scholarId]);
 
     const stopStreaming = useCallback(async () => {
-        // Close WebRTC peer connection
         if (pcRef.current) {
             pcRef.current.close();
             pcRef.current = null;
         }
-
-        // Close WebSocket
         if (wsRef.current) {
             wsRef.current.close();
             wsRef.current = null;
         }
-
-        // Notify backend that this scholar is going offline
         try {
             await api.post('/live/go-offline');
         } catch (e) {
             console.warn('[LiveStream] Could not notify backend go-offline:', e);
         }
-
         setIsStreaming(false);
         setStatus('Stream Stopped');
     }, []);
@@ -247,7 +273,7 @@ export default function ScholarLiveStudio() {
                 <video
                     ref={videoRef}
                     autoPlay
-                    muted // Muted to prevent echo in the studio
+                    muted
                     playsInline
                     className={styles.video}
                 />
