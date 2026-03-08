@@ -19,6 +19,9 @@ RUN npm run build
 # Production stage
 FROM node:22-alpine
 
+# Install FFmpeg for live streaming processes
+RUN apk add --no-cache ffmpeg
+
 WORKDIR /app
 
 # Copy only necessary files from the builder
