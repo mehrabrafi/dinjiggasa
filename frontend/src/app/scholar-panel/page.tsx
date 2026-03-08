@@ -20,7 +20,8 @@ import {
     Filter,
     Search,
     Check,
-    XCircle
+    XCircle,
+    Video
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth.store'
 import { useRouter } from 'next/navigation'
@@ -154,9 +155,17 @@ export default function ScholarPanel() {
 
     return (
         <>
-            <header className={styles.header}>
-                <h1 className={styles.welcomeTitle}>Welcome back, {scholarName.split(' ')[0]}</h1>
-                <p className={styles.welcomeSubtitle}>Here's what's happening with your questions today.</p>
+            <header className={styles.header} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                    <h1 className={styles.welcomeTitle}>Welcome back, {scholarName.split(' ')[0]}</h1>
+                    <p className={styles.welcomeSubtitle}>Here's what's happening with your questions today.</p>
+                </div>
+                <Link href="/scholar-panel/live" style={{ textDecoration: 'none' }}>
+                    <button className={styles.goLiveBtn}>
+                        <Video size={20} />
+                        Go Live Now
+                    </button>
+                </Link>
             </header>
 
             <div className={styles.dashboardGrid}>
