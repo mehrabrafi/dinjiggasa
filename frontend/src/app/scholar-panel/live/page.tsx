@@ -80,14 +80,24 @@ export default function ScholarLiveStudio() {
             return;
         }
 
-        // Connect to websocket backend
+        // Connect to websocket backend — allow polling first, then upgrade to websocket
+        console.log('[LiveStream] Connecting to:', `${SOCKET_URL}/live-stream`);
         const newSocket = io(`${SOCKET_URL}/live-stream`, {
-            transports: ['websocket'],
+            transports: ['polling', 'websocket'],
+            upgrade: true,
+            reconnectionAttempts: 3,
+            timeout: 10000,
         });
 
         newSocket.on('connect', () => {
+            console.log('[LiveStream] Connected! Socket ID:', newSocket.id);
             setStatus('Connected. Starting Stream...');
             newSocket.emit('start-stream', { streamKey: scholarId });
+        });
+
+        newSocket.on('connect_error', (err) => {
+            console.error('[LiveStream] Connection error:', err.message);
+            setStatus(`Error: Cannot connect to streaming server`);
         });
 
         newSocket.on('stream-started', () => {
@@ -95,7 +105,6 @@ export default function ScholarLiveStudio() {
             setIsStreaming(true);
 
             // Start Recording and pushing chunks
-            // Use constrained webm for fastest encoding in browser to push RTMP via node
             const options = { mimeType: 'video/webm;codecs=vp8,opus' };
             const recorder = new MediaRecorder(mediaStream, options);
 
@@ -111,11 +120,13 @@ export default function ScholarLiveStudio() {
         });
 
         newSocket.on('stream-error', (err) => {
+            console.error('[LiveStream] Stream error:', err);
             setStatus(`Error: ${err.message}`);
             stopStreaming();
         });
 
-        newSocket.on('disconnect', () => {
+        newSocket.on('disconnect', (reason) => {
+            console.log('[LiveStream] Disconnected:', reason);
             setStatus('Disconnected from server');
             stopStreaming();
         });
