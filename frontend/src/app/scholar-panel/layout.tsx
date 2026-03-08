@@ -15,7 +15,8 @@ import {
     CheckCircle2,
     Bookmark,
     Check,
-    Edit
+    Edit,
+    Video
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth.store'
 import toast from 'react-hot-toast'
@@ -175,6 +176,15 @@ export default function ScholarPanelLayout({ children }: { children: React.React
                     </Link>
 
 
+
+                    <Link
+                        href="/scholar-panel/live"
+                        className={`${styles.navItem} ${pathname === '/scholar-panel/live' ? styles.navItemActive : ''}`}
+                        style={{ color: pathname === '/scholar-panel/live' ? 'inherit' : '#ef4444' }}
+                    >
+                        <Video size={20} />
+                        Live Studio
+                    </Link>
 
                     <Link
                         href="/scholar-panel/analytics"
