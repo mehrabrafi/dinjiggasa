@@ -56,7 +56,9 @@ export class LiveStreamController {
     /** POST /api/v1/live/upload-recording — upload the recorded stream */
     @UseGuards(JwtAuthGuard)
     @Post('upload-recording')
-    @UseInterceptors(FileInterceptor('file'))
+    @UseInterceptors(FileInterceptor('file', {
+        limits: { fileSize: MAX_VOICE_SIZE }
+    }))
     async uploadRecording(
         @UploadedFile(
             new ParseFilePipe({

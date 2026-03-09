@@ -32,7 +32,9 @@ export class UploadController {
 
     @UseGuards(JwtAuthGuard)
     @Post('avatar')
-    @UseInterceptors(FileInterceptor('file'))
+    @UseInterceptors(FileInterceptor('file', {
+        limits: { fileSize: MAX_AVATAR_SIZE }
+    }))
     async uploadAvatar(
         @UploadedFile(
             new ParseFilePipe({
@@ -69,7 +71,9 @@ export class UploadController {
 
     @UseGuards(JwtAuthGuard)
     @Post('answer-voice')
-    @UseInterceptors(FileInterceptor('file'))
+    @UseInterceptors(FileInterceptor('file', {
+        limits: { fileSize: MAX_VOICE_SIZE }
+    }))
     async uploadAnswerVoice(
         @UploadedFile(
             new ParseFilePipe({

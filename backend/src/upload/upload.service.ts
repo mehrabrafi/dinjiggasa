@@ -49,7 +49,8 @@ export class UploadService {
             return `${publicUrl}/${fileName}`;
         } catch (error) {
             this.logger.error(`Error uploading file to R2: ${error.message}`);
-            throw new InternalServerErrorException('Failed to upload file');
+            // Provide more descriptive error for debugging
+            throw new InternalServerErrorException(`Failed to upload file: ${error.message}`);
         }
     }
 }

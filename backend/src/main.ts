@@ -50,7 +50,8 @@ async function bootstrap() {
   );
 
   const port = process.env.PORT ?? 3001;
-  await app.listen(port, '0.0.0.0');
+  const server = await app.listen(port, '0.0.0.0');
+  server.setTimeout(300000); // 5 minutes (for large file upload)
   console.log(`🚀 Server running on port ${port}`);
 }
 bootstrap();
