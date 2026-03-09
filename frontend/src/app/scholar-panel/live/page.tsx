@@ -416,7 +416,7 @@ export default function ScholarLiveStudio() {
                             <li>Ensure you have a stable internet connection.</li>
                             <li>Use a headset for better audio quality.</li>
                             <li>Viewers will hear your voice with a beautiful audio visualizer.</li>
-                            <li>Your live listening URL will be: <b>deenjiggasa.info/live/{scholarId}</b></li>
+                            <li>Your live listening URL will be: <b>{typeof window !== 'undefined' ? window.location.host : 'deenjiggasa.info'}/live/{scholarId}</b></li>
                             <li>Powered by OvenMediaEngine — Sub-second latency streaming!</li>
                         </ul>
                     </div>
