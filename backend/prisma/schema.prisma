@@ -57,6 +57,8 @@ model User {
   notifications         Notification[] @relation("UserNotifications")
   sentNotifications     Notification[] @relation("SenderNotifications")
 
+  liveSessions          LiveSession[] @relation("ScholarLiveSessions")
+
   reportsSent Report[] @relation("Reporter")
 
   createdAt DateTime @default(now())
@@ -218,4 +220,17 @@ model Report {
 
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+// Live Session Model for recorded audio streams
+model LiveSession {
+  id         String   @id @default(uuid())
+  title      String
+  audioUrl   String
+  duration   Int?     // duration in seconds
+  
+  scholarId  String
+  scholar    User     @relation("ScholarLiveSessions", fields: [scholarId], references: [id])
+
+  createdAt  DateTime @default(now())
 }

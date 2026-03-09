@@ -2,11 +2,19 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Headphones } from 'lucide-react';
+import { Headphones, Clock } from 'lucide-react';
 import styles from './viewer.module.css';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuthStore } from '@/store/auth.store';
 import LiveChat from '@/components/live/LiveChat';
+import api from '@/lib/axios';
+
+interface LiveSession {
+    id: string;
+    title: string;
+    audioUrl: string;
+    createdAt: string;
+}
 
 export default function LiveViewer() {
     const { scholarId } = useParams();
@@ -18,7 +26,21 @@ export default function LiveViewer() {
     const [isPlaying, setIsPlaying] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [connecting, setConnecting] = useState(true);
+    const [pastSessions, setPastSessions] = useState<LiveSession[]>([]);
     const { user } = useAuthStore();
+
+    // Fetch past sessions
+    useEffect(() => {
+        const fetchSessions = async () => {
+            try {
+                const res = await api.get(`/live/sessions/${scholarId}`);
+                if (res.data) setPastSessions(res.data);
+            } catch (err) {
+                console.error('Failed to fetch past sessions:', err);
+            }
+        };
+        fetchSessions();
+    }, [scholarId]);
 
     // OvenMediaEngine WebRTC playback signalling URL
     const getSignallingUrl = () => {
@@ -288,6 +310,27 @@ export default function LiveViewer() {
                         <div className={styles.streamInfo}>
                             <p>🎙️ Audio-only stream — Sub-second latency powered by OvenMediaEngine WebRTC</p>
                         </div>
+
+                        {pastSessions.length > 0 && (
+                            <div className={styles.pastSessionsContainer}>
+                                <h2 className={styles.pastSessionsTitle}>
+                                    <Clock size={20} /> Past Live Sessions
+                                </h2>
+                                <div className={styles.sessionList}>
+                                    {pastSessions.map((session) => (
+                                        <div key={session.id} className={styles.sessionItem}>
+                                            <div className={styles.sessionHeader}>
+                                                <span className={styles.sessionName}>{session.title || 'Live Session'}</span>
+                                                <span className={styles.sessionDate}>
+                                                    {new Date(session.createdAt).toLocaleDateString()}
+                                                </span>
+                                            </div>
+                                            <audio controls src={session.audioUrl} className={styles.audioPlayer} preload="none" />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className={styles.rightCol}>

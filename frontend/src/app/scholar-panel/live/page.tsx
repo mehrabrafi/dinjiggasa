@@ -13,7 +13,10 @@ export default function ScholarLiveStudio() {
     const analyserRef = useRef<AnalyserNode | null>(null);
     const pcRef = useRef<RTCPeerConnection | null>(null);
     const wsRef = useRef<WebSocket | null>(null);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const recordedChunks = useRef<Blob[]>([]);
     const [isStreaming, setIsStreaming] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
     const [isAudioMuted, setIsAudioMuted] = useState(false);
     const [status, setStatus] = useState<string>('Ready to start');
@@ -136,6 +139,31 @@ export default function ScholarLiveStudio() {
         }
 
         setStatus('Connecting to server...');
+
+        // Initialize MediaRecorder
+        try {
+            recordedChunks.current = [];
+            // Try audio/webm first, iOS might need audio/mp4
+            const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+            const recorder = new MediaRecorder(mediaStream, { mimeType });
+
+            recorder.ondataavailable = (e) => {
+                if (e.data && e.data.size > 0) {
+                    recordedChunks.current.push(e.data);
+                }
+            };
+
+            recorder.onstop = async () => {
+                const blob = new Blob(recordedChunks.current, { type: mimeType });
+                await uploadRecording(blob, mimeType);
+            };
+
+            recorder.start();
+            mediaRecorderRef.current = recorder;
+            console.log('[LiveStream] Started recording stream locally');
+        } catch (e) {
+            console.error('[LiveStream] Failed to start MediaRecorder:', e);
+        }
 
         try {
             // Notify backend that this scholar is going live (audio-only)
@@ -293,14 +321,38 @@ export default function ScholarLiveStudio() {
             wsRef.current.close();
             wsRef.current = null;
         }
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+            mediaRecorderRef.current.stop(); // This will trigger onstop and run uploadRecording
+        }
+
         try {
             await api.post('/live/go-offline');
         } catch (e) {
             console.warn('[LiveStream] Could not notify backend go-offline:', e);
         }
         setIsStreaming(false);
-        setStatus('Stream Stopped');
+        setStatus('Stream Stopped. Uploading recording...');
     }, []);
+
+    const uploadRecording = async (blob: Blob, mimeType: string) => {
+        setIsUploading(true);
+        setStatus('Uploading recording to Cloudflare R2...');
+        try {
+            const formData = new FormData();
+            const ext = mimeType.split('/')[1] || 'webm';
+            formData.append('file', blob, `live_session_${Date.now()}.${ext}`);
+
+            await api.post('/live/upload-recording', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            setStatus('Stream Stopped & Recording Saved!');
+        } catch (e) {
+            console.error('Failed to upload recording:', e);
+            setStatus('Stream Stopped (Recording Upload Failed)');
+        } finally {
+            setIsUploading(false);
+        }
+    };
 
     return (
         <div className={styles.container}>
@@ -346,8 +398,8 @@ export default function ScholarLiveStudio() {
 
                             <div className={styles.actionControls}>
                                 {!isStreaming ? (
-                                    <button onClick={startStreaming} className={styles.startBtn}>
-                                        <Play size={20} /> Start Streaming
+                                    <button onClick={startStreaming} className={styles.startBtn} disabled={isUploading}>
+                                        <Play size={20} /> {isUploading ? 'Uploading...' : 'Start Streaming'}
                                     </button>
                                 ) : (
                                     <button onClick={stopStreaming} className={styles.stopBtn}>
