@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Video, Users } from 'lucide-react';
+import { Headphones, Users } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import api from '@/lib/axios';
 import styles from './live-list.module.css';
@@ -59,12 +59,12 @@ export default function LiveListPage() {
                     <div className={styles.titleContainer}>
                         <div className={styles.liveIndicator}>
                             <span className={styles.pulse}></span>
-                            <Video size={28} color="#ef4444" />
+                            <Headphones size={28} color="#ef4444" />
                         </div>
-                        <h1 className={styles.title}>Live Streams</h1>
+                        <h1 className={styles.title}>Live Audio Sessions</h1>
                     </div>
                     <p className={styles.subtitle}>
-                        Join interactive live sessions with our esteemed verified scholars in real-time.
+                        Listen to live audio sessions from our esteemed verified scholars in real-time.
                     </p>
                 </section>
 
@@ -78,7 +78,7 @@ export default function LiveListPage() {
                         {liveScholars.map((scholar) => (
                             <div key={scholar.id} className={styles.liveCard}>
                                 <div className={styles.thumbnailContainer}>
-                                    <div className={styles.liveBadge}>LIVE</div>
+                                    <div className={styles.liveBadge}>🎙️ LIVE</div>
                                     <div className={styles.viewersBadge}>
                                         <Users size={12} /> {scholar.viewerCount}
                                     </div>
@@ -90,7 +90,7 @@ export default function LiveListPage() {
                                     <div className={styles.overlay}>
                                         <Link href={`/live/${scholar.id}`}>
                                             <button className={styles.playBtn}>
-                                                <Video size={20} /> Watch Now
+                                                <Headphones size={20} /> Listen Now
                                             </button>
                                         </Link>
                                     </div>
@@ -118,7 +118,7 @@ export default function LiveListPage() {
                     </div>
                 ) : (
                     <div className={styles.emptyState}>
-                        <Video size={48} className={styles.emptyIcon} />
+                        <Headphones size={48} className={styles.emptyIcon} />
                         <h2>No Live Sessions Right Now</h2>
                         <p>Our scholars are currently offline. Check back later or browse through recorded answers.</p>
                         <Link href="/scholars">

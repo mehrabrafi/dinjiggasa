@@ -1,18 +1,19 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Video, Mic, MicOff, VideoOff, Play, Square, AlertCircle } from 'lucide-react';
+import { Mic, MicOff, Play, Square, AlertCircle, Headphones } from 'lucide-react';
 import styles from './live.module.css';
 import { useAuthStore } from '@/store/auth.store';
 import api from '@/lib/axios';
 
 export default function ScholarLiveStudio() {
-    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const animationRef = useRef<number>(0);
+    const analyserRef = useRef<AnalyserNode | null>(null);
     const pcRef = useRef<RTCPeerConnection | null>(null);
     const wsRef = useRef<WebSocket | null>(null);
     const [isStreaming, setIsStreaming] = useState(false);
     const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
-    const [isVideoMuted, setIsVideoMuted] = useState(false);
     const [isAudioMuted, setIsAudioMuted] = useState(false);
     const [status, setStatus] = useState<string>('Ready to start');
     const { user } = useAuthStore();
@@ -23,30 +24,33 @@ export default function ScholarLiveStudio() {
         return `wss://stream.deenjiggasa.info/app/${scholarId}?direction=send`;
     };
 
-    useEffect(() => {
-        navigator.mediaDevices
-            .getUserMedia({
-                video: {
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 },
-                    frameRate: { ideal: 30 },
-                },
+    // Initialize audio-only media
+    const initMedia = useCallback(async () => {
+        if (mediaStream) {
+            mediaStream.getTracks().forEach((track) => track.stop());
+        }
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: false,
                 audio: {
                     echoCancellation: true,
                     noiseSuppression: true,
                     sampleRate: 48000,
                 },
-            })
-            .then((stream) => {
-                setMediaStream(stream);
-                if (videoRef.current) {
-                    videoRef.current.srcObject = stream;
-                }
-            })
-            .catch((err) => {
-                console.error('Error accessing media devices.', err);
-                setStatus('Error: Camera permissions denied');
             });
+
+            setMediaStream(stream);
+            startAudioVisualizer(stream);
+            setStatus('Ready to start');
+        } catch (err) {
+            console.error('Error accessing microphone.', err);
+            setStatus('Error: Microphone permissions denied');
+        }
+    }, []);
+
+    useEffect(() => {
+        initMedia();
 
         return () => {
             stopStreaming();
@@ -58,16 +62,61 @@ export default function ScholarLiveStudio() {
             if (mediaStream) {
                 mediaStream.getTracks().forEach((track) => track.stop());
             }
+            if (animationRef.current) {
+                cancelAnimationFrame(animationRef.current);
+            }
         };
     }, [mediaStream]);
 
-    const toggleVideo = () => {
-        if (mediaStream) {
-            mediaStream.getVideoTracks().forEach((track) => {
-                track.enabled = !track.enabled;
-            });
-            setIsVideoMuted(!isVideoMuted);
-        }
+    // Audio Visualizer
+    const startAudioVisualizer = (stream: MediaStream) => {
+        const audioContext = new AudioContext();
+        const source = audioContext.createMediaStreamSource(stream);
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        analyserRef.current = analyser;
+
+        const draw = () => {
+            if (!canvasRef.current || !analyserRef.current) return;
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+
+            const bufferLength = analyserRef.current.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            analyserRef.current.getByteFrequencyData(dataArray);
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const barWidth = (canvas.width / bufferLength) * 2.5;
+            let x = 0;
+
+            for (let i = 0; i < bufferLength; i++) {
+                const barHeight = (dataArray[i] / 255) * canvas.height * 0.85;
+                const hue = (i / bufferLength) * 120 + 140; // teal-blue gradient
+                ctx.fillStyle = `hsla(${hue}, 80%, 55%, 0.9)`;
+                const radius = Math.min(barWidth / 2, 4);
+
+                // Draw rounded bars from the bottom
+                const y = canvas.height - barHeight;
+                ctx.beginPath();
+                ctx.moveTo(x + radius, y);
+                ctx.lineTo(x + barWidth - radius, y);
+                ctx.quadraticCurveTo(x + barWidth, y, x + barWidth, y + radius);
+                ctx.lineTo(x + barWidth, canvas.height);
+                ctx.lineTo(x, canvas.height);
+                ctx.lineTo(x, y + radius);
+                ctx.quadraticCurveTo(x, y, x + radius, y);
+                ctx.fill();
+
+                x += barWidth + 1;
+            }
+
+            animationRef.current = requestAnimationFrame(draw);
+        };
+
+        draw();
     };
 
     const toggleAudio = () => {
@@ -88,7 +137,7 @@ export default function ScholarLiveStudio() {
         setStatus('Connecting to server...');
 
         try {
-            // Notify backend that this scholar is going live
+            // Notify backend that this scholar is going live (audio-only)
             try {
                 await api.post('/live/go-live');
             } catch (e) {
@@ -145,8 +194,8 @@ export default function ScholarLiveStudio() {
                     const pc = new RTCPeerConnection(peerConnectionConfig);
                     pcRef.current = pc;
 
-                    // Add all tracks from the media stream to the peer connection
-                    mediaStream.getTracks().forEach((track) => {
+                    // Add audio tracks only to the peer connection
+                    mediaStream.getAudioTracks().forEach((track) => {
                         pc.addTrack(track, mediaStream);
                     });
 
@@ -169,7 +218,7 @@ export default function ScholarLiveStudio() {
                         if (state === 'connected') {
                             setStatus('🔴 Live');
                             setIsStreaming(true);
-                            console.log('[LiveStream] Stream is LIVE!');
+                            console.log('[LiveStream] Audio stream is LIVE!');
                         } else if (state === 'disconnected' || state === 'failed') {
                             setStatus('Connection lost. Please try again.');
                             stopStreaming();
@@ -177,7 +226,6 @@ export default function ScholarLiveStudio() {
                     };
 
                     // Build the offer SDP object
-                    // message.sdp can be a string or an object with {type, sdp}
                     const offerSdp = typeof message.sdp === 'string'
                         ? message.sdp
                         : message.sdp?.sdp || message.sdp;
@@ -256,32 +304,38 @@ export default function ScholarLiveStudio() {
     return (
         <div className={styles.container}>
             <div className={styles.header}>
-                <h1 className={styles.title}>Live Stream Studio</h1>
+                <h1 className={styles.title}>🎙️ Audio Live Studio</h1>
                 <div className={styles.statusBadge} data-streaming={isStreaming}>
                     <div className={styles.statusDot}></div>
                     {status}
                 </div>
             </div>
 
-            <div className={styles.videoContainer}>
+            <div className={styles.streamContainer}>
                 {status.includes('Error') && (
                     <div className={styles.errorOverlay}>
                         <AlertCircle className={styles.alertIcon} size={40} />
                         <p>{status}</p>
                     </div>
                 )}
-                <video
-                    ref={videoRef}
-                    autoPlay
-                    muted
-                    playsInline
-                    className={styles.video}
-                />
+
+                <div className={styles.audioVisualizerContainer}>
+                    <div className={styles.audioIcon}>
+                        <Headphones size={64} />
+                    </div>
+                    <canvas
+                        ref={canvasRef}
+                        width={600}
+                        height={200}
+                        className={styles.audioCanvas}
+                    />
+                    <p className={styles.audioModeLabel}>
+                        {isStreaming ? '🔴 Audio Stream — Live' : 'Audio Only Mode'}
+                    </p>
+                </div>
+
                 <div className={styles.controlsOverlay}>
                     <div className={styles.mediaControls}>
-                        <button onClick={toggleVideo} className={styles.controlBtn} title={isVideoMuted ? "Turn on camera" : "Turn off camera"}>
-                            {isVideoMuted ? <VideoOff size={24} /> : <Video size={24} />}
-                        </button>
                         <button onClick={toggleAudio} className={styles.controlBtn} title={isAudioMuted ? "Unmute mic" : "Mute mic"}>
                             {isAudioMuted ? <MicOff size={24} /> : <Mic size={24} />}
                         </button>
@@ -306,7 +360,8 @@ export default function ScholarLiveStudio() {
                 <ul>
                     <li>Ensure you have a stable internet connection.</li>
                     <li>Use a headset for better audio quality.</li>
-                    <li>Your live viewing URL will be: <b>deenjiggasa.info/live/{scholarId}</b></li>
+                    <li>Viewers will hear your voice with a beautiful audio visualizer. No camera needed!</li>
+                    <li>Your live listening URL will be: <b>deenjiggasa.info/live/{scholarId}</b></li>
                     <li>Powered by OvenMediaEngine — Sub-second latency streaming!</li>
                 </ul>
             </div>

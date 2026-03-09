@@ -2,21 +2,73 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { Headphones } from 'lucide-react';
 import styles from './viewer.module.css';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 
 export default function LiveViewer() {
     const { scholarId } = useParams();
-    const videoRef = useRef<HTMLVideoElement>(null);
+    const audioRef = useRef<HTMLAudioElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const animationRef = useRef<number>(0);
     const pcRef = useRef<RTCPeerConnection | null>(null);
     const wsRef = useRef<WebSocket | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [connecting, setConnecting] = useState(true);
 
-    // OvenMediaEngine WebRTC playback signalling URL (no direction = playback by default)
+    // OvenMediaEngine WebRTC playback signalling URL
     const getSignallingUrl = () => {
         return `wss://stream.deenjiggasa.info/app/${scholarId}`;
+    };
+
+    // Audio visualizer
+    const startAudioVisualizer = (stream: MediaStream) => {
+        const audioContext = new AudioContext();
+        const source = audioContext.createMediaStreamSource(stream);
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+
+        const draw = () => {
+            if (!canvasRef.current) return;
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            analyser.getByteFrequencyData(dataArray);
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const barWidth = (canvas.width / bufferLength) * 2.5;
+            let x = 0;
+
+            for (let i = 0; i < bufferLength; i++) {
+                const barHeight = (dataArray[i] / 255) * canvas.height * 0.85;
+                const hue = (i / bufferLength) * 120 + 140;
+                ctx.fillStyle = `hsla(${hue}, 80%, 55%, 0.9)`;
+                const radius = Math.min(barWidth / 2, 4);
+
+                const y = canvas.height - barHeight;
+                ctx.beginPath();
+                ctx.moveTo(x + radius, y);
+                ctx.lineTo(x + barWidth - radius, y);
+                ctx.quadraticCurveTo(x + barWidth, y, x + barWidth, y + radius);
+                ctx.lineTo(x + barWidth, canvas.height);
+                ctx.lineTo(x, canvas.height);
+                ctx.lineTo(x, y + radius);
+                ctx.quadraticCurveTo(x, y, x + radius, y);
+                ctx.fill();
+
+                x += barWidth + 1;
+            }
+
+            animationRef.current = requestAnimationFrame(draw);
+        };
+
+        draw();
     };
 
     useEffect(() => {
@@ -27,7 +79,6 @@ export default function LiveViewer() {
             setConnecting(true);
             setError(null);
 
-            // Connect via WebSocket to OME signalling server
             const signallingUrl = getSignallingUrl();
             console.log('[Viewer] Connecting to:', signallingUrl);
 
@@ -73,12 +124,16 @@ export default function LiveViewer() {
                     pc = new RTCPeerConnection(peerConnectionConfig);
                     pcRef.current = pc;
 
-                    // Handle incoming tracks (video/audio from OME)
+                    // Handle incoming audio tracks from OME
                     pc.ontrack = (event) => {
                         console.log('[Viewer] Received track:', event.track.kind);
-                        if (videoRef.current && event.streams[0]) {
-                            videoRef.current.srcObject = event.streams[0];
-                            videoRef.current.play().catch((e) => console.warn('Autoplay prevented:', e));
+
+                        if (event.streams[0]) {
+                            if (audioRef.current) {
+                                audioRef.current.srcObject = event.streams[0];
+                                audioRef.current.play().catch((e) => console.warn('Autoplay prevented:', e));
+                            }
+                            startAudioVisualizer(event.streams[0]);
                             setIsPlaying(true);
                             setConnecting(false);
                             setError(null);
@@ -168,6 +223,9 @@ export default function LiveViewer() {
             if (ws) {
                 ws.close();
             }
+            if (animationRef.current) {
+                cancelAnimationFrame(animationRef.current);
+            }
         };
     }, [scholarId]);
 
@@ -187,14 +245,14 @@ export default function LiveViewer() {
         <DashboardLayout>
             <div className={styles.container}>
                 <h1 className={styles.title}>
-                    🔴 Live Session: Scholar {scholarId}
+                    🎙️ Live Audio Session
                 </h1>
 
-                <div className={styles.videoContainer}>
+                <div className={styles.audioContainer}>
                     {connecting && (
                         <div className={styles.connectingOverlay}>
                             <div className={styles.spinner}></div>
-                            <p>Connecting to live stream...</p>
+                            <p>Connecting to audio stream...</p>
                         </div>
                     )}
                     {error && (
@@ -205,19 +263,25 @@ export default function LiveViewer() {
                             </button>
                         </div>
                     )}
-                    <video
-                        ref={videoRef}
-                        controls
-                        autoPlay
-                        playsInline
-                        className={styles.videoPlayer}
-                        onPlay={() => setIsPlaying(true)}
-                        onPause={() => setIsPlaying(false)}
-                    />
+                    <audio ref={audioRef} autoPlay playsInline style={{ display: 'none' }} />
+                    <div className={styles.audioVisualizer}>
+                        <div className={styles.audioIconWrapper}>
+                            <Headphones size={56} />
+                        </div>
+                        <canvas
+                            ref={canvasRef}
+                            width={600}
+                            height={200}
+                            className={styles.audioCanvas}
+                        />
+                        <p className={styles.audioLabel}>
+                            {isPlaying ? '🎙️ Audio Stream — Playing' : 'Waiting for audio stream...'}
+                        </p>
+                    </div>
                 </div>
 
                 <div className={styles.streamInfo}>
-                    <p>⚡ Sub-second latency powered by OvenMediaEngine WebRTC</p>
+                    <p>🎙️ Audio-only stream — Sub-second latency powered by OvenMediaEngine WebRTC</p>
                 </div>
             </div>
         </DashboardLayout>

@@ -26,7 +26,7 @@ export class LiveStreamService {
             viewerCount: 0,
         });
         this.clientToScholar.set(clientId, scholarId);
-        console.log(`[LiveStream] Scholar ${scholarId} is now LIVE`);
+        console.log(`[LiveStream] Scholar ${scholarId} is now LIVE (audio)`);
     }
 
     /** Mark a scholar as offline by scholarId */

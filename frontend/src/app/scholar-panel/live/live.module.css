@@ -42,22 +42,63 @@
     background-color: currentColor;
 }
 
-.videoContainer {
+/* ===== Stream Container ===== */
+.streamContainer {
     position: relative;
     width: 100%;
-    aspect-ratio: 16/9;
-    background-color: #000;
+    min-height: 380px;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
     border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
-.video {
-    width: 100%;
+/* ===== Audio Visualizer ===== */
+.audioVisualizerContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     height: 100%;
-    object-fit: cover;
+    min-height: 380px;
+    gap: 1.5rem;
+    padding: 2rem;
 }
 
+.audioIcon {
+    color: rgba(99, 179, 237, 0.7);
+    animation: audioIconFloat 3s ease-in-out infinite;
+}
+
+@keyframes audioIconFloat {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+.audioCanvas {
+    width: 100%;
+    max-width: 600px;
+    height: 200px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.audioModeLabel {
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 600;
+    font-size: 1rem;
+    letter-spacing: 0.5px;
+}
+
+/* ===== Controls Overlay ===== */
 .controlsOverlay {
     position: absolute;
     bottom: 0;
@@ -132,6 +173,7 @@
     background-color: #dc2626;
 }
 
+/* ===== Error Overlay ===== */
 .errorOverlay {
     position: absolute;
     inset: 0;
@@ -149,6 +191,7 @@
     color: #ef4444;
 }
 
+/* ===== Info Box ===== */
 .infoBox {
     margin-top: 2rem;
     padding: 1.5rem;
@@ -184,5 +227,28 @@
 
     100% {
         box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+    }
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 640px) {
+    .container {
+        padding: 1rem;
+    }
+
+    .header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+
+    .title {
+        font-size: 1.5rem;
+    }
+
+    .controlsOverlay {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: center;
     }
 }

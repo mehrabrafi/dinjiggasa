@@ -11,22 +11,62 @@
     color: #1f2937;
 }
 
-.videoContainer {
+/* ===== Audio Container ===== */
+.audioContainer {
     position: relative;
     width: 100%;
-    aspect-ratio: 16/9;
-    background-color: #000;
+    min-height: 360px;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
     border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
 }
 
-.videoPlayer {
-    width: 100%;
+.audioVisualizer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     height: 100%;
-    object-fit: cover;
+    min-height: 360px;
+    gap: 1.5rem;
+    padding: 2rem;
 }
 
+.audioIconWrapper {
+    color: rgba(99, 179, 237, 0.7);
+    animation: iconFloat 3s ease-in-out infinite;
+}
+
+@keyframes iconFloat {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+.audioCanvas {
+    width: 100%;
+    max-width: 600px;
+    height: 200px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.audioLabel {
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 600;
+    font-size: 1rem;
+    letter-spacing: 0.5px;
+}
+
+/* ===== Overlays ===== */
 .errorOverlay {
     position: absolute;
     inset: 0;
@@ -86,17 +126,6 @@
 .retryBtn:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-}
-
-.playOverlay {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    pointer-events: none;
-    background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.4));
 }
 
 .streamInfo {
