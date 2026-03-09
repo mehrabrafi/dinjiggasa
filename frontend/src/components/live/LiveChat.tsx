@@ -28,6 +28,7 @@ export default function LiveChat({ scholarId, userName, userId, isScholar = fals
     const inputRef = useRef<HTMLInputElement>(null);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [newMessage, setNewMessage] = useState('');
+    const [isAnonymous, setIsAnonymous] = useState(false);
     const [viewerCount, setViewerCount] = useState(0);
     const [isConnected, setIsConnected] = useState(false);
 
@@ -95,8 +96,8 @@ export default function LiveChat({ scholarId, userName, userId, isScholar = fals
 
         socketRef.current.emit('send-message', {
             scholarId,
-            senderName: userName,
-            senderId: userId,
+            senderName: isAnonymous ? 'Anonymous Viewer' : userName,
+            senderId: isAnonymous ? `anon-${Date.now()}` : userId,
             message: newMessage.trim(),
             isScholar,
         });
@@ -151,12 +152,12 @@ export default function LiveChat({ scholarId, userName, userId, isScholar = fals
                     <div
                         key={msg.id}
                         className={`${styles.messageItem} ${msg.senderId === 'system'
-                                ? styles.systemMessage
-                                : msg.isScholar
-                                    ? styles.scholarMessage
-                                    : msg.senderId === userId
-                                        ? styles.ownMessage
-                                        : ''
+                            ? styles.systemMessage
+                            : msg.isScholar
+                                ? styles.scholarMessage
+                                : msg.senderId === userId
+                                    ? styles.ownMessage
+                                    : ''
                             }`}
                     >
                         {msg.senderId === 'system' ? (
@@ -179,25 +180,40 @@ export default function LiveChat({ scholarId, userName, userId, isScholar = fals
             </div>
 
             {/* Input */}
-            <div className={styles.inputContainer}>
-                <input
-                    ref={inputRef}
-                    type="text"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyDown={handleKeyPress}
-                    placeholder={isScholar ? "Reply to viewers..." : "Type your message..."}
-                    className={styles.chatInput}
-                    disabled={!isConnected}
-                    maxLength={500}
-                />
-                <button
-                    onClick={sendMessage}
-                    className={styles.sendBtn}
-                    disabled={!newMessage.trim() || !isConnected}
-                >
-                    <Send size={18} />
-                </button>
+            <div className={styles.inputArea}>
+                {!isScholar && (
+                    <div className={styles.anonymousToggle}>
+                        <label>
+                            <input
+                                type="checkbox"
+                                checked={isAnonymous}
+                                onChange={(e) => setIsAnonymous(e.target.checked)}
+                                disabled={!isConnected}
+                            />
+                            <span>Ask Anonymously</span>
+                        </label>
+                    </div>
+                )}
+                <div className={styles.inputContainer}>
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        onKeyDown={handleKeyPress}
+                        placeholder={isScholar ? "Reply to viewers..." : (isAnonymous ? "Ask anonymously..." : "Type your message...")}
+                        className={styles.chatInput}
+                        disabled={!isConnected}
+                        maxLength={500}
+                    />
+                    <button
+                        onClick={sendMessage}
+                        className={styles.sendBtn}
+                        disabled={!newMessage.trim() || !isConnected}
+                    >
+                        <Send size={18} />
+                    </button>
+                </div>
             </div>
         </div>
     );
