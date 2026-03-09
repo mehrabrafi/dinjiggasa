@@ -17,7 +17,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 // Max file sizes
 const MAX_AVATAR_SIZE = 5 * 1024 * 1024;  // 5MB
-const MAX_VOICE_SIZE = 25 * 1024 * 1024;  // 25MB
+const MAX_VOICE_SIZE = 1000 * 1024 * 1024;  // 1GB (Synchronized with live-stream)
 
 // Allowed MIME types
 const ALLOWED_IMAGE_TYPES = /^image\/(jpeg|jpg|png|gif|webp)(;.*)?$/;

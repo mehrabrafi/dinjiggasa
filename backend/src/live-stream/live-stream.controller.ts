@@ -4,8 +4,12 @@ import { LiveStreamService } from './live-stream.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UploadService } from '../upload/upload.service';
 import { PrismaService } from '../prisma/prisma.service';
+import * as fs from 'fs';
 
-const MAX_VOICE_SIZE = 100 * 1024 * 1024;  // 100MB for a live session
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+
+const MAX_VOICE_SIZE = 1000 * 1024 * 1024;  // Increased to 1GB for ultra-long sessions
 const ALLOWED_AUDIO_TYPES = /^(audio|video)\/(mpeg|mp3|wav|ogg|webm|mp4|m4a|aac|x-matroska)(;.*)?$/;
 
 @Controller('live')
@@ -57,6 +61,13 @@ export class LiveStreamController {
     @UseGuards(JwtAuthGuard)
     @Post('upload-recording')
     @UseInterceptors(FileInterceptor('file', {
+        storage: diskStorage({
+            destination: './uploads/temp',
+            filename: (req, file, cb) => {
+                const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join('');
+                return cb(null, `${randomName}${extname(file.originalname)}`);
+            }
+        }),
         limits: { fileSize: MAX_VOICE_SIZE }
     }))
     async uploadRecording(
@@ -75,6 +86,15 @@ export class LiveStreamController {
 
         // Upload to Cloudflare R2 via UploadService
         const audioUrl = await this.uploadService.uploadFile(file, 'live-sessions');
+
+        // Cleanup temp file after upload
+        if (file.path) {
+            try {
+                fs.unlinkSync(file.path);
+            } catch (err) {
+                console.warn('Failed to cleanup temp upload file:', err);
+            }
+        }
 
         // Save session to Prisma
         const session = await this.prisma.liveSession.create({

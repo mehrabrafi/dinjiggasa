@@ -3,6 +3,7 @@ import {
     InternalServerErrorException,
     Logger,
 } from '@nestjs/common';
+import * as fs from 'fs';
 import { ConfigService } from '@nestjs/config';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
@@ -36,11 +37,13 @@ export class UploadService {
         const fileName = `${folder}/${uuidv4()}.${fileExtension}`;
 
         try {
+            const body = file.buffer || fs.createReadStream(file.path);
+
             await this.s3Client.send(
                 new PutObjectCommand({
                     Bucket: bucketName,
                     Key: fileName,
-                    Body: file.buffer,
+                    Body: body as any,
                     ContentType: file.mimetype,
                 }),
             );

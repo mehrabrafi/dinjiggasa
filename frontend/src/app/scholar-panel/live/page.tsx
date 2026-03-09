@@ -17,6 +17,7 @@ export default function ScholarLiveStudio() {
     const recordedChunks = useRef<Blob[]>([]);
     const [isStreaming, setIsStreaming] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
     const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
     const [isAudioMuted, setIsAudioMuted] = useState(false);
     const [status, setStatus] = useState<string>('Ready to start');
@@ -71,6 +72,19 @@ export default function ScholarLiveStudio() {
             }
         };
     }, [mediaStream]);
+
+    // Prevent accidental page close while uploading
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (isUploading) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [isUploading]);
 
     // Audio Visualizer
     const startAudioVisualizer = (stream: MediaStream) => {
@@ -344,13 +358,23 @@ export default function ScholarLiveStudio() {
 
             await api.post('/live/upload-recording', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
+                onUploadProgress: (progressEvent) => {
+                    const progress = progressEvent.total
+                        ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
+                        : 0;
+                    setUploadProgress(progress);
+                },
             });
+
             setStatus('Stream Stopped & Recording Saved!');
+            setUploadProgress(100);
         } catch (e) {
             console.error('Failed to upload recording:', e);
             setStatus('Stream Stopped (Recording Upload Failed)');
         } finally {
             setIsUploading(false);
+            // Reset progress after a short delay
+            setTimeout(() => setUploadProgress(0), 3000);
         }
     };
 
@@ -397,9 +421,20 @@ export default function ScholarLiveStudio() {
                             </div>
 
                             <div className={styles.actionControls}>
+                                {isUploading && (
+                                    <div className={styles.uploadProgressWrapper}>
+                                        <div className={styles.progressBarBg}>
+                                            <div
+                                                className={styles.progressBarFill}
+                                                style={{ width: `${uploadProgress}%` }}
+                                            ></div>
+                                        </div>
+                                        <span className={styles.progressText}>Uploading: {uploadProgress}%</span>
+                                    </div>
+                                )}
                                 {!isStreaming ? (
                                     <button onClick={startStreaming} className={styles.startBtn} disabled={isUploading}>
-                                        <Play size={20} /> {isUploading ? 'Uploading...' : 'Start Streaming'}
+                                        <Play size={20} /> {isUploading ? 'Finalizing...' : 'Start Streaming'}
                                     </button>
                                 ) : (
                                     <button onClick={stopStreaming} className={styles.stopBtn}>
