@@ -5,6 +5,7 @@ import { Mic, MicOff, Play, Square, AlertCircle, Headphones } from 'lucide-react
 import styles from './live.module.css';
 import { useAuthStore } from '@/store/auth.store';
 import api from '@/lib/axios';
+import LiveChat from '@/components/live/LiveChat';
 
 export default function ScholarLiveStudio() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -311,59 +312,72 @@ export default function ScholarLiveStudio() {
                 </div>
             </div>
 
-            <div className={styles.streamContainer}>
-                {status.includes('Error') && (
-                    <div className={styles.errorOverlay}>
-                        <AlertCircle className={styles.alertIcon} size={40} />
-                        <p>{status}</p>
-                    </div>
-                )}
-
-                <div className={styles.audioVisualizerContainer}>
-                    <div className={styles.audioIcon}>
-                        <Headphones size={64} />
-                    </div>
-                    <canvas
-                        ref={canvasRef}
-                        width={600}
-                        height={200}
-                        className={styles.audioCanvas}
-                    />
-                    <p className={styles.audioModeLabel}>
-                        {isStreaming ? '🔴 Audio Stream — Live' : 'Audio Only Mode'}
-                    </p>
-                </div>
-
-                <div className={styles.controlsOverlay}>
-                    <div className={styles.mediaControls}>
-                        <button onClick={toggleAudio} className={styles.controlBtn} title={isAudioMuted ? "Unmute mic" : "Mute mic"}>
-                            {isAudioMuted ? <MicOff size={24} /> : <Mic size={24} />}
-                        </button>
-                    </div>
-
-                    <div className={styles.actionControls}>
-                        {!isStreaming ? (
-                            <button onClick={startStreaming} className={styles.startBtn}>
-                                <Play size={20} /> Start Streaming
-                            </button>
-                        ) : (
-                            <button onClick={stopStreaming} className={styles.stopBtn}>
-                                <Square size={20} /> End Stream
-                            </button>
+            <div className={styles.mainLayout}>
+                <div className={styles.leftCol}>
+                    <div className={styles.streamContainer}>
+                        {status.includes('Error') && (
+                            <div className={styles.errorOverlay}>
+                                <AlertCircle className={styles.alertIcon} size={40} />
+                                <p>{status}</p>
+                            </div>
                         )}
+
+                        <div className={styles.audioVisualizerContainer}>
+                            <div className={styles.audioIcon}>
+                                <Headphones size={64} />
+                            </div>
+                            <canvas
+                                ref={canvasRef}
+                                width={600}
+                                height={200}
+                                className={styles.audioCanvas}
+                            />
+                            <p className={styles.audioModeLabel}>
+                                {isStreaming ? '🔴 Audio Stream — Live' : 'Audio Only Mode'}
+                            </p>
+                        </div>
+
+                        <div className={styles.controlsOverlay}>
+                            <div className={styles.mediaControls}>
+                                <button onClick={toggleAudio} className={styles.controlBtn} title={isAudioMuted ? "Unmute mic" : "Mute mic"}>
+                                    {isAudioMuted ? <MicOff size={24} /> : <Mic size={24} />}
+                                </button>
+                            </div>
+
+                            <div className={styles.actionControls}>
+                                {!isStreaming ? (
+                                    <button onClick={startStreaming} className={styles.startBtn}>
+                                        <Play size={20} /> Start Streaming
+                                    </button>
+                                ) : (
+                                    <button onClick={stopStreaming} className={styles.stopBtn}>
+                                        <Square size={20} /> End Stream
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className={styles.infoBox}>
+                        <h3>Quick Tips:</h3>
+                        <ul>
+                            <li>Ensure you have a stable internet connection.</li>
+                            <li>Use a headset for better audio quality.</li>
+                            <li>Viewers will hear your voice with a beautiful audio visualizer.</li>
+                            <li>Your live listening URL will be: <b>deenjiggasa.info/live/{scholarId}</b></li>
+                            <li>Powered by OvenMediaEngine — Sub-second latency streaming!</li>
+                        </ul>
                     </div>
                 </div>
-            </div>
 
-            <div className={styles.infoBox}>
-                <h3>Quick Tips:</h3>
-                <ul>
-                    <li>Ensure you have a stable internet connection.</li>
-                    <li>Use a headset for better audio quality.</li>
-                    <li>Viewers will hear your voice with a beautiful audio visualizer. No camera needed!</li>
-                    <li>Your live listening URL will be: <b>deenjiggasa.info/live/{scholarId}</b></li>
-                    <li>Powered by OvenMediaEngine — Sub-second latency streaming!</li>
-                </ul>
+                <div className={styles.rightCol}>
+                    <LiveChat
+                        scholarId={scholarId}
+                        userName={user?.name || 'Scholar'}
+                        userId={user?.id || '12345'}
+                        isScholar={true}
+                    />
+                </div>
             </div>
         </div>
     );

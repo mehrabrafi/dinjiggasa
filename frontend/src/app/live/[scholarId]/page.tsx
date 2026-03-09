@@ -5,6 +5,8 @@ import { useParams } from 'next/navigation';
 import { Headphones } from 'lucide-react';
 import styles from './viewer.module.css';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import { useAuthStore } from '@/store/auth.store';
+import LiveChat from '@/components/live/LiveChat';
 
 export default function LiveViewer() {
     const { scholarId } = useParams();
@@ -16,6 +18,7 @@ export default function LiveViewer() {
     const [isPlaying, setIsPlaying] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [connecting, setConnecting] = useState(true);
+    const { user } = useAuthStore();
 
     // OvenMediaEngine WebRTC playback signalling URL
     const getSignallingUrl = () => {
@@ -248,40 +251,52 @@ export default function LiveViewer() {
                     🎙️ Live Audio Session
                 </h1>
 
-                <div className={styles.audioContainer}>
-                    {connecting && (
-                        <div className={styles.connectingOverlay}>
-                            <div className={styles.spinner}></div>
-                            <p>Connecting to audio stream...</p>
+                <div className={styles.mainLayout}>
+                    <div className={styles.leftCol}>
+                        <div className={styles.audioContainer}>
+                            {connecting && (
+                                <div className={styles.connectingOverlay}>
+                                    <div className={styles.spinner}></div>
+                                    <p>Connecting to audio stream...</p>
+                                </div>
+                            )}
+                            {error && (
+                                <div className={styles.errorOverlay}>
+                                    <p>{error}</p>
+                                    <button onClick={retryConnection} className={styles.retryBtn}>
+                                        Retry Connection
+                                    </button>
+                                </div>
+                            )}
+                            <audio ref={audioRef} autoPlay playsInline style={{ display: 'none' }} />
+                            <div className={styles.audioVisualizer}>
+                                <div className={styles.audioIconWrapper}>
+                                    <Headphones size={56} />
+                                </div>
+                                <canvas
+                                    ref={canvasRef}
+                                    width={600}
+                                    height={200}
+                                    className={styles.audioCanvas}
+                                />
+                                <p className={styles.audioLabel}>
+                                    {isPlaying ? '🎙️ Audio Stream — Playing' : 'Waiting for audio stream...'}
+                                </p>
+                            </div>
                         </div>
-                    )}
-                    {error && (
-                        <div className={styles.errorOverlay}>
-                            <p>{error}</p>
-                            <button onClick={retryConnection} className={styles.retryBtn}>
-                                Retry Connection
-                            </button>
-                        </div>
-                    )}
-                    <audio ref={audioRef} autoPlay playsInline style={{ display: 'none' }} />
-                    <div className={styles.audioVisualizer}>
-                        <div className={styles.audioIconWrapper}>
-                            <Headphones size={56} />
-                        </div>
-                        <canvas
-                            ref={canvasRef}
-                            width={600}
-                            height={200}
-                            className={styles.audioCanvas}
-                        />
-                        <p className={styles.audioLabel}>
-                            {isPlaying ? '🎙️ Audio Stream — Playing' : 'Waiting for audio stream...'}
-                        </p>
-                    </div>
-                </div>
 
-                <div className={styles.streamInfo}>
-                    <p>🎙️ Audio-only stream — Sub-second latency powered by OvenMediaEngine WebRTC</p>
+                        <div className={styles.streamInfo}>
+                            <p>🎙️ Audio-only stream — Sub-second latency powered by OvenMediaEngine WebRTC</p>
+                        </div>
+                    </div>
+
+                    <div className={styles.rightCol}>
+                        <LiveChat
+                            scholarId={scholarId as string}
+                            userName={user?.name || `Viewer-${Math.floor(Math.random() * 1000)}`}
+                            userId={user?.id || `anon-${Math.floor(Math.random() * 10000)}`}
+                        />
+                    </div>
                 </div>
             </div>
         </DashboardLayout>
