@@ -297,3 +297,169 @@
         align-items: center;
     }
 }
+
+/* ===== Raised Hands Panel ===== */
+.raisedHandsPanel {
+    margin-top: 1.5rem;
+    padding: 1.25rem;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.1);
+}
+
+.raisedHandsTitle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #92400e;
+    margin: 0 0 1rem 0;
+}
+
+.handItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #fde68a;
+    margin-bottom: 0.5rem;
+    animation: slideInHand 0.3s ease;
+}
+
+@keyframes slideInHand {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.handInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.handName {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 0.9rem;
+}
+
+.handTime {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.handActions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.approveBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.4rem 0.8rem;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.approveBtn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4);
+}
+
+.dismissBtn {
+    display: flex;
+    align-items: center;
+    padding: 0.4rem 0.5rem;
+    background: #f3f4f6;
+    color: #6b7280;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.dismissBtn:hover {
+    background: #fee2e2;
+    color: #ef4444;
+    border-color: #fca5a5;
+}
+
+.noHandsText {
+    color: #92400e;
+    font-size: 0.85rem;
+    text-align: center;
+    font-style: italic;
+    margin: 0.5rem 0;
+}
+
+/* Active Speakers */
+.activeSpeakersSection {
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px dashed #fde68a;
+}
+
+.activeSpeakersLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #059669;
+    margin: 0 0 0.5rem 0;
+}
+
+.speakerItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    background: #ecfdf5;
+    border-radius: 8px;
+    border: 1px solid #a7f3d0;
+    margin-bottom: 0.4rem;
+}
+
+.speakerName {
+    font-weight: 600;
+    color: #065f46;
+    font-size: 0.85rem;
+}
+
+.revokeBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.35rem 0.7rem;
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #fca5a5;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.revokeBtn:hover {
+    background: #dc2626;
+    color: white;
+}

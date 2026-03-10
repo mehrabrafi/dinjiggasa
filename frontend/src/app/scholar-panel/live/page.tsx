@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Mic, MicOff, Play, Square, AlertCircle, Headphones, Settings, LogOut } from 'lucide-react';
+import { Mic, MicOff, Play, Square, AlertCircle, Headphones, Settings, LogOut, Hand, Check, X, Volume2 } from 'lucide-react';
 import styles from './live.module.css';
 import { useAuthStore } from '@/store/auth.store';
 import api from '@/lib/axios';
@@ -34,6 +34,15 @@ export default function ScholarLiveStudio() {
     const [status, setStatus] = useState<string>('Ready to start');
     const { user } = useAuthStore();
     const scholarId = user?.id || '12345';
+
+    // Raised hand state
+    interface RaisedHandInfo {
+        participantIdentity: string;
+        participantName: string;
+        raisedAt: string;
+    }
+    const [raisedHands, setRaisedHands] = useState<RaisedHandInfo[]>([]);
+    const [activeSpeakers, setActiveSpeakers] = useState<string[]>([]);
 
     // Get the signalling URL for this scholar's stream (with ?direction=send for ingest)
     const getSignallingUrl = () => {
@@ -212,6 +221,61 @@ export default function ScholarLiveStudio() {
         }
     }, []);
 
+    // Poll for raised hands every 3 seconds while streaming
+    useEffect(() => {
+        if (!isStreaming) return;
+        const interval = setInterval(async () => {
+            try {
+                const { data } = await api.get(`/live/raised-hands/${scholarId}`);
+                setRaisedHands(data);
+            } catch (err) {
+                // Silently fail
+            }
+        }, 3000);
+        return () => clearInterval(interval);
+    }, [isStreaming, scholarId]);
+
+    // Approve a viewer to speak
+    const handleApprove = async (participantIdentity: string) => {
+        try {
+            await api.post('/live/grant-publish', {
+                roomName: scholarId,
+                participantIdentity,
+            });
+            setActiveSpeakers(prev => [...prev, participantIdentity]);
+            // Remove from raised hands locally
+            setRaisedHands(prev => prev.filter(h => h.participantIdentity !== participantIdentity));
+        } catch (err) {
+            console.error('Failed to approve speaker:', err);
+        }
+    };
+
+    // Dismiss a raised hand
+    const handleDismiss = async (participantIdentity: string) => {
+        try {
+            await api.post('/live/lower-hand', {
+                roomName: scholarId,
+                participantIdentity,
+            });
+            setRaisedHands(prev => prev.filter(h => h.participantIdentity !== participantIdentity));
+        } catch (err) {
+            console.error('Failed to dismiss hand:', err);
+        }
+    };
+
+    // Revoke speaking permission
+    const handleRevoke = async (participantIdentity: string) => {
+        try {
+            await api.post('/live/revoke-publish', {
+                roomName: scholarId,
+                participantIdentity,
+            });
+            setActiveSpeakers(prev => prev.filter(id => id !== participantIdentity));
+        } catch (err) {
+            console.error('Failed to revoke speaker:', err);
+        }
+    };
+
     return (
         <div className={styles.container}>
             <div className={styles.header}>
@@ -292,6 +356,67 @@ export default function ScholarLiveStudio() {
                                     <li>Powered by LiveKit — Pro Real-time Audio Streaming!</li>
                                 </ul>
                             </div>
+
+                            {/* Raised Hands Panel */}
+                            {isStreaming && (
+                                <div className={styles.raisedHandsPanel}>
+                                    <h3 className={styles.raisedHandsTitle}>
+                                        <Hand size={18} /> Raised Hands ({raisedHands.length})
+                                    </h3>
+
+                                    {/* Active Speakers */}
+                                    {activeSpeakers.length > 0 && (
+                                        <div className={styles.activeSpeakersSection}>
+                                            <h4 className={styles.activeSpeakersLabel}>
+                                                <Volume2 size={14} /> Active Speakers
+                                            </h4>
+                                            {activeSpeakers.map((identity) => (
+                                                <div key={identity} className={styles.speakerItem}>
+                                                    <span className={styles.speakerName}>🎙️ {identity}</span>
+                                                    <button
+                                                        onClick={() => handleRevoke(identity)}
+                                                        className={styles.revokeBtn}
+                                                        title="Revoke speaking permission"
+                                                    >
+                                                        <MicOff size={14} /> Mute
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Waiting List */}
+                                    {raisedHands.length === 0 && activeSpeakers.length === 0 && (
+                                        <p className={styles.noHandsText}>No one has raised their hand yet.</p>
+                                    )}
+                                    {raisedHands.map((hand) => (
+                                        <div key={hand.participantIdentity} className={styles.handItem}>
+                                            <div className={styles.handInfo}>
+                                                <span className={styles.handName}>✋ {hand.participantName}</span>
+                                                <span className={styles.handTime}>
+                                                    {new Date(hand.raisedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            </div>
+                                            <div className={styles.handActions}>
+                                                <button
+                                                    onClick={() => handleApprove(hand.participantIdentity)}
+                                                    className={styles.approveBtn}
+                                                    title="Allow to speak"
+                                                >
+                                                    <Check size={14} /> Approve
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDismiss(hand.participantIdentity)}
+                                                    className={styles.dismissBtn}
+                                                    title="Dismiss"
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         <div className={styles.rightCol}>

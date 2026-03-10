@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { AccessToken } from 'livekit-server-sdk';
+import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
 
 export interface LiveScholarInfo {
     scholarId: string;
@@ -9,14 +9,29 @@ export interface LiveScholarInfo {
     viewerCount: number;
 }
 
+export interface RaisedHandInfo {
+    participantIdentity: string;
+    participantName: string;
+    raisedAt: Date;
+}
+
 @Injectable()
 export class LiveStreamService {
     // In-memory map: scholarId -> LiveScholarInfo
     private liveScholars: Map<string, LiveScholarInfo> = new Map();
     // Map clientId -> scholarId for disconnect cleanup
     private clientToScholar: Map<string, string> = new Map();
+    // Map roomName -> raised hands
+    private raisedHands: Map<string, RaisedHandInfo[]> = new Map();
+    // LiveKit RoomServiceClient for updating participant permissions
+    private roomService: RoomServiceClient;
 
-    constructor(private prisma: PrismaService) { }
+    constructor(private prisma: PrismaService) {
+        const lkHost = process.env.LIVEKIT_HOST || 'https://livekit.deenjiggasa.info';
+        const apiKey = process.env.LIVEKIT_API_KEY || 'devkey';
+        const apiSecret = process.env.LIVEKIT_API_SECRET || 'secretsecretsecretsecretsecretsecretsecret';
+        this.roomService = new RoomServiceClient(lkHost, apiKey, apiSecret);
+    }
 
     /** Mark a scholar as live */
     goLive(scholarId: string, clientId: string) {
@@ -119,12 +134,13 @@ export class LiveStreamService {
     }
 
     /** Generate a LiveKit access token for a room */
-    async generateToken(roomName: string, participantName: string, isPublisher: boolean) {
+    async generateToken(roomName: string, participantName: string, isPublisher: boolean, identity?: string) {
         const apiKey = process.env.LIVEKIT_API_KEY || 'devkey';
         const apiSecret = process.env.LIVEKIT_API_SECRET || 'secretsecretsecretsecretsecretsecretsecret';
 
         const at = new AccessToken(apiKey, apiSecret, {
-            identity: participantName,
+            identity: identity || participantName,
+            name: participantName,
         });
 
         at.addGrant({
@@ -136,5 +152,70 @@ export class LiveStreamService {
         });
 
         return at.toJwt();
+    }
+
+    // ─── Raise Hand / Speaker Management ────────────────────────────
+
+    /** Viewer raises their hand to ask a question */
+    raiseHand(roomName: string, participantIdentity: string, participantName: string) {
+        const hands = this.raisedHands.get(roomName) || [];
+        // Don't add duplicates
+        if (hands.some(h => h.participantIdentity === participantIdentity)) {
+            return { alreadyRaised: true };
+        }
+        hands.push({ participantIdentity, participantName, raisedAt: new Date() });
+        this.raisedHands.set(roomName, hands);
+        console.log(`[LiveStream] ${participantName} raised hand in room ${roomName}`);
+        return { success: true };
+    }
+
+    /** Remove hand (viewer lowers hand or scholar dismisses) */
+    lowerHand(roomName: string, participantIdentity: string) {
+        const hands = this.raisedHands.get(roomName) || [];
+        this.raisedHands.set(roomName, hands.filter(h => h.participantIdentity !== participantIdentity));
+    }
+
+    /** Get all raised hands for a room */
+    getRaisedHands(roomName: string): RaisedHandInfo[] {
+        return this.raisedHands.get(roomName) || [];
+    }
+
+    /** Grant canPublish to a participant (promote to speaker) */
+    async grantPublish(roomName: string, participantIdentity: string) {
+        try {
+            await this.roomService.updateParticipant(roomName, participantIdentity, undefined, {
+                canPublish: true,
+                canSubscribe: true,
+                canPublishData: true,
+            });
+            // Remove from raised hands
+            this.lowerHand(roomName, participantIdentity);
+            console.log(`[LiveStream] Granted publish to ${participantIdentity} in room ${roomName}`);
+            return { success: true };
+        } catch (err) {
+            console.error(`[LiveStream] Failed to grant publish:`, err);
+            return { success: false, error: err.message };
+        }
+    }
+
+    /** Revoke canPublish from a participant (demote back to listener) */
+    async revokePublish(roomName: string, participantIdentity: string) {
+        try {
+            await this.roomService.updateParticipant(roomName, participantIdentity, undefined, {
+                canPublish: false,
+                canSubscribe: true,
+                canPublishData: true,
+            });
+            console.log(`[LiveStream] Revoked publish from ${participantIdentity} in room ${roomName}`);
+            return { success: true };
+        } catch (err) {
+            console.error(`[LiveStream] Failed to revoke publish:`, err);
+            return { success: false, error: err.message };
+        }
+    }
+
+    /** Clear all raised hands for a room (when stream ends) */
+    clearRaisedHands(roomName: string) {
+        this.raisedHands.delete(roomName);
     }
 }

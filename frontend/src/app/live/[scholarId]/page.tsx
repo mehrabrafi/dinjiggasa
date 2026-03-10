@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Headphones, Clock, AlertCircle } from 'lucide-react';
+import { Headphones, Clock, AlertCircle, Hand, Mic, MicOff } from 'lucide-react';
 import styles from './viewer.module.css';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuthStore } from '@/store/auth.store';
@@ -31,6 +31,9 @@ export default function LiveViewer() {
     const [error, setError] = useState<string | null>(null);
     const [connecting, setConnecting] = useState(true);
     const [pastSessions, setPastSessions] = useState<LiveSession[]>([]);
+    const [handRaised, setHandRaised] = useState(false);
+    const [isSpeaker, setIsSpeaker] = useState(false);
+    const [viewerIdentity, setViewerIdentity] = useState<string>('');
     const { user } = useAuthStore();
 
     // Fetch view token
@@ -39,7 +42,10 @@ export default function LiveViewer() {
             if (!scholarId) return;
             try {
                 setConnecting(true);
-                const { data } = await api.get(`/live/view-token/${scholarId}`);
+                const identity = user?.id || `anon-${Math.floor(Math.random() * 10000)}`;
+                const name = user?.name || `Viewer-${Math.floor(Math.random() * 1000)}`;
+                setViewerIdentity(identity);
+                const { data } = await api.get(`/live/view-token/${scholarId}?userId=${encodeURIComponent(identity)}&userName=${encodeURIComponent(name)}`);
                 setLkToken(data.token);
                 setConnecting(false);
             } catch (err) {
@@ -50,6 +56,29 @@ export default function LiveViewer() {
         };
         fetchToken();
     }, [scholarId]);
+
+    // Raise Hand handler
+    const handleRaiseHand = async () => {
+        if (!scholarId) return;
+        try {
+            if (handRaised) {
+                await api.post('/live/lower-hand', {
+                    roomName: scholarId as string,
+                    participantIdentity: viewerIdentity,
+                });
+                setHandRaised(false);
+            } else {
+                await api.post('/live/raise-hand', {
+                    roomName: scholarId as string,
+                    participantIdentity: viewerIdentity,
+                    participantName: user?.name || 'Anonymous Viewer',
+                });
+                setHandRaised(true);
+            }
+        } catch (err) {
+            console.error('Failed to raise/lower hand:', err);
+        }
+    };
 
     // Fetch past sessions
     useEffect(() => {
@@ -164,6 +193,23 @@ export default function LiveViewer() {
                                             {isPlaying ? '🎙️ Audio Stream — Playing' : 'Waiting for audio stream...'}
                                         </p>
                                     </div>
+                                </div>
+
+                                {/* Raise Hand Button */}
+                                <div className={styles.raiseHandContainer}>
+                                    <button
+                                        onClick={handleRaiseHand}
+                                        className={`${styles.raiseHandBtn} ${handRaised ? styles.handRaisedActive : ''}`}
+                                        title={handRaised ? 'Lower hand' : 'Raise hand to ask a question'}
+                                    >
+                                        <Hand size={20} />
+                                        {handRaised ? 'Hand Raised ✓' : '✋ Raise Hand to Ask'}
+                                    </button>
+                                    {handRaised && (
+                                        <p className={styles.raiseHandHint}>
+                                            Waiting for scholar to approve your request...
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div className={styles.streamInfo}>

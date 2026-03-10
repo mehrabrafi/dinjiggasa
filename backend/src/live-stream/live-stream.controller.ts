@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Req, UseGuards, UseInterceptors, UploadedFile, ParseFilePipe, MaxFileSizeValidator, FileTypeValidator, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Param, Req, UseGuards, UseInterceptors, UploadedFile, ParseFilePipe, MaxFileSizeValidator, FileTypeValidator, BadRequestException, Body, Query } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { LiveStreamService } from './live-stream.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -53,10 +53,15 @@ export class LiveStreamController {
 
     /** GET /api/v1/live/view-token/:scholarId — get a LiveKit access token for a viewer */
     @Get('view-token/:scholarId')
-    async getViewerToken(@Param('scholarId') scholarId: string) {
-        const participantName = `Audience_${Math.floor(Math.random() * 10000)}`;
+    async getViewerToken(
+        @Param('scholarId') scholarId: string,
+        @Query('userId') userId?: string,
+        @Query('userName') userName?: string,
+    ) {
+        const identity = userId || `anon-${Math.floor(Math.random() * 100000)}`;
+        const participantName = userName || `Audience_${Math.floor(Math.random() * 10000)}`;
         return {
-            token: await this.liveStreamService.generateToken(scholarId, participantName, false),
+            token: await this.liveStreamService.generateToken(scholarId, participantName, false, identity),
         };
     }
 
@@ -75,7 +80,44 @@ export class LiveStreamController {
     goOffline(@Req() req: any) {
         const scholarId = req.user.id || req.user.sub;
         this.liveStreamService.goOffline(scholarId);
+        this.liveStreamService.clearRaisedHands(scholarId);
         return { success: true };
+    }
+
+    // ─── Raise Hand / Speaker Management ────────────────────────────
+
+    /** POST /api/v1/live/raise-hand — viewer raises hand to speak */
+    @Post('raise-hand')
+    raiseHand(@Body() body: { roomName: string; participantIdentity: string; participantName: string }) {
+        return this.liveStreamService.raiseHand(body.roomName, body.participantIdentity, body.participantName);
+    }
+
+    /** POST /api/v1/live/lower-hand — viewer lowers hand */
+    @Post('lower-hand')
+    lowerHand(@Body() body: { roomName: string; participantIdentity: string }) {
+        this.liveStreamService.lowerHand(body.roomName, body.participantIdentity);
+        return { success: true };
+    }
+
+    /** GET /api/v1/live/raised-hands/:roomName — get all raised hands for a room (scholar only) */
+    @Get('raised-hands/:roomName')
+    @UseGuards(JwtAuthGuard)
+    getRaisedHands(@Param('roomName') roomName: string) {
+        return this.liveStreamService.getRaisedHands(roomName);
+    }
+
+    /** POST /api/v1/live/grant-publish — scholar grants publish permission to a viewer */
+    @Post('grant-publish')
+    @UseGuards(JwtAuthGuard)
+    async grantPublish(@Body() body: { roomName: string; participantIdentity: string }) {
+        return this.liveStreamService.grantPublish(body.roomName, body.participantIdentity);
+    }
+
+    /** POST /api/v1/live/revoke-publish — scholar revokes publish permission from a viewer */
+    @Post('revoke-publish')
+    @UseGuards(JwtAuthGuard)
+    async revokePublish(@Body() body: { roomName: string; participantIdentity: string }) {
+        return this.liveStreamService.revokePublish(body.roomName, body.participantIdentity);
     }
 
     /** POST /api/v1/live/upload-recording — upload the recorded stream */

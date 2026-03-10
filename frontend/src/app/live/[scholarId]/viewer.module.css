@@ -214,3 +214,59 @@
     width: 100%;
     margin-top: 0.5rem;
 }
+
+/* ===== Raise Hand ===== */
+.raiseHandContainer {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.raiseHandBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: 2px solid #d97706;
+    background: linear-gradient(135deg, #fffbeb, #fef3c7);
+    color: #92400e;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.raiseHandBtn:hover {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(217, 119, 6, 0.3);
+}
+
+.handRaisedActive {
+    background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+    color: white !important;
+    border-color: #b45309 !important;
+    animation: pulseHand 2s ease-in-out infinite;
+}
+
+@keyframes pulseHand {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 0 0 8px rgba(245, 158, 11, 0);
+    }
+}
+
+.raiseHandHint {
+    font-size: 0.8rem;
+    color: #92400e;
+    font-style: italic;
+    text-align: center;
+}
