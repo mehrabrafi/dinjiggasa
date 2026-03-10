@@ -68,8 +68,28 @@ export default function ScholarLiveStudio() {
     useEffect(() => {
         initMedia();
 
+        // Check if scholar is currently live (e.g. after page refresh)
+        const checkLiveStatus = async () => {
+            if (!scholarId || scholarId === '12345') return;
+            try {
+                const { data } = await api.get(`/live/status/${scholarId}`);
+                if (data.isLive) {
+                    // Scholar is still live on backend, auto-reconnect
+                    console.log('[LiveStream] Scholar is still live, auto-reconnecting...');
+                    const tokenRes = await api.get('/live/token');
+                    setLkToken(tokenRes.data.token);
+                    setIsStreaming(true);
+                    setStatus('🔴 Live');
+                }
+            } catch (err) {
+                console.warn('[LiveStream] Could not check live status:', err);
+            }
+        };
+        checkLiveStatus();
+
         return () => {
-            stopStreaming();
+            // Don't call stopStreaming on unmount during refresh
+            // The backend keeps the live state
         };
     }, []);
 
