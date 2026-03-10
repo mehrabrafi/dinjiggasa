@@ -11,8 +11,68 @@ import api from '@/lib/axios';
 import {
     LiveKitRoom,
     RoomAudioRenderer,
+    useLocalParticipant,
+    TrackToggle
 } from '@livekit/components-react';
+import { Track } from 'livekit-client';
 import '@livekit/components-styles';
+
+function ViewerInteraction({
+    handRaised,
+    handleRaiseHand,
+    setHandRaised,
+}: {
+    handRaised: boolean;
+    handleRaiseHand: () => void;
+    setHandRaised: (val: boolean) => void;
+}) {
+    const { localParticipant } = useLocalParticipant();
+    const canPublish = localParticipant?.permissions?.canPublish;
+
+    useEffect(() => {
+        if (canPublish && handRaised) {
+            setHandRaised(false);
+        }
+    }, [canPublish, handRaised, setHandRaised]);
+
+    if (canPublish) {
+        return (
+            <div className={styles.speakerControlsContainer}>
+                <div className={styles.speakerHeader}>
+                    <span className={styles.liveIndicator}>🎙️</span>
+                    <span className={styles.speakerTitle}>You are a Speaker</span>
+                </div>
+                <p className={styles.speakerHint}>
+                    The scholar approved your request. Click below to toggle your microphone.
+                </p>
+                <div className={styles.micToggleWrapper}>
+                    <TrackToggle
+                        source={Track.Source.Microphone}
+                        className={styles.lkTrackToggle}
+                    />
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className={styles.raiseHandContainer}>
+            <button
+                onClick={handleRaiseHand}
+                className={`${styles.raiseHandBtn} ${handRaised ? styles.handRaisedActive : ''}`}
+                title={handRaised ? 'Lower hand' : 'Raise hand to ask a question'}
+            >
+                <Hand size={20} />
+                {handRaised ? 'Hand Raised ✓' : '✋ Raise Hand to Ask'}
+            </button>
+            {handRaised && (
+                <p className={styles.raiseHandHint}>
+                    Waiting for scholar to approve your request...
+                </p>
+            )}
+        </div>
+    );
+}
 
 interface LiveSession {
     id: string;
@@ -195,22 +255,12 @@ export default function LiveViewer() {
                                     </div>
                                 </div>
 
-                                {/* Raise Hand Button */}
-                                <div className={styles.raiseHandContainer}>
-                                    <button
-                                        onClick={handleRaiseHand}
-                                        className={`${styles.raiseHandBtn} ${handRaised ? styles.handRaisedActive : ''}`}
-                                        title={handRaised ? 'Lower hand' : 'Raise hand to ask a question'}
-                                    >
-                                        <Hand size={20} />
-                                        {handRaised ? 'Hand Raised ✓' : '✋ Raise Hand to Ask'}
-                                    </button>
-                                    {handRaised && (
-                                        <p className={styles.raiseHandHint}>
-                                            Waiting for scholar to approve your request...
-                                        </p>
-                                    )}
-                                </div>
+                                {/* Raise Hand / Speaker Controls */}
+                                <ViewerInteraction
+                                    handRaised={handRaised}
+                                    handleRaiseHand={handleRaiseHand}
+                                    setHandRaised={setHandRaised}
+                                />
 
                                 <div className={styles.streamInfo}>
                                     <p>🎙️ Audio-only stream — Pro Real-time Audio powered by LiveKit</p>

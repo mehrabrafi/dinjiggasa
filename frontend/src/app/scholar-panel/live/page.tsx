@@ -42,7 +42,7 @@ export default function ScholarLiveStudio() {
         raisedAt: string;
     }
     const [raisedHands, setRaisedHands] = useState<RaisedHandInfo[]>([]);
-    const [activeSpeakers, setActiveSpeakers] = useState<string[]>([]);
+    const [activeSpeakers, setActiveSpeakers] = useState<{ identity: string, name: string }[]>([]);
 
     // Get the signalling URL for this scholar's stream (with ?direction=send for ingest)
     const getSignallingUrl = () => {
@@ -236,13 +236,13 @@ export default function ScholarLiveStudio() {
     }, [isStreaming, scholarId]);
 
     // Approve a viewer to speak
-    const handleApprove = async (participantIdentity: string) => {
+    const handleApprove = async (participantIdentity: string, participantName: string) => {
         try {
             await api.post('/live/grant-publish', {
                 roomName: scholarId,
                 participantIdentity,
             });
-            setActiveSpeakers(prev => [...prev, participantIdentity]);
+            setActiveSpeakers(prev => [...prev, { identity: participantIdentity, name: participantName }]);
             // Remove from raised hands locally
             setRaisedHands(prev => prev.filter(h => h.participantIdentity !== participantIdentity));
         } catch (err) {
@@ -270,7 +270,7 @@ export default function ScholarLiveStudio() {
                 roomName: scholarId,
                 participantIdentity,
             });
-            setActiveSpeakers(prev => prev.filter(id => id !== participantIdentity));
+            setActiveSpeakers(prev => prev.filter(s => s.identity !== participantIdentity));
         } catch (err) {
             console.error('Failed to revoke speaker:', err);
         }
@@ -370,11 +370,11 @@ export default function ScholarLiveStudio() {
                                             <h4 className={styles.activeSpeakersLabel}>
                                                 <Volume2 size={14} /> Active Speakers
                                             </h4>
-                                            {activeSpeakers.map((identity) => (
-                                                <div key={identity} className={styles.speakerItem}>
-                                                    <span className={styles.speakerName}>🎙️ {identity}</span>
+                                            {activeSpeakers.map((speaker) => (
+                                                <div key={speaker.identity} className={styles.speakerItem}>
+                                                    <span className={styles.speakerName}>🎙️ {speaker.name}</span>
                                                     <button
-                                                        onClick={() => handleRevoke(identity)}
+                                                        onClick={() => handleRevoke(speaker.identity)}
                                                         className={styles.revokeBtn}
                                                         title="Revoke speaking permission"
                                                     >
@@ -399,7 +399,7 @@ export default function ScholarLiveStudio() {
                                             </div>
                                             <div className={styles.handActions}>
                                                 <button
-                                                    onClick={() => handleApprove(hand.participantIdentity)}
+                                                    onClick={() => handleApprove(hand.participantIdentity, hand.participantName)}
                                                     className={styles.approveBtn}
                                                     title="Allow to speak"
                                                 >
