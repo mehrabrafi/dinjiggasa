@@ -12,14 +12,11 @@ import { ReportsModule } from './reports/reports.module';
 import { MailModule } from './mail/mail.module';
 import { LiveStreamModule } from './live-stream/live-stream.module';
 
-
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-
-
 
     PrismaModule,
     AuthModule,
@@ -33,9 +30,6 @@ import { LiveStreamModule } from './live-stream/live-stream.module';
   ],
 
   controllers: [AppController],
-  providers: [
-    AppService,
-
-  ],
+  providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

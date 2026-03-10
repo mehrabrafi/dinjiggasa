@@ -4,473 +4,495 @@ import { Role } from '@prisma/client';
 
 @Injectable()
 export class ScholarsService {
-    constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
-    async findAll() {
-        return this.prisma.user.findMany({
-            where: {
-                role: Role.SCHOLAR,
+  async findAll() {
+    return this.prisma.user.findMany({
+      where: {
+        role: Role.SCHOLAR,
+      },
+      select: {
+        id: true,
+        name: true,
+        avatar: true,
+        specialization: true,
+        bio: true,
+        educationalQualifications: true,
+        officeHours: true,
+        isVerified: true,
+        reputation: true,
+      } as any,
+    });
+  }
+
+  async findOne(id: string) {
+    return this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        avatar: true,
+        specialization: true,
+        bio: true,
+        educationalQualifications: true,
+        officeHours: true,
+        isVerified: true,
+        reputation: true,
+      } as any,
+    });
+  }
+
+  /**
+   * Get comprehensive stats for a scholar's dashboard
+   */
+  async getScholarStats(scholarId: string) {
+    // Total answers given by this scholar
+    const totalAnswers = await this.prisma.answer.count({
+      where: { authorId: scholarId },
+    });
+
+    // Total upvotes received on their answers and questions they've answered
+    const answers = await this.prisma.answer.findMany({
+      where: { authorId: scholarId },
+      select: { id: true, questionId: true },
+    });
+    const answerIds = answers.map((a) => a.id);
+    const uniqueQuestionIds = answers.map((a) => a.questionId);
+
+    const totalUpvotes = await this.prisma.rating.count({
+      where: {
+        OR: [
+          { answerId: { in: answerIds }, value: { gt: 0 } },
+          { questionId: { in: uniqueQuestionIds }, value: { gt: 0 } },
+        ],
+      },
+    });
+
+    // Unanswered questions directed to or accepted by this scholar (pending)
+    const pendingQuestions = await this.prisma.question.count({
+      where: {
+        OR: [
+          { directedScholars: { some: { id: scholarId } } },
+          { acceptedById: scholarId },
+        ],
+        answers: {
+          none: { authorId: scholarId },
+        },
+      },
+    });
+
+    // Answers this week
+    const startOfWeek = new Date();
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const answersThisWeek = await this.prisma.answer.count({
+      where: {
+        authorId: scholarId,
+        createdAt: { gte: startOfWeek },
+      },
+    });
+
+    // People helped (unique question authors who got answers from this scholar)
+    const helpedAuthors = await this.prisma.answer.findMany({
+      where: { authorId: scholarId },
+      select: {
+        question: {
+          select: { authorId: true },
+        },
+      },
+      distinct: ['questionId'],
+    });
+    const peopleHelped = new Set(helpedAuthors.map((a) => a.question.authorId))
+      .size;
+
+    // Total views on questions this scholar answered
+    const answeredQuestions = await this.prisma.answer.findMany({
+      where: { authorId: scholarId },
+      select: {
+        question: {
+          select: { views: true },
+        },
+      },
+    });
+    const totalViews = answeredQuestions.reduce(
+      (sum, a) => sum + a.question.views,
+      0,
+    );
+
+    // Top topic: find the most frequent tag from questions they've answered
+    const tags = await this.prisma.tag.findMany({
+      where: {
+        questions: {
+          some: { id: { in: uniqueQuestionIds } },
+        },
+      },
+      include: {
+        _count: {
+          select: { questions: true },
+        },
+      },
+      orderBy: {
+        questions: { _count: 'desc' },
+      },
+      take: 1,
+    });
+    const topTopic = tags.length > 0 ? tags[0].name : 'General';
+
+    // Response rate: accepted/directed questions that got answers / total directed/accepted questions
+    const totalDirected = await this.prisma.question.count({
+      where: {
+        OR: [
+          { directedScholars: { some: { id: scholarId } } },
+          { acceptedById: scholarId },
+        ],
+      },
+    });
+    const totalAnswered = await this.prisma.question.count({
+      where: {
+        OR: [
+          { directedScholars: { some: { id: scholarId } } },
+          { acceptedById: scholarId },
+        ],
+        answers: { some: { authorId: scholarId } },
+      },
+    });
+    const responseRate =
+      totalDirected > 0 ? Math.round((totalAnswered / totalDirected) * 100) : 0;
+
+    return {
+      totalAnswers,
+      totalUpvotes,
+      pendingQuestions,
+      answersThisWeek,
+      peopleHelped,
+      totalViews,
+      topTopic,
+      responseRate,
+      totalDirected,
+      totalAnswered,
+    };
+  }
+
+  /**
+   * Get counts for the sidebar (pending, urgent, answered, drafts)
+   */
+  async getSidebarCounts(scholarId: string) {
+    const directed = await this.prisma.question.findMany({
+      where: {
+        OR: [
+          { directedScholars: { some: { id: scholarId } } },
+          { acceptedById: scholarId },
+        ],
+      },
+      select: {
+        id: true,
+        isUrgent: true,
+        answers: {
+          where: { authorId: scholarId },
+          select: { id: true },
+        },
+      },
+    });
+
+    const pending = directed.filter(
+      (q) => !q.isUrgent && q.answers.length === 0,
+    ).length;
+
+    const urgent = directed.filter(
+      (q) => q.isUrgent && q.answers.length === 0,
+    ).length;
+
+    const answeredCount = await this.prisma.answer.count({
+      where: { authorId: scholarId },
+    });
+
+    const draftsCount = await this.prisma.answerDraft.count({
+      where: { authorId: scholarId },
+    });
+
+    return {
+      pending,
+      urgent,
+      answered: answeredCount,
+      drafts: draftsCount,
+    };
+  }
+
+  /**
+   * Get questions that this scholar has answered
+   */
+  async getMyAnswers(scholarId: string) {
+    return this.prisma.answer.findMany({
+      where: { authorId: scholarId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        question: {
+          include: {
+            author: {
+              select: { id: true, name: true, avatar: true },
             },
-            select: {
-                id: true,
-                name: true,
-                avatar: true,
-                specialization: true,
-                bio: true,
-                educationalQualifications: true,
-                officeHours: true,
-                isVerified: true,
-                reputation: true,
-            } as any
-        });
-    }
-
-    async findOne(id: string) {
-        return this.prisma.user.findUnique({
-            where: { id },
-            select: {
-                id: true,
-                name: true,
-                avatar: true,
-                specialization: true,
-                bio: true,
-                educationalQualifications: true,
-                officeHours: true,
-                isVerified: true,
-                reputation: true,
-            } as any
-        });
-    }
-
-    /**
-     * Get comprehensive stats for a scholar's dashboard
-     */
-    async getScholarStats(scholarId: string) {
-        // Total answers given by this scholar
-        const totalAnswers = await this.prisma.answer.count({
-            where: { authorId: scholarId },
-        });
-
-        // Total upvotes received on their answers and questions they've answered
-        const answers = await this.prisma.answer.findMany({
-            where: { authorId: scholarId },
-            select: { id: true, questionId: true },
-        });
-        const answerIds = answers.map(a => a.id);
-        const uniqueQuestionIds = answers.map(a => a.questionId);
-
-        const totalUpvotes = await this.prisma.rating.count({
-            where: {
-                OR: [
-                    { answerId: { in: answerIds }, value: { gt: 0 } },
-                    { questionId: { in: uniqueQuestionIds }, value: { gt: 0 } },
-                ],
+            tags: true,
+            _count: {
+              select: { answers: true, ratings: true },
             },
-        });
+          },
+        },
+        ratings: {
+          select: { value: true },
+        },
+      },
+    });
+  }
 
-        // Unanswered questions directed to or accepted by this scholar (pending)
-        const pendingQuestions = await this.prisma.question.count({
-            where: {
-                OR: [
-                    { directedScholars: { some: { id: scholarId } } },
-                    { acceptedById: scholarId },
-                ],
-                answers: {
-                    none: { authorId: scholarId },
-                },
-            },
-        });
+  /**
+   * Get analytics data for a scholar
+   */
+  async getAnalytics(scholarId: string) {
+    // Answer stats grouped by month (last 6 months)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-        // Answers this week
-        const startOfWeek = new Date();
-        startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-        startOfWeek.setHours(0, 0, 0, 0);
+    const recentAnswers = await this.prisma.answer.findMany({
+      where: {
+        authorId: scholarId,
+        createdAt: { gte: sixMonthsAgo },
+      },
+      include: {
+        question: {
+          include: {
+            tags: true,
+            _count: { select: { ratings: true } },
+          },
+        },
+        ratings: {
+          select: { value: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
-        const answersThisWeek = await this.prisma.answer.count({
-            where: {
-                authorId: scholarId,
-                createdAt: { gte: startOfWeek },
-            },
-        });
+    // Total answers
+    const totalAnswers = await this.prisma.answer.count({
+      where: { authorId: scholarId },
+    });
 
-        // People helped (unique question authors who got answers from this scholar)
-        const helpedAuthors = await this.prisma.answer.findMany({
-            where: { authorId: scholarId },
-            select: {
-                question: {
-                    select: { authorId: true },
-                },
-            },
-            distinct: ['questionId'],
-        });
-        const peopleHelped = new Set(helpedAuthors.map(a => a.question.authorId)).size;
+    // Total upvotes on all answers and questions they've answered
+    const answers = await this.prisma.answer.findMany({
+      where: { authorId: scholarId },
+      select: { id: true, questionId: true },
+    });
+    const ansIds = answers.map((a) => a.id);
+    const qIds = answers.map((a) => a.questionId);
 
-        // Total views on questions this scholar answered
-        const answeredQuestions = await this.prisma.answer.findMany({
-            where: { authorId: scholarId },
-            select: {
-                question: {
-                    select: { views: true },
-                },
-            },
-        });
-        const totalViews = answeredQuestions.reduce((sum, a) => sum + a.question.views, 0);
+    const totalUpvotes = await this.prisma.rating.count({
+      where: {
+        OR: [
+          { answerId: { in: ansIds }, value: { gt: 0 } },
+          { questionId: { in: qIds }, value: { gt: 0 } },
+        ],
+      },
+    });
 
-        // Top topic: find the most frequent tag from questions they've answered
-        const tags = await this.prisma.tag.findMany({
-            where: {
-                questions: {
-                    some: { id: { in: uniqueQuestionIds } },
-                },
-            },
-            include: {
-                _count: {
-                    select: { questions: true },
-                },
-            },
-            orderBy: {
-                questions: { _count: 'desc' },
-            },
-            take: 1,
-        });
-        const topTopic = tags.length > 0 ? tags[0].name : 'General';
+    // Total views on answered questions
+    const totalViews = await this.prisma.answer.findMany({
+      where: { authorId: scholarId },
+      select: {
+        question: { select: { views: true } },
+      },
+    });
+    const viewsCount = totalViews.reduce((sum, a) => sum + a.question.views, 0);
 
-        // Response rate: accepted/directed questions that got answers / total directed/accepted questions
+    // People helped this month
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const helpedThisMonth = await this.prisma.answer.findMany({
+      where: {
+        authorId: scholarId,
+        createdAt: { gte: startOfMonth },
+      },
+      select: {
+        question: { select: { authorId: true } },
+      },
+      distinct: ['questionId'],
+    });
+    const peopleHelpedThisMonth = new Set(
+      helpedThisMonth.map((a) => a.question.authorId),
+    ).size;
+
+    // Top categories
+    const allAnsweredQuestionIds = await this.prisma.answer.findMany({
+      where: { authorId: scholarId },
+      select: { questionId: true },
+    });
+    const categoryStats = await this.prisma.tag.findMany({
+      where: {
+        questions: {
+          some: { id: { in: allAnsweredQuestionIds.map((a) => a.questionId) } },
+        },
+      },
+      include: {
+        _count: {
+          select: { questions: true },
+        },
+      },
+      orderBy: {
+        questions: { _count: 'desc' },
+      },
+      take: 5,
+    });
+
+    const totalTaggedQuestions = categoryStats.reduce(
+      (sum, t) => sum + t._count.questions,
+      0,
+    );
+    const topCategories = categoryStats.map((t) => ({
+      name: t.name,
+      count: t._count.questions,
+      percentage:
+        totalTaggedQuestions > 0
+          ? Math.round((t._count.questions / totalTaggedQuestions) * 100)
+          : 0,
+    }));
+
+    // Top performing answers (most views + upvotes)
+    const topAnswers = await this.prisma.answer.findMany({
+      where: { authorId: scholarId },
+      include: {
+        question: {
+          include: {
+            tags: true,
+            ratings: {
+              select: { value: true },
+            },
+          },
+        },
+        ratings: {
+          select: { value: true },
+        },
+      },
+      orderBy: {
+        question: { views: 'desc' },
+      },
+      take: 5,
+    });
+
+    const topPerforming = topAnswers.map((a) => {
+      const answerUpvotes = a.ratings.filter((r) => r.value > 0).length;
+      const questionUpvotes = a.question.ratings.filter(
+        (r) => r.value > 0,
+      ).length;
+
+      return {
+        id: a.id,
+        questionId: a.questionId,
+        topic: a.question.title,
+        category: a.question.tags?.[0]?.name || 'General',
+        views: a.question.views,
+        upvotes: answerUpvotes + questionUpvotes,
+        isAccepted: a.isAccepted,
+        createdAt: a.createdAt,
+      };
+    });
+
+    return {
+      totalAnswers,
+      totalUpvotes,
+      totalViews: viewsCount,
+      peopleHelpedThisMonth,
+      topCategories,
+      topPerforming,
+      recentAnswersCount: recentAnswers.length,
+    };
+  }
+
+  /**
+   * Get top 5 scholars by response rate
+   */
+  async getTopScholars() {
+    const scholars = await this.prisma.user.findMany({
+      where: { role: Role.SCHOLAR },
+      select: {
+        id: true,
+        name: true,
+        avatar: true,
+        specialization: true,
+        isVerified: true,
+      },
+    });
+
+    const scholarsWithRates = await Promise.all(
+      scholars.map(async (scholar) => {
         const totalDirected = await this.prisma.question.count({
-            where: {
-                OR: [
-                    { directedScholars: { some: { id: scholarId } } },
-                    { acceptedById: scholarId },
-                ],
-            },
+          where: {
+            OR: [
+              { directedScholars: { some: { id: scholar.id } } },
+              { acceptedById: scholar.id },
+            ],
+          },
         });
         const totalAnswered = await this.prisma.question.count({
-            where: {
-                OR: [
-                    { directedScholars: { some: { id: scholarId } } },
-                    { acceptedById: scholarId },
-                ],
-                answers: { some: { authorId: scholarId } },
-            },
+          where: {
+            OR: [
+              { directedScholars: { some: { id: scholar.id } } },
+              { acceptedById: scholar.id },
+            ],
+            answers: { some: { authorId: scholar.id } },
+          },
         });
-        const responseRate = totalDirected > 0 ? Math.round((totalAnswered / totalDirected) * 100) : 0;
+        const responseRate =
+          totalDirected > 0 ? totalAnswered / totalDirected : 0;
+        return { ...scholar, responseRate };
+      }),
+    );
 
-        return {
-            totalAnswers,
-            totalUpvotes,
-            pendingQuestions,
-            answersThisWeek,
-            peopleHelped,
-            totalViews,
-            topTopic,
-            responseRate,
-            totalDirected,
-            totalAnswered,
-        };
+    return scholarsWithRates
+      .sort((a, b) => b.responseRate - a.responseRate)
+      .slice(0, 5);
+  }
+
+  async getSimilarScholars(id: string) {
+    const currentScholar = await this.prisma.user.findUnique({
+      where: { id },
+      select: { specialization: true },
+    });
+
+    if (!currentScholar || !currentScholar.specialization) {
+      // If no specialization, return top scholars instead
+      return this.getTopScholars();
     }
 
-    /**
-     * Get counts for the sidebar (pending, urgent, answered, drafts)
-     */
-    async getSidebarCounts(scholarId: string) {
-        const directed = await this.prisma.question.findMany({
-            where: {
-                OR: [
-                    { directedScholars: { some: { id: scholarId } } },
-                    { acceptedById: scholarId },
-                ],
-            },
-            select: {
-                id: true,
-                isUrgent: true,
-                answers: {
-                    where: { authorId: scholarId },
-                    select: { id: true }
-                }
-            }
-        });
+    const specs = currentScholar.specialization
+      .split(',')
+      .map((s) => s.trim().toLowerCase());
 
-        const pending = directed.filter(q =>
-            !q.isUrgent && q.answers.length === 0
-        ).length;
+    const scholars = await this.prisma.user.findMany({
+      where: {
+        role: Role.SCHOLAR,
+        id: { not: id },
+      },
+      select: {
+        id: true,
+        name: true,
+        avatar: true,
+        specialization: true,
+        isVerified: true,
+      },
+    });
 
-        const urgent = directed.filter(q =>
-            q.isUrgent && q.answers.length === 0
-        ).length;
+    const similarityList = scholars.map((s) => {
+      if (!s.specialization) return { ...s, similarity: 0 };
+      const otherSpecs = s.specialization
+        .split(',')
+        .map((os) => os.trim().toLowerCase());
+      const score = specs.filter((spec) => otherSpecs.includes(spec)).length;
+      return { ...s, similarity: score };
+    });
 
-        const answeredCount = await this.prisma.answer.count({
-            where: { authorId: scholarId }
-        });
-
-        const draftsCount = await this.prisma.answerDraft.count({
-            where: { authorId: scholarId }
-        });
-
-        return {
-            pending,
-            urgent,
-            answered: answeredCount,
-            drafts: draftsCount
-        };
-    }
-
-    /**
-     * Get questions that this scholar has answered
-     */
-    async getMyAnswers(scholarId: string) {
-        return this.prisma.answer.findMany({
-            where: { authorId: scholarId },
-            orderBy: { createdAt: 'desc' },
-            include: {
-                question: {
-                    include: {
-                        author: {
-                            select: { id: true, name: true, avatar: true },
-                        },
-                        tags: true,
-                        _count: {
-                            select: { answers: true, ratings: true },
-                        },
-                    },
-                },
-                ratings: {
-                    select: { value: true },
-                },
-            },
-        });
-    }
-
-    /**
-     * Get analytics data for a scholar
-     */
-    async getAnalytics(scholarId: string) {
-        // Answer stats grouped by month (last 6 months)
-        const sixMonthsAgo = new Date();
-        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
-        const recentAnswers = await this.prisma.answer.findMany({
-            where: {
-                authorId: scholarId,
-                createdAt: { gte: sixMonthsAgo },
-            },
-            include: {
-                question: {
-                    include: {
-                        tags: true,
-                        _count: { select: { ratings: true } },
-                    },
-                },
-                ratings: {
-                    select: { value: true },
-                },
-            },
-            orderBy: { createdAt: 'desc' },
-        });
-
-        // Total answers
-        const totalAnswers = await this.prisma.answer.count({
-            where: { authorId: scholarId },
-        });
-
-        // Total upvotes on all answers and questions they've answered
-        const answers = await this.prisma.answer.findMany({
-            where: { authorId: scholarId },
-            select: { id: true, questionId: true },
-        });
-        const ansIds = answers.map(a => a.id);
-        const qIds = answers.map(a => a.questionId);
-
-        const totalUpvotes = await this.prisma.rating.count({
-            where: {
-                OR: [
-                    { answerId: { in: ansIds }, value: { gt: 0 } },
-                    { questionId: { in: qIds }, value: { gt: 0 } },
-                ],
-            },
-        });
-
-        // Total views on answered questions
-        const totalViews = await this.prisma.answer.findMany({
-            where: { authorId: scholarId },
-            select: {
-                question: { select: { views: true } },
-            },
-        });
-        const viewsCount = totalViews.reduce((sum, a) => sum + a.question.views, 0);
-
-        // People helped this month
-        const startOfMonth = new Date();
-        startOfMonth.setDate(1);
-        startOfMonth.setHours(0, 0, 0, 0);
-        const helpedThisMonth = await this.prisma.answer.findMany({
-            where: {
-                authorId: scholarId,
-                createdAt: { gte: startOfMonth },
-            },
-            select: {
-                question: { select: { authorId: true } },
-            },
-            distinct: ['questionId'],
-        });
-        const peopleHelpedThisMonth = new Set(helpedThisMonth.map(a => a.question.authorId)).size;
-
-        // Top categories
-        const allAnsweredQuestionIds = await this.prisma.answer.findMany({
-            where: { authorId: scholarId },
-            select: { questionId: true },
-        });
-        const categoryStats = await this.prisma.tag.findMany({
-            where: {
-                questions: {
-                    some: { id: { in: allAnsweredQuestionIds.map(a => a.questionId) } },
-                },
-            },
-            include: {
-                _count: {
-                    select: { questions: true },
-                },
-            },
-            orderBy: {
-                questions: { _count: 'desc' },
-            },
-            take: 5,
-        });
-
-        const totalTaggedQuestions = categoryStats.reduce((sum, t) => sum + t._count.questions, 0);
-        const topCategories = categoryStats.map(t => ({
-            name: t.name,
-            count: t._count.questions,
-            percentage: totalTaggedQuestions > 0 ? Math.round((t._count.questions / totalTaggedQuestions) * 100) : 0,
-        }));
-
-        // Top performing answers (most views + upvotes)
-        const topAnswers = await this.prisma.answer.findMany({
-            where: { authorId: scholarId },
-            include: {
-                question: {
-                    include: {
-                        tags: true,
-                        ratings: {
-                            select: { value: true },
-                        },
-                    },
-                },
-                ratings: {
-                    select: { value: true },
-                },
-            },
-            orderBy: {
-                question: { views: 'desc' },
-            },
-            take: 5,
-        });
-
-        const topPerforming = topAnswers.map(a => {
-            const answerUpvotes = a.ratings.filter(r => r.value > 0).length;
-            const questionUpvotes = a.question.ratings.filter(r => r.value > 0).length;
-
-            return {
-                id: a.id,
-                questionId: a.questionId,
-                topic: a.question.title,
-                category: a.question.tags?.[0]?.name || 'General',
-                views: a.question.views,
-                upvotes: answerUpvotes + questionUpvotes,
-                isAccepted: a.isAccepted,
-                createdAt: a.createdAt,
-            };
-        });
-
-        return {
-            totalAnswers,
-            totalUpvotes,
-            totalViews: viewsCount,
-            peopleHelpedThisMonth,
-            topCategories,
-            topPerforming,
-            recentAnswersCount: recentAnswers.length,
-        };
-    }
-
-    /**
-     * Get top 5 scholars by response rate
-     */
-    async getTopScholars() {
-        const scholars = await this.prisma.user.findMany({
-            where: { role: Role.SCHOLAR },
-            select: {
-                id: true,
-                name: true,
-                avatar: true,
-                specialization: true,
-                isVerified: true,
-            }
-        });
-
-        const scholarsWithRates = await Promise.all(scholars.map(async (scholar) => {
-            const totalDirected = await this.prisma.question.count({
-                where: {
-                    OR: [
-                        { directedScholars: { some: { id: scholar.id } } },
-                        { acceptedById: scholar.id },
-                    ],
-                },
-            });
-            const totalAnswered = await this.prisma.question.count({
-                where: {
-                    OR: [
-                        { directedScholars: { some: { id: scholar.id } } },
-                        { acceptedById: scholar.id },
-                    ],
-                    answers: { some: { authorId: scholar.id } },
-                },
-            });
-            const responseRate = totalDirected > 0 ? (totalAnswered / totalDirected) : 0;
-            return { ...scholar, responseRate };
-        }));
-
-        return scholarsWithRates
-            .sort((a, b) => b.responseRate - a.responseRate)
-            .slice(0, 5);
-    }
-
-    async getSimilarScholars(id: string) {
-        const currentScholar = await this.prisma.user.findUnique({
-            where: { id },
-            select: { specialization: true }
-        });
-
-        if (!currentScholar || !currentScholar.specialization) {
-            // If no specialization, return top scholars instead
-            return this.getTopScholars();
-        }
-
-        const specs = currentScholar.specialization.split(',').map(s => s.trim().toLowerCase());
-
-        const scholars = await this.prisma.user.findMany({
-            where: {
-                role: Role.SCHOLAR,
-                id: { not: id },
-            },
-            select: {
-                id: true,
-                name: true,
-                avatar: true,
-                specialization: true,
-                isVerified: true,
-            }
-        });
-
-        const similarityList = scholars.map(s => {
-            if (!s.specialization) return { ...s, similarity: 0 };
-            const otherSpecs = s.specialization.split(',').map(os => os.trim().toLowerCase());
-            const score = specs.filter(spec => otherSpecs.includes(spec)).length;
-            return { ...s, similarity: score };
-        });
-
-        return similarityList
-            .filter(s => s.similarity > 0)
-            .sort((a, b) => b.similarity - a.similarity)
-            .slice(0, 4);
-    }
+    return similarityList
+      .filter((s) => s.similarity > 0)
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, 4);
+  }
 }

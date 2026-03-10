@@ -17,7 +17,7 @@ import { JwtStrategy } from './jwt.strategy';
         if (!secret) {
           throw new Error(
             '❌ FATAL: JWT_SECRET environment variable is not set. ' +
-            'Generate one with: node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"',
+              "Generate one with: node -e \"console.log(require('crypto').randomBytes(64).toString('hex'))\"",
           );
         }
         return {
@@ -31,4 +31,4 @@ import { JwtStrategy } from './jwt.strategy';
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
 })
-export class AuthModule { }
+export class AuthModule {}

@@ -40,11 +40,7 @@ export default function ScholarLiveStudio() {
     const [listenerCount, setListenerCount] = useState(0);
     const pcRef = useRef<RTCPeerConnection | null>(null);
     const wsRef = useRef<WebSocket | null>(null);
-    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-    const recordedChunks = useRef<Blob[]>([]);
     const [isStreaming, setIsStreaming] = useState(false);
-    const [isUploading, setIsUploading] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState(0);
     const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
     const [isAudioMuted, setIsAudioMuted] = useState(false);
     const [isVideoMuted, setIsVideoMuted] = useState(false);
@@ -151,18 +147,7 @@ export default function ScholarLiveStudio() {
         };
     }, [mediaStream]);
 
-    // Prevent accidental page close while uploading
-    useEffect(() => {
-        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-            if (isUploading) {
-                e.preventDefault();
-                e.returnValue = '';
-            }
-        };
 
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }, [isUploading]);
 
     // Audio Visualizer
     const startAudioVisualizer = (stream: MediaStream) => {
@@ -434,19 +419,7 @@ export default function ScholarLiveStudio() {
                                     )}
                                 </div>
 
-                                {isUploading && (
-                                    <div className={styles.uploadOverlay}>
-                                        <div className={styles.uploadProgressWrapper}>
-                                            <div className={styles.progressBarBg}>
-                                                <div
-                                                    className={styles.progressBarFill}
-                                                    style={{ width: `${uploadProgress}%` }}
-                                                ></div>
-                                            </div>
-                                            <span className={styles.progressText}>Uploading: {uploadProgress}%</span>
-                                        </div>
-                                    </div>
-                                )}
+
                             </div>
 
                             {/* Raised Hands Panel */}
@@ -605,7 +578,7 @@ export default function ScholarLiveStudio() {
                                     {isAudioMuted ? <MicOff size={24} /> : <Mic size={24} />}
                                 </button>
 
-                                <button onClick={startStreaming} className={styles.startBtnLarge} disabled={isUploading}>
+                                <button onClick={startStreaming} className={styles.startBtnLarge}>
                                     <Play size={28} fill="white" />
                                 </button>
 

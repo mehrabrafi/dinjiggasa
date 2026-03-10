@@ -1,16 +1,18 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { MailService } from '../mail/mail.service';
-
 
 @Injectable()
 export class QuestionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
-  ) { }
-
+  ) {}
 
   async create(userId: string, dto: CreateQuestionDto) {
     const { title, body, scholarIds, isUrgent } = dto;
@@ -19,11 +21,15 @@ export class QuestionsService {
     if (!user) throw new NotFoundException('User not found');
 
     if ((user as any).isBanned) {
-      throw new BadRequestException('You have been restricted from asking questions. Please contact support for more information.');
+      throw new BadRequestException(
+        'You have been restricted from asking questions. Please contact support for more information.',
+      );
     }
 
     if (user.role === 'SCHOLAR') {
-      throw new BadRequestException('Scholars cannot ask questions. Your role is intended for providing answers.');
+      throw new BadRequestException(
+        'Scholars cannot ask questions. Your role is intended for providing answers.',
+      );
     }
 
     if (isUrgent) {
@@ -37,15 +43,17 @@ export class QuestionsService {
       }
 
       if (newQuota <= 0) {
-        throw new BadRequestException('Urgent quota exceeded. You can only ask 1 urgent question per month.');
+        throw new BadRequestException(
+          'Urgent quota exceeded. You can only ask 1 urgent question per month.',
+        );
       }
 
       await this.prisma.user.update({
         where: { id: userId },
         data: {
           urgentQuota: newQuota - 1,
-          lastUrgentReset: newQuota !== user.urgentQuota ? now : undefined
-        }
+          lastUrgentReset: newQuota !== user.urgentQuota ? now : undefined,
+        },
       });
     }
 
@@ -63,24 +71,44 @@ export class QuestionsService {
       },
       include: {
         author: {
-          select: { id: true, name: true, role: true, avatar: true, gender: true, isVerified: true },
+          select: {
+            id: true,
+            name: true,
+            role: true,
+            avatar: true,
+            gender: true,
+            isVerified: true,
+          },
         },
         tags: true,
         directedScholars: {
-          select: { id: true, name: true, email: true, avatar: true, isVerified: true },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatar: true,
+            isVerified: true,
+          },
         },
       },
     });
 
     // Send email notifications to directed scholars
     if (question.directedScholars && question.directedScholars.length > 0) {
-      question.directedScholars.forEach(scholar => {
+      question.directedScholars.forEach((scholar) => {
         if (scholar.email) {
-          this.mailService.sendQuestionDirectionNotification(
-            { email: scholar.email, name: scholar.name },
-            question.title,
-            question.id
-          ).catch(err => console.error(`Failed to send direction email to ${scholar.email}:`, err));
+          this.mailService
+            .sendQuestionDirectionNotification(
+              { email: scholar.email, name: scholar.name },
+              question.title,
+              question.id,
+            )
+            .catch((err) =>
+              console.error(
+                `Failed to send direction email to ${scholar.email}:`,
+                err,
+              ),
+            );
         }
       });
     }
@@ -95,9 +123,9 @@ export class QuestionsService {
         some: {
           name: {
             equals: options.tag,
-            mode: 'insensitive'
-          }
-        }
+            mode: 'insensitive',
+          },
+        },
       };
     }
 
@@ -106,15 +134,29 @@ export class QuestionsService {
       orderBy: { createdAt: 'desc' },
       include: {
         author: {
-          select: { id: true, name: true, role: true, avatar: true, gender: true, isVerified: true },
+          select: {
+            id: true,
+            name: true,
+            role: true,
+            avatar: true,
+            gender: true,
+            isVerified: true,
+          },
         },
         tags: true,
         answers: {
           take: 1,
           orderBy: { createdAt: 'desc' },
           include: {
-            author: { select: { name: true, avatar: true, specialization: true, isVerified: true } }
-          }
+            author: {
+              select: {
+                name: true,
+                avatar: true,
+                specialization: true,
+                isVerified: true,
+              },
+            },
+          },
         },
         ratings: {
           select: { value: true, userId: true },
@@ -240,7 +282,13 @@ export class QuestionsService {
       orderBy: { createdAt: 'desc' },
       include: {
         author: {
-          select: { id: true, name: true, role: true, avatar: true, gender: true },
+          select: {
+            id: true,
+            name: true,
+            role: true,
+            avatar: true,
+            gender: true,
+          },
         },
         tags: true,
         answers: {
@@ -253,7 +301,16 @@ export class QuestionsService {
       },
     });
   }
-  async findMyQuestions(authorId: string, options: { status?: string, sort?: string, search?: string, page?: number, limit?: number } = {}) {
+  async findMyQuestions(
+    authorId: string,
+    options: {
+      status?: string;
+      sort?: string;
+      search?: string;
+      page?: number;
+      limit?: number;
+    } = {},
+  ) {
     const { status, sort, search, page = 1, limit = 10 } = options;
     const skip = (page - 1) * limit;
 
@@ -290,7 +347,13 @@ export class QuestionsService {
         take: limit,
         include: {
           author: {
-            select: { id: true, name: true, role: true, avatar: true, gender: true },
+            select: {
+              id: true,
+              name: true,
+              role: true,
+              avatar: true,
+              gender: true,
+            },
           },
           tags: true,
           _count: {
@@ -300,9 +363,9 @@ export class QuestionsService {
             take: 1,
             orderBy: { createdAt: 'desc' },
             include: {
-              author: { select: { id: true, name: true, avatar: true } }
-            }
-          }
+              author: { select: { id: true, name: true, avatar: true } },
+            },
+          },
         },
       }),
       this.prisma.question.count({ where }),
@@ -327,7 +390,13 @@ export class QuestionsService {
       orderBy: { createdAt: 'desc' },
       include: {
         author: {
-          select: { id: true, name: true, role: true, avatar: true, gender: true },
+          select: {
+            id: true,
+            name: true,
+            role: true,
+            avatar: true,
+            gender: true,
+          },
         },
         tags: true,
         answers: {
@@ -375,7 +444,7 @@ export class QuestionsService {
 
     const scholar = await this.prisma.user.findUnique({
       where: { id: scholarId },
-      select: { name: true }
+      select: { name: true },
     });
 
     // Make sure the scholar is allowed to accept it
@@ -396,12 +465,14 @@ export class QuestionsService {
 
     // Send email notification to user
     if (question.author?.email) {
-      this.mailService.sendQuestionAcceptedNotification(
-        { email: question.author.email, name: question.author.name },
-        question.title,
-        question.id,
-        scholar?.name || 'A scholar'
-      ).catch(err => console.error('Failed to send acceptance email:', err));
+      this.mailService
+        .sendQuestionAcceptedNotification(
+          { email: question.author.email, name: question.author.name },
+          question.title,
+          question.id,
+          scholar?.name || 'A scholar',
+        )
+        .catch((err) => console.error('Failed to send acceptance email:', err));
     }
 
     return updated;
@@ -412,14 +483,14 @@ export class QuestionsService {
       where: { id },
       include: {
         author: { select: { email: true, name: true } },
-      }
+      },
     });
 
     if (!question) throw new NotFoundException('Question not found');
 
     const scholar = await this.prisma.user.findUnique({
       where: { id: scholarId },
-      select: { name: true }
+      select: { name: true },
     });
 
     const updated = await this.prisma.question.update({
@@ -443,35 +514,48 @@ export class QuestionsService {
 
     // Send email notification to user
     if (question.author?.email) {
-      this.mailService.sendQuestionDeclinedNotification(
-        { email: question.author.email, name: question.author.name },
-        question.title,
-        question.id,
-        scholar?.name || 'A scholar'
-      ).catch(err => console.error('Failed to send decline email:', err));
+      this.mailService
+        .sendQuestionDeclinedNotification(
+          { email: question.author.email, name: question.author.name },
+          question.title,
+          question.id,
+          scholar?.name || 'A scholar',
+        )
+        .catch((err) => console.error('Failed to send decline email:', err));
     }
 
     return updated;
   }
 
-  async answerQuestion(questionId: string, scholarId: string, content: string, categories: string[], voiceUrl?: string) {
+  async answerQuestion(
+    questionId: string,
+    scholarId: string,
+    content: string,
+    categories: string[],
+    voiceUrl?: string,
+  ) {
     const question = await this.prisma.question.findUnique({
       where: { id: questionId },
-      include: { author: { select: { email: true, name: true } } }
+      include: { author: { select: { email: true, name: true } } },
     });
-
 
     if (!question) {
       throw new NotFoundException('Question not found');
     }
 
-    const scholar = await this.prisma.user.findUnique({ where: { id: scholarId } });
+    const scholar = await this.prisma.user.findUnique({
+      where: { id: scholarId },
+    });
     if ((scholar as any)?.isBanned) {
-      throw new BadRequestException('Your account has been restricted. You cannot provide answers at this time.');
+      throw new BadRequestException(
+        'Your account has been restricted. You cannot provide answers at this time.',
+      );
     }
 
     if (!categories || categories.length === 0) {
-      throw new BadRequestException('At least one category is required to answer a question');
+      throw new BadRequestException(
+        'At least one category is required to answer a question',
+      );
     }
 
     // Update tags and set acceptedById for the question
@@ -497,9 +581,9 @@ export class QuestionsService {
       },
       include: {
         author: {
-          select: { id: true, name: true, avatar: true, role: true }
-        }
-      }
+          select: { id: true, name: true, avatar: true, role: true },
+        },
+      },
     });
 
     // Delete draft if it exists
@@ -528,18 +612,24 @@ export class QuestionsService {
 
     // Send email notification
     if (question.author?.email) {
-      this.mailService.sendAnswerNotification(
-        { email: question.author.email, name: question.author.name },
-        question.title,
-        question.id
-      ).catch(err => console.error('Failed to send answer email:', err));
+      this.mailService
+        .sendAnswerNotification(
+          { email: question.author.email, name: question.author.name },
+          question.title,
+          question.id,
+        )
+        .catch((err) => console.error('Failed to send answer email:', err));
     }
-
 
     return answer;
   }
 
-  async saveDraft(questionId: string, scholarId: string, content: string, voiceUrl?: string) {
+  async saveDraft(
+    questionId: string,
+    scholarId: string,
+    content: string,
+    voiceUrl?: string,
+  ) {
     const draft = await this.prisma.answerDraft.upsert({
       where: {
         authorId_questionId: {
@@ -575,13 +665,15 @@ export class QuestionsService {
 
   async findAllTags() {
     const tags = await this.prisma.tag.findMany({
-      select: { name: true }
+      select: { name: true },
     });
-    return tags.map(t => t.name);
+    return tags.map((t) => t.name);
   }
 
   async voteQuestion(questionId: string, userId: string, value: number) {
-    const question = await this.prisma.question.findUnique({ where: { id: questionId } });
+    const question = await this.prisma.question.findUnique({
+      where: { id: questionId },
+    });
     if (!question) throw new NotFoundException('Question not found');
 
     const existingVote = await this.prisma.rating.findUnique({
@@ -623,7 +715,9 @@ export class QuestionsService {
   }
 
   async voteAnswer(answerId: string, userId: string, value: number) {
-    const answer = await this.prisma.answer.findUnique({ where: { id: answerId } });
+    const answer = await this.prisma.answer.findUnique({
+      where: { id: answerId },
+    });
     if (!answer) throw new NotFoundException('Answer not found');
 
     const existingVote = await this.prisma.rating.findUnique({
@@ -708,7 +802,13 @@ export class QuestionsService {
       orderBy: { createdAt: 'desc' },
       include: {
         author: {
-          select: { id: true, name: true, role: true, avatar: true, gender: true },
+          select: {
+            id: true,
+            name: true,
+            role: true,
+            avatar: true,
+            gender: true,
+          },
         },
         tags: true,
         _count: {
@@ -718,9 +818,9 @@ export class QuestionsService {
           take: 1,
           orderBy: { createdAt: 'desc' },
           include: {
-            author: { select: { id: true, name: true, avatar: true } }
-          }
-        }
+            author: { select: { id: true, name: true, avatar: true } },
+          },
+        },
       },
     });
   }
@@ -733,7 +833,13 @@ export class QuestionsService {
       orderBy: { updatedAt: 'desc' },
       include: {
         author: {
-          select: { id: true, name: true, role: true, avatar: true, gender: true },
+          select: {
+            id: true,
+            name: true,
+            role: true,
+            avatar: true,
+            gender: true,
+          },
         },
         tags: true,
         _count: {
@@ -743,13 +849,13 @@ export class QuestionsService {
           take: 1,
           orderBy: { createdAt: 'desc' },
           include: {
-            author: { select: { id: true, name: true, avatar: true } }
-          }
+            author: { select: { id: true, name: true, avatar: true } },
+          },
         },
         answerDrafts: {
           where: { authorId: scholarId },
-          take: 1
-        }
+          take: 1,
+        },
       },
     });
   }
@@ -758,8 +864,8 @@ export class QuestionsService {
     await this.prisma.user.update({
       where: { id: userId },
       data: {
-        savedQuestions: { set: [] }
-      }
+        savedQuestions: { set: [] },
+      },
     });
     return { success: true };
   }
@@ -769,33 +875,33 @@ export class QuestionsService {
     const tagsWithCounts = await this.prisma.tag.findMany({
       include: {
         _count: {
-          select: { questions: true }
-        }
-      }
+          select: { questions: true },
+        },
+      },
     });
 
     // Default icon mapping
     const getIcon = (name: string) => {
       const n = name.toLowerCase();
-      if (n.includes('spiritual') || n.includes('heart')) return "🌱";
-      if (n.includes('fiqh') || n.includes('law')) return "⚖️";
-      if (n.includes('family') || n.includes('marriage')) return "🏠";
-      if (n.includes('history') || n.includes('seerah')) return "📜";
-      if (n.includes('hadith')) return "📖";
-      if (n.includes('contemporary')) return "🌐";
-      if (n.includes('aqidah') || n.includes('belief')) return "🕋";
-      if (n.includes('quran')) return "📗";
-      if (n.includes('ramadan') || n.includes('fasting')) return "🌙";
-      return "🏷️";
+      if (n.includes('spiritual') || n.includes('heart')) return '🌱';
+      if (n.includes('fiqh') || n.includes('law')) return '⚖️';
+      if (n.includes('family') || n.includes('marriage')) return '🏠';
+      if (n.includes('history') || n.includes('seerah')) return '📜';
+      if (n.includes('hadith')) return '📖';
+      if (n.includes('contemporary')) return '🌐';
+      if (n.includes('aqidah') || n.includes('belief')) return '🕋';
+      if (n.includes('quran')) return '📗';
+      if (n.includes('ramadan') || n.includes('fasting')) return '🌙';
+      return '🏷️';
     };
 
     return tagsWithCounts
-      .map(tag => ({
+      .map((tag) => ({
         name: tag.name.charAt(0).toUpperCase() + tag.name.slice(1),
         count: tag._count.questions,
-        icon: getIcon(tag.name)
+        icon: getIcon(tag.name),
       }))
-      .filter(t => t.count > 0)
+      .filter((t) => t.count > 0)
       .sort((a, b) => b.count - a.count); // sort descending by count
   }
 
@@ -818,10 +924,14 @@ export class QuestionsService {
       },
       distinct: ['questionId'],
     });
-    const peopleHelped = new Set(helpedAuthors.map((a) => a.question.authorId)).size;
+    const peopleHelped = new Set(helpedAuthors.map((a) => a.question.authorId))
+      .size;
 
     // Response rate: (Answered Questions / Total Questions) * 100
-    const responseRate = totalQuestions > 0 ? Math.round((answeredQuestionsCount / totalQuestions) * 100) : 0;
+    const responseRate =
+      totalQuestions > 0
+        ? Math.round((answeredQuestionsCount / totalQuestions) * 100)
+        : 0;
 
     return {
       totalQuestions,

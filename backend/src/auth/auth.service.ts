@@ -22,7 +22,7 @@ export class AuthService {
     private jwtService: JwtService,
     private mailService: MailService,
     private configService: ConfigService,
-  ) { }
+  ) {}
 
   async signup(dto: SignupDto) {
     const userExists = await this.prisma.user.findUnique({
@@ -66,7 +66,8 @@ export class AuthService {
     });
 
     // Send the OTP email
-    this.mailService.sendOTP({ email: user.email, name: user.name }, otp)
+    this.mailService
+      .sendOTP({ email: user.email, name: user.name }, otp)
       .catch((err) => console.error('Failed to send signup OTP:', err));
 
     return {
@@ -100,7 +101,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid verification code');
     }
 
-    if (!(user as any).otpExpiresAt || new Date() > (user as any).otpExpiresAt) {
+    if (
+      !(user as any).otpExpiresAt ||
+      new Date() > (user as any).otpExpiresAt
+    ) {
       throw new UnauthorizedException('Verification code has expired');
     }
 
@@ -136,10 +140,16 @@ export class AuthService {
     const waitTime = this.calculateWaitTime(attempts);
 
     if (lastSentAt) {
-      const nextAllowedAt = new Date(new Date(lastSentAt).getTime() + waitTime * 1000);
+      const nextAllowedAt = new Date(
+        new Date(lastSentAt).getTime() + waitTime * 1000,
+      );
       if (new Date() < nextAllowedAt) {
-        const remainingSeconds = Math.ceil((nextAllowedAt.getTime() - new Date().getTime()) / 1000);
-        throw new BadRequestException(`Please wait ${remainingSeconds} seconds before requesting a new code.`);
+        const remainingSeconds = Math.ceil(
+          (nextAllowedAt.getTime() - new Date().getTime()) / 1000,
+        );
+        throw new BadRequestException(
+          `Please wait ${remainingSeconds} seconds before requesting a new code.`,
+        );
       }
     }
 
@@ -162,12 +172,17 @@ export class AuthService {
     return {
       message: 'Verification code resent successfully',
       waitTime: this.calculateWaitTime(newAttempts),
-      nextRequestAt: new Date(Date.now() + this.calculateWaitTime(newAttempts) * 1000),
+      nextRequestAt: new Date(
+        Date.now() + this.calculateWaitTime(newAttempts) * 1000,
+      ),
     };
   }
 
   // Track failed login attempts in memory (per-IP and per-email)
-  private loginAttempts = new Map<string, { count: number; lockedUntil: Date | null }>();
+  private loginAttempts = new Map<
+    string,
+    { count: number; lockedUntil: Date | null }
+  >();
   private readonly MAX_LOGIN_ATTEMPTS = 5;
   private readonly LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
@@ -183,7 +198,10 @@ export class AuthService {
   }
 
   private recordFailedLogin(key: string): void {
-    const record = this.loginAttempts.get(key) || { count: 0, lockedUntil: null };
+    const record = this.loginAttempts.get(key) || {
+      count: 0,
+      lockedUntil: null,
+    };
     record.count += 1;
     if (record.count >= this.MAX_LOGIN_ATTEMPTS) {
       record.lockedUntil = new Date(Date.now() + this.LOCKOUT_DURATION_MS);
@@ -212,7 +230,9 @@ export class AuthService {
     }
 
     if ((user as any).isBanned) {
-      throw new UnauthorizedException('Your account has been suspended. Please contact support.');
+      throw new UnauthorizedException(
+        'Your account has been suspended. Please contact support.',
+      );
     }
 
     const isPasswordValid = await bcrypt.compare(dto.password, user.password);
@@ -223,7 +243,9 @@ export class AuthService {
     }
 
     if (!(user as any).isVerified) {
-      throw new UnauthorizedException('Please verify your email address before logging in.');
+      throw new UnauthorizedException(
+        'Please verify your email address before logging in.',
+      );
     }
 
     // Successful login — clear lockout tracking
@@ -282,16 +304,30 @@ export class AuthService {
     };
   }
 
-  async updateProfile(userId: string, dto: { name?: string; madhab?: string; bio?: string; educationalQualifications?: string; officeHours?: any; specialization?: string; }) {
+  async updateProfile(
+    userId: string,
+    dto: {
+      name?: string;
+      madhab?: string;
+      bio?: string;
+      educationalQualifications?: string;
+      officeHours?: any;
+      specialization?: string;
+    },
+  ) {
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
       data: {
         ...(dto.name && { name: dto.name }),
         ...(dto.madhab && { madhab: dto.madhab }),
         ...(dto.bio !== undefined && { bio: dto.bio }),
-        ...(dto.educationalQualifications !== undefined && { educationalQualifications: dto.educationalQualifications }),
+        ...(dto.educationalQualifications !== undefined && {
+          educationalQualifications: dto.educationalQualifications,
+        }),
         ...(dto.officeHours !== undefined && { officeHours: dto.officeHours }),
-        ...(dto.specialization !== undefined && { specialization: dto.specialization }),
+        ...(dto.specialization !== undefined && {
+          specialization: dto.specialization,
+        }),
       },
       select: {
         id: true,
@@ -326,7 +362,7 @@ export class AuthService {
         isBanned: true,
         avatar: true,
         createdAt: true,
-        specialization: true
+        specialization: true,
       },
     });
   }
@@ -339,7 +375,9 @@ export class AuthService {
   }
 
   async updateRole(userId: string, targetRole: Role, requesterRole: string) {
-    const userToUpdate = await this.prisma.user.findUnique({ where: { id: userId } });
+    const userToUpdate = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
     if (!userToUpdate) throw new ConflictException('User not found');
 
     // Prevent any role modification of ADMINs
@@ -349,7 +387,9 @@ export class AuthService {
 
     // Only allow setting ADMIN role if the requester is an ADMIN
     if (targetRole === Role.ADMIN && requesterRole !== Role.ADMIN) {
-      throw new UnauthorizedException('Only administrators can promote to Admin role');
+      throw new UnauthorizedException(
+        'Only administrators can promote to Admin role',
+      );
     }
 
     return this.prisma.user.update({
@@ -361,7 +401,8 @@ export class AuthService {
   async updateBanStatus(userId: string, isBanned: boolean) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new ConflictException('User not found');
-    if (user.role === Role.ADMIN) throw new UnauthorizedException('Cannot ban Admin');
+    if (user.role === Role.ADMIN)
+      throw new UnauthorizedException('Cannot ban Admin');
 
     return (this.prisma.user as any).update({
       where: { id: userId },
@@ -376,7 +417,10 @@ export class AuthService {
 
     if (!user) {
       // For security reasons, don't confirm if user exists or not
-      return { message: 'If an account exists with this email, a reset link has been sent.' };
+      return {
+        message:
+          'If an account exists with this email, a reset link has been sent.',
+      };
     }
 
     const token = crypto.randomBytes(32).toString('hex');
@@ -390,16 +434,25 @@ export class AuthService {
       },
     });
 
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
     const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
-    await this.mailService.sendPasswordResetEmail({ email: user.email, name: user.name }, resetUrl);
-    return { message: 'If an account exists with this email, a reset link has been sent.' };
+    await this.mailService.sendPasswordResetEmail(
+      { email: user.email, name: user.name },
+      resetUrl,
+    );
+    return {
+      message:
+        'If an account exists with this email, a reset link has been sent.',
+    };
   }
 
   async resetPassword(token: string, newPassword: string) {
     // Validate password strength on reset too
     if (!newPassword || newPassword.length < 8) {
-      throw new BadRequestException('Password must be at least 8 characters long');
+      throw new BadRequestException(
+        'Password must be at least 8 characters long',
+      );
     }
 
     const user = await (this.prisma.user as any).findFirst({

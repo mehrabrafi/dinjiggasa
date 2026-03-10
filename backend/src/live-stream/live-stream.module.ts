@@ -7,9 +7,9 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { UploadModule } from '../upload/upload.module';
 
 @Module({
-    imports: [PrismaModule, UploadModule],
-    controllers: [LiveStreamController],
-    providers: [LiveStreamGateway, LiveStreamService, LiveChatGateway],
-    exports: [LiveStreamService],
+  imports: [PrismaModule, UploadModule],
+  controllers: [LiveStreamController],
+  providers: [LiveStreamGateway, LiveStreamService, LiveChatGateway],
+  exports: [LiveStreamService],
 })
-export class LiveStreamModule { }
+export class LiveStreamModule {}

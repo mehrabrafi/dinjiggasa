@@ -16,7 +16,7 @@ import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 
 @Controller('questions')
 export class QuestionsController {
-  constructor(private readonly questionsService: QuestionsService) { }
+  constructor(private readonly questionsService: QuestionsService) {}
 
   @UseGuards(JwtAuthGuard)
   @Post()
@@ -48,7 +48,7 @@ export class QuestionsController {
       status,
       sort,
       search,
-      page: page ? parseInt(page) : 1
+      page: page ? parseInt(page) : 1,
     });
   }
 
@@ -119,7 +119,7 @@ export class QuestionsController {
   voteQuestion(
     @Param('id') id: string,
     @Body() dto: { value: number },
-    @Request() req: any
+    @Request() req: any,
   ) {
     return this.questionsService.voteQuestion(id, req.user.id, dto.value);
   }
@@ -149,7 +149,7 @@ export class QuestionsController {
   voteAnswer(
     @Param('id') id: string,
     @Body() dto: { value: number },
-    @Request() req: any
+    @Request() req: any,
   ) {
     return this.questionsService.voteAnswer(id, req.user.id, dto.value);
   }
@@ -158,20 +158,31 @@ export class QuestionsController {
   @Post(':id/answers')
   answerQuestion(
     @Param('id') id: string,
-    @Body() dto: { content: string, categories: string[], voiceUrl?: string },
-    @Request() req: any
+    @Body() dto: { content: string; categories: string[]; voiceUrl?: string },
+    @Request() req: any,
   ) {
-    return this.questionsService.answerQuestion(id, req.user.id, dto.content, dto.categories, dto.voiceUrl);
+    return this.questionsService.answerQuestion(
+      id,
+      req.user.id,
+      dto.content,
+      dto.categories,
+      dto.voiceUrl,
+    );
   }
 
   @UseGuards(JwtAuthGuard)
   @Post(':id/draft')
   saveDraft(
     @Param('id') id: string,
-    @Body() dto: { content: string, voiceUrl?: string },
-    @Request() req: any
+    @Body() dto: { content: string; voiceUrl?: string },
+    @Request() req: any,
   ) {
-    return this.questionsService.saveDraft(id, req.user.id, dto.content, dto.voiceUrl);
+    return this.questionsService.saveDraft(
+      id,
+      req.user.id,
+      dto.content,
+      dto.voiceUrl,
+    );
   }
 
   @UseGuards(JwtAuthGuard)

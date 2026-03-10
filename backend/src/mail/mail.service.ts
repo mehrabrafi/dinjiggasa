@@ -11,14 +11,20 @@ export class MailService {
   constructor(private configService: ConfigService) {
     const url = this.configService.get<string>('ZEPTOMAIL_URL');
     const token = this.configService.get<string>('ZEPTOMAIL_TOKEN');
-    this.fromAddress = this.configService.get<string>('ZEPTOMAIL_FROM_ADDRESS') || 'noreply@deenjiggasa.info';
-    this.fromName = this.configService.get<string>('ZEPTOMAIL_FROM_NAME') || 'DinJiggasa';
-
+    this.fromAddress =
+      this.configService.get<string>('ZEPTOMAIL_FROM_ADDRESS') ||
+      'noreply@deenjiggasa.info';
+    this.fromName =
+      this.configService.get<string>('ZEPTOMAIL_FROM_NAME') || 'DinJiggasa';
 
     this.client = new SendMailClient({ url, token });
   }
 
-  async sendMail(to: { email: string; name: string }, subject: string, htmlBody: string) {
+  async sendMail(
+    to: { email: string; name: string },
+    subject: string,
+    htmlBody: string,
+  ) {
     try {
       await this.client.sendMail({
         from: {
@@ -43,7 +49,11 @@ export class MailService {
     }
   }
 
-  async sendAnswerNotification(user: { email: string; name: string }, questionTitle: string, questionId: string) {
+  async sendAnswerNotification(
+    user: { email: string; name: string },
+    questionTitle: string,
+    questionId: string,
+  ) {
     const subject = `Answer Received: ${questionTitle}`;
     const url = `https://dinjiggasa.info/questions/${questionId}`;
 
@@ -77,7 +87,11 @@ export class MailService {
     return this.sendMail(user, subject, htmlBody);
   }
 
-  async sendQuestionDirectionNotification(scholar: { email: string; name: string }, questionTitle: string, questionId: string) {
+  async sendQuestionDirectionNotification(
+    scholar: { email: string; name: string },
+    questionTitle: string,
+    questionId: string,
+  ) {
     const subject = `New Question Directed to You: ${questionTitle}`;
     const url = `https://dinjiggasa.info/scholar-panel/questions/${questionId}`;
 
@@ -111,7 +125,12 @@ export class MailService {
     return this.sendMail(scholar, subject, htmlBody);
   }
 
-  async sendQuestionAcceptedNotification(user: { email: string; name: string }, questionTitle: string, questionId: string, scholarName: string) {
+  async sendQuestionAcceptedNotification(
+    user: { email: string; name: string },
+    questionTitle: string,
+    questionId: string,
+    scholarName: string,
+  ) {
     const subject = `Question Accepted: ${questionTitle}`;
     const url = `https://dinjiggasa.info/questions/${questionId}`;
 
@@ -148,7 +167,12 @@ export class MailService {
     return this.sendMail(user, subject, htmlBody);
   }
 
-  async sendQuestionDeclinedNotification(user: { email: string; name: string }, questionTitle: string, questionId: string, scholarName: string) {
+  async sendQuestionDeclinedNotification(
+    user: { email: string; name: string },
+    questionTitle: string,
+    questionId: string,
+    scholarName: string,
+  ) {
     const subject = `Update on Your Question: ${questionTitle}`;
     const url = `https://dinjiggasa.info/questions/${questionId}`;
 
@@ -215,7 +239,10 @@ export class MailService {
     return this.sendMail(user, subject, htmlBody);
   }
 
-  async sendPasswordResetEmail(user: { email: string; name: string }, url: string) {
+  async sendPasswordResetEmail(
+    user: { email: string; name: string },
+    url: string,
+  ) {
     const subject = `Reset Your Password - DinJiggasa`;
 
     const htmlBody = `

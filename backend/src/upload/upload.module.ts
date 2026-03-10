@@ -4,9 +4,9 @@ import { UploadController } from './upload.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
-    imports: [PrismaModule],
-    providers: [UploadService],
-    controllers: [UploadController],
-    exports: [UploadService],
+  imports: [PrismaModule],
+  providers: [UploadService],
+  controllers: [UploadController],
+  exports: [UploadService],
 })
-export class UploadModule { }
+export class UploadModule {}

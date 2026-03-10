@@ -1,26 +1,26 @@
 import { IsString, IsOptional, IsEnum } from 'class-validator';
 
 export class UpdateProfileDto {
-    @IsOptional()
-    @IsString()
-    name?: string;
+  @IsOptional()
+  @IsString()
+  name?: string;
 
-    @IsOptional()
-    @IsString()
-    madhab?: string;
+  @IsOptional()
+  @IsString()
+  madhab?: string;
 
-    @IsOptional()
-    @IsString()
-    bio?: string;
+  @IsOptional()
+  @IsString()
+  bio?: string;
 
-    @IsOptional()
-    @IsString()
-    educationalQualifications?: string;
+  @IsOptional()
+  @IsString()
+  educationalQualifications?: string;
 
-    @IsOptional()
-    officeHours?: any;
+  @IsOptional()
+  officeHours?: any;
 
-    @IsOptional()
-    @IsString()
-    specialization?: string;
+  @IsOptional()
+  @IsString()
+  specialization?: string;
 }

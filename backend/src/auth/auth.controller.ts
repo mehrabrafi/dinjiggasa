@@ -1,4 +1,15 @@
-import { Body, Controller, Post, Get, Patch, Param, HttpCode, HttpStatus, UseGuards, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Param,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
@@ -12,7 +23,7 @@ import { Role } from '@prisma/client';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
   @Post('signup')
   signup(@Body() dto: SignupDto) {
@@ -61,21 +72,31 @@ export class AuthController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.MODERATOR)
   @Patch('users/:id/verify')
-  updateVerification(@Param('id') id: string, @Body('isVerified') isVerified: boolean) {
+  updateVerification(
+    @Param('id') id: string,
+    @Body('isVerified') isVerified: boolean,
+  ) {
     return this.authService.updateVerification(id, isVerified);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.MODERATOR)
   @Patch('users/:id/role')
-  updateRole(@Param('id') id: string, @Body('role') role: Role, @Req() req: any) {
+  updateRole(
+    @Param('id') id: string,
+    @Body('role') role: Role,
+    @Req() req: any,
+  ) {
     return this.authService.updateRole(id, role, req.user.role);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.MODERATOR)
   @Patch('users/:id/ban')
-  updateBanStatus(@Param('id') id: string, @Body('isBanned') isBanned: boolean) {
+  updateBanStatus(
+    @Param('id') id: string,
+    @Body('isBanned') isBanned: boolean,
+  ) {
     return this.authService.updateBanStatus(id, isBanned);
   }
 
