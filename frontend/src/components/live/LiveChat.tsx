@@ -1,19 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { io, Socket } from 'socket.io-client';
 import { Send, MessageCircle, Users } from 'lucide-react';
+import { useChat, useParticipants, useConnectionState, ChatMessage as LiveKitChatMessage } from '@livekit/components-react';
+import { ConnectionState } from 'livekit-client';
 import styles from './LiveChat.module.css';
 
-interface ChatMessage {
-    id: string;
-    scholarId: string;
-    senderName: string;
-    senderId: string;
-    message: string;
-    isScholar: boolean;
-    timestamp: string;
-}
+
 
 interface LiveChatProps {
     scholarId: string;
@@ -23,14 +16,15 @@ interface LiveChatProps {
 }
 
 export default function LiveChat({ scholarId, userName, userId, isScholar = false }: LiveChatProps) {
-    const socketRef = useRef<Socket | null>(null);
+    const { send, chatMessages, isSending } = useChat();
+    const participants = useParticipants();
+    const viewerCount = Math.max(0, participants.length - 1); // Exclude the scholar
+    const isConnected = useConnectionState() === ConnectionState.Connected;
+
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
-    const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [newMessage, setNewMessage] = useState('');
     const [isAnonymous, setIsAnonymous] = useState(false);
-    const [viewerCount, setViewerCount] = useState(0);
-    const [isConnected, setIsConnected] = useState(false);
 
     // Auto-scroll to bottom when new messages arrive
     const scrollToBottom = useCallback(() => {
@@ -39,71 +33,29 @@ export default function LiveChat({ scholarId, userName, userId, isScholar = fals
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages, scrollToBottom]);
+    }, [chatMessages, scrollToBottom]);
 
-    useEffect(() => {
-        // Connect to the live-chat namespace
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-        // Strip /api/v1 suffix to get the base server URL for Socket.IO
-        const baseUrl = apiUrl.replace(/\/api\/v1\/?$/, '');
+    const sendMessage = async () => {
+        if (!newMessage.trim() || !isConnected) return;
 
-        const socket = io(`${baseUrl}/live-chat`, {
-            transports: ['websocket', 'polling'],
-        });
-
-        socketRef.current = socket;
-
-        socket.on('connect', () => {
-            console.log('[LiveChat] Connected to chat server');
-            setIsConnected(true);
-
-            // Join the chat room for this scholar's stream
-            socket.emit('join-chat', {
-                scholarId,
-                userName,
-                userId,
+        try {
+            // Include metadata so we can render scholar/anonymous tags correctly
+            const metadata = JSON.stringify({
+                isScholar,
+                senderName: isAnonymous ? 'Anonymous Viewer' : userName,
+                senderId: isAnonymous ? `anon-${Date.now()}` : userId
             });
-        });
 
-        socket.on('disconnect', () => {
-            console.log('[LiveChat] Disconnected from chat server');
-            setIsConnected(false);
-        });
-
-        // Receive chat history on join
-        socket.on('chat-history', (history: ChatMessage[]) => {
-            setMessages(history);
-        });
-
-        // Receive new messages
-        socket.on('chat-message', (message: ChatMessage) => {
-            setMessages((prev) => [...prev, message]);
-        });
-
-        // Receive viewer count updates
-        socket.on('viewer-count', (data: { count: number }) => {
-            setViewerCount(data.count);
-        });
-
-        return () => {
-            socket.emit('leave-chat', { scholarId });
-            socket.disconnect();
-        };
-    }, [scholarId, userName, userId]);
-
-    const sendMessage = () => {
-        if (!newMessage.trim() || !socketRef.current) return;
-
-        socketRef.current.emit('send-message', {
-            scholarId,
-            senderName: isAnonymous ? 'Anonymous Viewer' : userName,
-            senderId: isAnonymous ? `anon-${Date.now()}` : userId,
-            message: newMessage.trim(),
-            isScholar,
-        });
-
-        setNewMessage('');
-        inputRef.current?.focus();
+            // Send actual message, appending metadata string so we can parse it on receive
+            // Note: In a real app we'd attach metadata properly to the track/participant, 
+            // but useChat primarily sends the string. We'll prefix metadata for custom decoding
+            const payload = `[META:${metadata}]${newMessage.trim()}`;
+            await send(payload);
+            setNewMessage('');
+            inputRef.current?.focus();
+        } catch (error) {
+            console.error('Failed to send message:', error);
+        }
     };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -113,9 +65,37 @@ export default function LiveChat({ scholarId, userName, userId, isScholar = fals
         }
     };
 
-    const formatTime = (timestamp: string) => {
+    const formatTime = (timestamp: number) => {
         const date = new Date(timestamp);
         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
+
+    // Helper to decode messages with our custom metadata
+    const decodeMessage = (msg: LiveKitChatMessage) => {
+        const str = msg.message;
+        const metaMatch = str.match(/^\[META:(.*?)\](.*)$/);
+
+        if (metaMatch) {
+            try {
+                const meta = JSON.parse(metaMatch[1]);
+                return {
+                    text: metaMatch[2],
+                    isScholar: meta.isScholar,
+                    senderName: meta.senderName,
+                    senderId: meta.senderId
+                };
+            } catch (e) {
+                // Fallback if parse fails
+            }
+        }
+
+        // Fallback for standard messages (like from LiveKit dashboard)
+        return {
+            text: str,
+            isScholar: false,
+            senderName: 'Anonymous',
+            senderId: 'unknown'
+        };
     };
 
     return (
@@ -142,40 +122,43 @@ export default function LiveChat({ scholarId, userName, userId, isScholar = fals
 
             {/* Messages */}
             <div className={styles.messagesContainer}>
-                {messages.length === 0 && (
+                {chatMessages.length === 0 && (
                     <div className={styles.emptyChat}>
                         <MessageCircle size={32} />
                         <p>No messages yet. Be the first to say something!</p>
                     </div>
                 )}
-                {messages.map((msg) => (
-                    <div
-                        key={msg.id}
-                        className={`${styles.messageItem} ${msg.senderId === 'system'
-                            ? styles.systemMessage
-                            : msg.isScholar
-                                ? styles.scholarMessage
-                                : msg.senderId === userId
-                                    ? styles.ownMessage
-                                    : ''
-                            }`}
-                    >
-                        {msg.senderId === 'system' ? (
-                            <span className={styles.systemText}>{msg.message}</span>
-                        ) : (
-                            <>
-                                <div className={styles.messageMeta}>
-                                    <span className={`${styles.senderName} ${msg.isScholar ? styles.scholarName : ''}`}>
-                                        {msg.senderName}
-                                        {msg.isScholar && <span className={styles.scholarTag}>Scholar</span>}
-                                    </span>
-                                    <span className={styles.messageTime}>{formatTime(msg.timestamp)}</span>
-                                </div>
-                                <p className={styles.messageText}>{msg.message}</p>
-                            </>
-                        )}
-                    </div>
-                ))}
+                {chatMessages.map((msg) => {
+                    const decoded = decodeMessage(msg);
+                    return (
+                        <div
+                            key={msg.id}
+                            className={`${styles.messageItem} ${decoded.senderId === 'system'
+                                ? styles.systemMessage
+                                : decoded.isScholar
+                                    ? styles.scholarMessage
+                                    : decoded.senderId === userId
+                                        ? styles.ownMessage
+                                        : ''
+                                }`}
+                        >
+                            {decoded.senderId === 'system' ? (
+                                <span className={styles.systemText}>{decoded.text}</span>
+                            ) : (
+                                <>
+                                    <div className={styles.messageMeta}>
+                                        <span className={`${styles.senderName} ${decoded.isScholar ? styles.scholarName : ''}`}>
+                                            {decoded.senderName}
+                                            {decoded.isScholar && <span className={styles.scholarTag}>Scholar</span>}
+                                        </span>
+                                        <span className={styles.messageTime}>{formatTime(msg.timestamp)}</span>
+                                    </div>
+                                    <p className={styles.messageText}>{decoded.text}</p>
+                                </>
+                            )}
+                        </div>
+                    );
+                })}
                 <div ref={messagesEndRef} />
             </div>
 
@@ -203,13 +186,13 @@ export default function LiveChat({ scholarId, userName, userId, isScholar = fals
                         onKeyDown={handleKeyPress}
                         placeholder={isScholar ? "Reply to viewers..." : (isAnonymous ? "Ask anonymously..." : "Type your message...")}
                         className={styles.chatInput}
-                        disabled={!isConnected}
+                        disabled={!isConnected || isSending}
                         maxLength={500}
                     />
                     <button
                         onClick={sendMessage}
                         className={styles.sendBtn}
-                        disabled={!newMessage.trim() || !isConnected}
+                        disabled={!newMessage.trim() || !isConnected || isSending}
                     >
                         <Send size={18} />
                     </button>
