@@ -2,12 +2,17 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Headphones, Clock } from 'lucide-react';
+import { Headphones, Clock, AlertCircle } from 'lucide-react';
 import styles from './viewer.module.css';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuthStore } from '@/store/auth.store';
 import LiveChat from '@/components/live/LiveChat';
 import api from '@/lib/axios';
+import {
+    LiveKitRoom,
+    RoomAudioRenderer,
+} from '@livekit/components-react';
+import '@livekit/components-styles';
 
 interface LiveSession {
     id: string;
@@ -18,16 +23,33 @@ interface LiveSession {
 
 export default function LiveViewer() {
     const { scholarId } = useParams();
-    const audioRef = useRef<HTMLAudioElement>(null);
+    const lkServerUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || 'ws://89.167.127.36:7880';
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationRef = useRef<number>(0);
-    const pcRef = useRef<RTCPeerConnection | null>(null);
-    const wsRef = useRef<WebSocket | null>(null);
+    const [lkToken, setLkToken] = useState<string | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [connecting, setConnecting] = useState(true);
     const [pastSessions, setPastSessions] = useState<LiveSession[]>([]);
     const { user } = useAuthStore();
+
+    // Fetch view token
+    useEffect(() => {
+        const fetchToken = async () => {
+            if (!scholarId) return;
+            try {
+                setConnecting(true);
+                const { data } = await api.get(`/live/view-token/${scholarId}`);
+                setLkToken(data.token);
+                setConnecting(false);
+            } catch (err) {
+                console.error('Failed to fetch view token:', err);
+                setError('Could not join live stream. The scholar might not be live.');
+                setConnecting(false);
+            }
+        };
+        fetchToken();
+    }, [scholarId]);
 
     // Fetch past sessions
     useEffect(() => {
@@ -41,11 +63,6 @@ export default function LiveViewer() {
         };
         fetchSessions();
     }, [scholarId]);
-
-    // OvenMediaEngine WebRTC playback signalling URL
-    const getSignallingUrl = () => {
-        return `wss://stream.deenjiggasa.info/app/${scholarId}`;
-    };
 
     // Audio visualizer
     const startAudioVisualizer = (stream: MediaStream) => {
@@ -96,176 +113,6 @@ export default function LiveViewer() {
         draw();
     };
 
-    useEffect(() => {
-        let pc: RTCPeerConnection | null = null;
-        let ws: WebSocket | null = null;
-
-        const connectToStream = () => {
-            setConnecting(true);
-            setError(null);
-
-            const signallingUrl = getSignallingUrl();
-            console.log('[Viewer] Connecting to:', signallingUrl);
-
-            ws = new WebSocket(signallingUrl);
-            wsRef.current = ws;
-
-            ws.onopen = () => {
-                console.log('[Viewer] WebSocket connected');
-                ws?.send(JSON.stringify({ command: 'request_offer' }));
-            };
-
-            ws.onmessage = async (event) => {
-                const message = JSON.parse(event.data);
-                console.log('[Viewer] OME raw message:', JSON.stringify(message));
-
-                if (message.error) {
-                    console.error('[Viewer] OME error:', message.error);
-                    setError(`Stream error: ${message.error}`);
-                    setConnecting(false);
-                    return;
-                }
-
-                if (message.command === 'offer') {
-                    console.log('[Viewer] Received offer from OME');
-
-                    // Build ICE server config
-                    const peerConnectionConfig: RTCConfiguration = {};
-
-                    if (message.ice_servers) {
-                        peerConnectionConfig.iceServers = message.ice_servers.map((server: any) => ({
-                            urls: server.urls,
-                            username: server.user_name,
-                            credential: server.credential,
-                        }));
-                        peerConnectionConfig.iceTransportPolicy = 'relay';
-                    } else {
-                        peerConnectionConfig.iceServers = [
-                            { urls: 'stun:stun.l.google.com:19302' },
-                        ];
-                    }
-
-                    // Create RTCPeerConnection for receiving
-                    pc = new RTCPeerConnection(peerConnectionConfig);
-                    pcRef.current = pc;
-
-                    // Handle incoming audio tracks from OME
-                    pc.ontrack = (event) => {
-                        console.log('[Viewer] Received track:', event.track.kind);
-
-                        if (event.streams[0]) {
-                            if (audioRef.current) {
-                                audioRef.current.srcObject = event.streams[0];
-                                audioRef.current.play().catch((e) => console.warn('Autoplay prevented:', e));
-                            }
-                            startAudioVisualizer(event.streams[0]);
-                            setIsPlaying(true);
-                            setConnecting(false);
-                            setError(null);
-                        }
-                    };
-
-                    // Send ICE candidates to OME
-                    pc.onicecandidate = (e) => {
-                        if (e.candidate && e.candidate.candidate) {
-                            ws?.send(JSON.stringify({
-                                id: message.id,
-                                peer_id: message.peer_id,
-                                command: 'candidate',
-                                candidates: [e.candidate],
-                            }));
-                        }
-                    };
-
-                    pc.oniceconnectionstatechange = () => {
-                        console.log('[Viewer] ICE state:', pc?.iceConnectionState);
-                        if (pc?.iceConnectionState === 'connected') {
-                            setConnecting(false);
-                            setError(null);
-                        } else if (pc?.iceConnectionState === 'disconnected' || pc?.iceConnectionState === 'failed') {
-                            setError('Stream connection lost. The scholar may have ended the stream.');
-                            setIsPlaying(false);
-                        }
-                    };
-
-                    // Build SDP offer
-                    const offerSdp = typeof message.sdp === 'string'
-                        ? message.sdp
-                        : message.sdp?.sdp || message.sdp;
-
-                    const offer = new RTCSessionDescription({
-                        type: 'offer',
-                        sdp: typeof offerSdp === 'string' ? offerSdp : JSON.stringify(offerSdp),
-                    });
-
-                    await pc.setRemoteDescription(offer);
-
-                    // Add ICE candidates from OME
-                    if (message.candidates) {
-                        for (const candidate of message.candidates) {
-                            if (candidate && candidate.candidate) {
-                                try {
-                                    await pc.addIceCandidate(new RTCIceCandidate(candidate));
-                                } catch (e) {
-                                    console.warn('[Viewer] Error adding ICE candidate:', e);
-                                }
-                            }
-                        }
-                    }
-
-                    // Create and send answer
-                    const answer = await pc.createAnswer();
-                    await pc.setLocalDescription(answer);
-
-                    ws?.send(JSON.stringify({
-                        id: message.id,
-                        peer_id: message.peer_id,
-                        command: 'answer',
-                        sdp: answer,
-                    }));
-
-                    console.log('[Viewer] Answer sent to OME');
-                }
-            };
-
-            ws.onerror = () => {
-                console.error('[Viewer] WebSocket error');
-                setError('Cannot connect to the streaming server. Please try again later.');
-                setConnecting(false);
-            };
-
-            ws.onclose = () => {
-                console.log('[Viewer] WebSocket closed');
-            };
-        };
-
-        connectToStream();
-
-        return () => {
-            if (pc) {
-                pc.close();
-            }
-            if (ws) {
-                ws.close();
-            }
-            if (animationRef.current) {
-                cancelAnimationFrame(animationRef.current);
-            }
-        };
-    }, [scholarId]);
-
-    const retryConnection = () => {
-        if (pcRef.current) {
-            pcRef.current.close();
-            pcRef.current = null;
-        }
-        if (wsRef.current) {
-            wsRef.current.close();
-            wsRef.current = null;
-        }
-        window.location.reload();
-    };
-
     return (
         <DashboardLayout>
             <div className={styles.container}>
@@ -284,23 +131,49 @@ export default function LiveViewer() {
                             )}
                             {error && (
                                 <div className={styles.errorOverlay}>
+                                    <AlertCircle size={40} className={styles.errorIcon} />
                                     <p>{error}</p>
-                                    <button onClick={retryConnection} className={styles.retryBtn}>
+                                    <button onClick={() => window.location.reload()} className={styles.retryBtn}>
                                         Retry Connection
                                     </button>
                                 </div>
                             )}
-                            <audio ref={audioRef} autoPlay playsInline style={{ display: 'none' }} />
+
                             <div className={styles.audioVisualizer}>
-                                <div className={styles.audioIconWrapper}>
-                                    <Headphones size={56} />
-                                </div>
-                                <canvas
-                                    ref={canvasRef}
-                                    width={600}
-                                    height={200}
-                                    className={styles.audioCanvas}
-                                />
+                                {lkToken ? (
+                                    <LiveKitRoom
+                                        video={false}
+                                        audio={true}
+                                        token={lkToken}
+                                        serverUrl={lkServerUrl}
+                                        connect={true}
+                                        onDisconnected={() => setIsPlaying(false)}
+                                        onConnected={() => setIsPlaying(true)}
+                                    >
+                                        <div className={styles.audioIconWrapper}>
+                                            <Headphones size={56} />
+                                        </div>
+                                        <canvas
+                                            ref={canvasRef}
+                                            width={600}
+                                            height={200}
+                                            className={styles.audioCanvas}
+                                        />
+                                        <RoomAudioRenderer />
+                                    </LiveKitRoom>
+                                ) : (
+                                    <>
+                                        <div className={styles.audioIconWrapper}>
+                                            <Headphones size={56} />
+                                        </div>
+                                        <canvas
+                                            ref={canvasRef}
+                                            width={600}
+                                            height={200}
+                                            className={styles.audioCanvas}
+                                        />
+                                    </>
+                                )}
                                 <p className={styles.audioLabel}>
                                     {isPlaying ? '🎙️ Audio Stream — Playing' : 'Waiting for audio stream...'}
                                 </p>
@@ -308,7 +181,7 @@ export default function LiveViewer() {
                         </div>
 
                         <div className={styles.streamInfo}>
-                            <p>🎙️ Audio-only stream — Sub-second latency powered by OvenMediaEngine WebRTC</p>
+                            <p>🎙️ Audio-only stream — Pro Real-time Audio powered by LiveKit</p>
                         </div>
 
                         {pastSessions.length > 0 && (

@@ -1,11 +1,22 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Mic, MicOff, Play, Square, AlertCircle, Headphones } from 'lucide-react';
+import { Mic, MicOff, Play, Square, AlertCircle, Headphones, Settings, LogOut } from 'lucide-react';
 import styles from './live.module.css';
 import { useAuthStore } from '@/store/auth.store';
 import api from '@/lib/axios';
 import LiveChat from '@/components/live/LiveChat';
+import {
+    LiveKitRoom,
+    AudioTrack,
+    ControlBar,
+    RoomAudioRenderer,
+    useTracks,
+    TrackLoop,
+    GridLayout
+} from '@livekit/components-react';
+import { Track } from 'livekit-client';
+import '@livekit/components-styles';
 
 export default function ScholarLiveStudio() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -146,237 +157,40 @@ export default function ScholarLiveStudio() {
         }
     };
 
+    const [lkToken, setLkToken] = useState<string | null>(null);
+    const lkServerUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || 'ws://89.167.127.36:7880';
+
     const startStreaming = useCallback(async () => {
-        if (!mediaStream) {
-            setStatus('Error: No media stream');
-            return;
-        }
-
-        setStatus('Connecting to server...');
-
-        // Initialize MediaRecorder
         try {
-            recordedChunks.current = [];
-            // Try audio/webm first, iOS might need audio/mp4
-            const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
-            const recorder = new MediaRecorder(mediaStream, { mimeType });
+            setStatus('Getting access token...');
+            const { data } = await api.get('/live/token');
+            setLkToken(data.token);
+            setIsStreaming(true);
+            setStatus('🔴 Live');
 
-            recorder.ondataavailable = (e) => {
-                if (e.data && e.data.size > 0) {
-                    recordedChunks.current.push(e.data);
-                }
-            };
-
-            recorder.onstop = async () => {
-                const blob = new Blob(recordedChunks.current, { type: mimeType });
-                await uploadRecording(blob, mimeType);
-            };
-
-            recorder.start();
-            mediaRecorderRef.current = recorder;
-            console.log('[LiveStream] Started recording stream locally');
-        } catch (e) {
-            console.error('[LiveStream] Failed to start MediaRecorder:', e);
-        }
-
-        try {
-            // Notify backend that this scholar is going live (audio-only)
+            // Notify backend
             try {
                 await api.post('/live/go-live');
             } catch (e) {
                 console.warn('[LiveStream] Could not notify backend go-live:', e);
             }
-
-            // Connect to OvenMediaEngine via WebSocket signalling
-            const signallingUrl = getSignallingUrl();
-            console.log('[LiveStream] Connecting to OME:', signallingUrl);
-
-            const ws = new WebSocket(signallingUrl);
-            wsRef.current = ws;
-
-            ws.onopen = () => {
-                console.log('[LiveStream] WebSocket connected to OME');
-                setStatus('Connected. Negotiating...');
-
-                // Send the "request_offer" command to OME
-                ws.send(JSON.stringify({
-                    command: 'request_offer',
-                }));
-            };
-
-            ws.onmessage = async (event) => {
-                const message = JSON.parse(event.data);
-                console.log('[LiveStream] OME raw message:', JSON.stringify(message));
-
-                if (message.error) {
-                    console.error('[LiveStream] OME error:', message.error);
-                    setStatus(`Error: ${message.error}`);
-                    return;
-                }
-
-                if (message.command === 'offer') {
-                    console.log('[LiveStream] Received offer from OME');
-
-                    // Build ICE server config from OME response
-                    const peerConnectionConfig: RTCConfiguration = {};
-
-                    if (message.ice_servers) {
-                        peerConnectionConfig.iceServers = message.ice_servers.map((server: any) => ({
-                            urls: server.urls,
-                            username: server.user_name,
-                            credential: server.credential,
-                        }));
-                        peerConnectionConfig.iceTransportPolicy = 'relay';
-                    } else {
-                        peerConnectionConfig.iceServers = [
-                            { urls: 'stun:stun.l.google.com:19302' },
-                        ];
-                    }
-
-                    // Create RTCPeerConnection
-                    const pc = new RTCPeerConnection(peerConnectionConfig);
-                    pcRef.current = pc;
-
-                    // Add audio tracks only to the peer connection
-                    mediaStream.getAudioTracks().forEach((track) => {
-                        pc.addTrack(track, mediaStream);
-                    });
-
-                    // Handle ICE candidate events - send them to OME
-                    pc.onicecandidate = (e) => {
-                        if (e.candidate && e.candidate.candidate) {
-                            ws.send(JSON.stringify({
-                                id: message.id,
-                                peer_id: message.peer_id,
-                                command: 'candidate',
-                                candidates: [e.candidate],
-                            }));
-                        }
-                    };
-
-                    // Monitor ICE connection state
-                    pc.oniceconnectionstatechange = () => {
-                        const state = pc.iceConnectionState;
-                        console.log('[LiveStream] ICE state:', state);
-                        if (state === 'connected') {
-                            setStatus('🔴 Live');
-                            setIsStreaming(true);
-                            console.log('[LiveStream] Audio stream is LIVE!');
-                        } else if (state === 'disconnected' || state === 'failed') {
-                            setStatus('Connection lost. Please try again.');
-                            stopStreaming();
-                        }
-                    };
-
-                    // Build the offer SDP object
-                    const offerSdp = typeof message.sdp === 'string'
-                        ? message.sdp
-                        : message.sdp?.sdp || message.sdp;
-
-                    const offer = new RTCSessionDescription({
-                        type: 'offer',
-                        sdp: typeof offerSdp === 'string' ? offerSdp : JSON.stringify(offerSdp),
-                    });
-
-                    // Set remote description (OME's offer)
-                    await pc.setRemoteDescription(offer);
-
-                    // Add ICE candidates from OME
-                    if (message.candidates) {
-                        for (const candidate of message.candidates) {
-                            if (candidate && candidate.candidate) {
-                                try {
-                                    await pc.addIceCandidate(new RTCIceCandidate(candidate));
-                                } catch (e) {
-                                    console.warn('[LiveStream] Error adding ICE candidate:', e);
-                                }
-                            }
-                        }
-                    }
-
-                    // Create answer
-                    const answer = await pc.createAnswer();
-                    await pc.setLocalDescription(answer);
-
-                    // Send answer back to OME (include id and peer_id!)
-                    ws.send(JSON.stringify({
-                        id: message.id,
-                        peer_id: message.peer_id,
-                        command: 'answer',
-                        sdp: answer,
-                    }));
-
-                    console.log('[LiveStream] Answer sent to OME');
-                    setStatus('Connecting...');
-                }
-            };
-
-            ws.onerror = (err) => {
-                console.error('[LiveStream] WebSocket error:', err);
-                setStatus('Error: Connection to streaming server failed');
-            };
-
-            ws.onclose = (event) => {
-                console.log('[LiveStream] WebSocket closed:', event.code, event.reason);
-            };
-
         } catch (err) {
-            console.error('[LiveStream] Error starting stream:', err);
-            setStatus('Error: Failed to start stream');
+            console.error('[LiveStream] Error fetching token:', err);
+            setStatus('Error: Failed to get streaming token');
         }
-    }, [mediaStream, scholarId]);
+    }, []);
 
     const stopStreaming = useCallback(async () => {
-        if (pcRef.current) {
-            pcRef.current.close();
-            pcRef.current = null;
-        }
-        if (wsRef.current) {
-            wsRef.current.close();
-            wsRef.current = null;
-        }
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-            mediaRecorderRef.current.stop(); // This will trigger onstop and run uploadRecording
-        }
+        setLkToken(null);
+        setIsStreaming(false);
+        setStatus('Ready to start');
 
         try {
             await api.post('/live/go-offline');
         } catch (e) {
             console.warn('[LiveStream] Could not notify backend go-offline:', e);
         }
-        setIsStreaming(false);
-        setStatus('Stream Stopped. Uploading recording...');
     }, []);
-
-    const uploadRecording = async (blob: Blob, mimeType: string) => {
-        setIsUploading(true);
-        setStatus('Uploading recording to Cloudflare R2...');
-        try {
-            const formData = new FormData();
-            const ext = mimeType.split('/')[1] || 'webm';
-            formData.append('file', blob, `live_session_${Date.now()}.${ext}`);
-
-            await api.post('/live/upload-recording', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-                onUploadProgress: (progressEvent) => {
-                    const progress = progressEvent.total
-                        ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
-                        : 0;
-                    setUploadProgress(progress);
-                },
-            });
-
-            setStatus('Stream Stopped & Recording Saved!');
-            setUploadProgress(100);
-        } catch (e) {
-            console.error('Failed to upload recording:', e);
-            setStatus('Stream Stopped (Recording Upload Failed)');
-        } finally {
-            setIsUploading(false);
-            // Reset progress after a short delay
-            setTimeout(() => setUploadProgress(0), 3000);
-        }
-    };
 
     return (
         <div className={styles.container}>
@@ -399,15 +213,38 @@ export default function ScholarLiveStudio() {
                         )}
 
                         <div className={styles.audioVisualizerContainer}>
-                            <div className={styles.audioIcon}>
-                                <Headphones size={64} />
-                            </div>
-                            <canvas
-                                ref={canvasRef}
-                                width={600}
-                                height={200}
-                                className={styles.audioCanvas}
-                            />
+                            {lkToken ? (
+                                <LiveKitRoom
+                                    video={false}
+                                    audio={true}
+                                    token={lkToken}
+                                    serverUrl={lkServerUrl}
+                                    connect={true}
+                                >
+                                    <div className={styles.audioIcon}>
+                                        <Headphones size={64} />
+                                    </div>
+                                    <canvas
+                                        ref={canvasRef}
+                                        width={600}
+                                        height={200}
+                                        className={styles.audioCanvas}
+                                    />
+                                    <RoomAudioRenderer />
+                                </LiveKitRoom>
+                            ) : (
+                                <>
+                                    <div className={styles.audioIcon}>
+                                        <Headphones size={64} />
+                                    </div>
+                                    <canvas
+                                        ref={canvasRef}
+                                        width={600}
+                                        height={200}
+                                        className={styles.audioCanvas}
+                                    />
+                                </>
+                            )}
                             <p className={styles.audioModeLabel}>
                                 {isStreaming ? '🔴 Audio Stream — Live' : 'Audio Only Mode'}
                             </p>
@@ -452,7 +289,7 @@ export default function ScholarLiveStudio() {
                             <li>Use a headset for better audio quality.</li>
                             <li>Viewers will hear your voice with a beautiful audio visualizer.</li>
                             <li>Your live listening URL will be: <b>{typeof window !== 'undefined' ? window.location.host : 'deenjiggasa.info'}/live/{scholarId}</b></li>
-                            <li>Powered by OvenMediaEngine — Sub-second latency streaming!</li>
+                            <li>Powered by LiveKit — Pro Real-time Audio Streaming!</li>
                         </ul>
                     </div>
                 </div>

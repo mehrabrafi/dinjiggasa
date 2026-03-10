@@ -39,6 +39,27 @@ export class LiveStreamController {
         };
     }
 
+    /** GET /api/v1/live/token — get a LiveKit access token for the scholar */
+    @Get('token')
+    @UseGuards(JwtAuthGuard)
+    async getToken(@Req() req: any) {
+        const scholarId = req.user.id || req.user.sub;
+        const userName = req.user.name || 'Scholar';
+        // When going live, the scholar is the room owner and publisher
+        return {
+            token: await this.liveStreamService.generateToken(scholarId, userName, true),
+        };
+    }
+
+    /** GET /api/v1/live/view-token/:scholarId — get a LiveKit access token for a viewer */
+    @Get('view-token/:scholarId')
+    async getViewerToken(@Param('scholarId') scholarId: string) {
+        const participantName = `Audience_${Math.floor(Math.random() * 10000)}`;
+        return {
+            token: await this.liveStreamService.generateToken(scholarId, participantName, false),
+        };
+    }
+
     /** POST /api/v1/live/go-live — mark the authenticated scholar as live */
     @Post('go-live')
     @UseGuards(JwtAuthGuard)

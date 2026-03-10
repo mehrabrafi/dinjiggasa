@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AccessToken } from 'livekit-server-sdk';
 
 export interface LiveScholarInfo {
     scholarId: string;
@@ -115,5 +116,25 @@ export class LiveStreamService {
             info.viewerCount--;
             this.liveScholars.set(scholarId, info);
         }
+    }
+
+    /** Generate a LiveKit access token for a room */
+    async generateToken(roomName: string, participantName: string, isPublisher: boolean) {
+        const apiKey = process.env.LIVEKIT_API_KEY || 'devkey';
+        const apiSecret = process.env.LIVEKIT_API_SECRET || 'secretsecretsecretsecretsecretsecretsecret';
+
+        const at = new AccessToken(apiKey, apiSecret, {
+            identity: participantName,
+        });
+
+        at.addGrant({
+            roomJoin: true,
+            room: roomName,
+            canPublish: isPublisher,
+            canSubscribe: true,
+            canPublishData: true,
+        });
+
+        return at.toJwt();
     }
 }
