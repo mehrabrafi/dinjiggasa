@@ -186,19 +186,37 @@
 
 .scholarDetails {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
-.scholarName {
-    font-size: 1rem;
+.streamTitle {
+    font-size: 1.05rem;
     font-weight: 700;
     color: var(--foreground, #111827);
     margin-bottom: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.specialization {
+.scholarMeta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.scholarName {
     font-size: 0.85rem;
-    color: var(--primary);
-    font-weight: 500;
+    font-weight: 600;
+    color: var(--muted-foreground, #6b7280);
+}
+
+.liveDuration {
+    font-size: 0.75rem;
+    color: #ef4444;
+    font-weight: 700;
 }
 
 /* Empty & Loading States */

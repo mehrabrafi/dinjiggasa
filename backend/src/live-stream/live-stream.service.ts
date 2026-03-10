@@ -7,6 +7,9 @@ export interface LiveScholarInfo {
     clientId: string;
     startedAt: Date;
     viewerCount: number;
+    title?: string;
+    description?: string;
+    streamType?: string;
 }
 
 export interface RaisedHandInfo {
@@ -34,15 +37,18 @@ export class LiveStreamService {
     }
 
     /** Mark a scholar as live */
-    goLive(scholarId: string, clientId: string) {
+    goLive(scholarId: string, clientId: string, title?: string, description?: string, streamType: string = 'audio') {
         this.liveScholars.set(scholarId, {
             scholarId,
             clientId,
             startedAt: new Date(),
             viewerCount: 0,
+            title,
+            description,
+            streamType,
         });
         this.clientToScholar.set(clientId, scholarId);
-        console.log(`[LiveStream] Scholar ${scholarId} is now LIVE (audio)`);
+        console.log(`[LiveStream] Scholar ${scholarId} is now LIVE (${streamType}) with title: ${title}`);
     }
 
     /** Mark a scholar as offline by scholarId */
@@ -111,6 +117,9 @@ export class LiveStreamService {
                 isLive: true,
                 startedAt: liveInfo?.startedAt,
                 viewerCount: liveInfo?.viewerCount || 0,
+                title: liveInfo?.title,
+                description: liveInfo?.description,
+                streamType: liveInfo?.streamType || 'audio',
             };
         });
     }

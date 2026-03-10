@@ -12,7 +12,9 @@ import {
     LiveKitRoom,
     RoomAudioRenderer,
     useLocalParticipant,
-    TrackToggle
+    TrackToggle,
+    useTracks,
+    VideoTrack
 } from '@livekit/components-react';
 import { Track } from 'livekit-client';
 import '@livekit/components-styles';
@@ -81,6 +83,25 @@ interface LiveSession {
     createdAt: string;
 }
 
+function RemoteVideoFeed() {
+    const tracks = useTracks([{ source: Track.Source.Camera, withPlaceholder: false }]);
+
+    const videoTrack = tracks.find(t => t.publication);
+
+    if (!videoTrack) {
+        return (
+            <div className={styles.videoPlaceholder}>
+                <div className={styles.spinner}></div>
+                <p>Waiting for scholar's video feed...</p>
+            </div>
+        );
+    }
+
+    return (
+        <VideoTrack trackRef={videoTrack as any} className={styles.remoteVideo} />
+    );
+}
+
 export default function LiveViewer() {
     const { scholarId } = useParams();
     const lkServerUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://livekit.deenjiggasa.info';
@@ -91,9 +112,9 @@ export default function LiveViewer() {
     const [error, setError] = useState<string | null>(null);
     const [connecting, setConnecting] = useState(true);
     const [pastSessions, setPastSessions] = useState<LiveSession[]>([]);
-    const [handRaised, setHandRaised] = useState(false);
-    const [isSpeaker, setIsSpeaker] = useState(false);
     const [viewerIdentity, setViewerIdentity] = useState<string>('');
+    const [handRaised, setHandRaised] = useState(false);
+    const [liveInfo, setLiveInfo] = useState<{ title?: string; description?: string; streamType?: string } | null>(null);
     const { user } = useAuthStore();
 
     // Fetch view token
@@ -107,6 +128,17 @@ export default function LiveViewer() {
                 setViewerIdentity(identity);
                 const { data } = await api.get(`/live/view-token/${scholarId}?userId=${encodeURIComponent(identity)}&userName=${encodeURIComponent(name)}`);
                 setLkToken(data.token);
+
+                // Fetch live info
+                const { data: statusData } = await api.get(`/live/status/${scholarId}`);
+                if (statusData.isLive) {
+                    setLiveInfo({
+                        title: statusData.title,
+                        description: statusData.description,
+                        streamType: statusData.streamType || 'audio',
+                    });
+                }
+
                 setConnecting(false);
             } catch (err) {
                 console.error('Failed to fetch view token:', err);
@@ -206,8 +238,13 @@ export default function LiveViewer() {
         <DashboardLayout>
             <div className={styles.container}>
                 <h1 className={styles.title}>
-                    🎙️ Live Audio Session
+                    {liveInfo?.title || '🎙️ Live Audio Session'}
                 </h1>
+                {liveInfo?.description && (
+                    <p className={styles.streamDescription}>
+                        {liveInfo.description}
+                    </p>
+                )}
 
                 {lkToken ? (
                     <LiveKitRoom
@@ -239,18 +276,26 @@ export default function LiveViewer() {
                                     )}
 
                                     <div className={styles.audioVisualizer}>
-                                        <div className={styles.audioIconWrapper}>
-                                            <Headphones size={56} />
-                                        </div>
-                                        <canvas
-                                            ref={canvasRef}
-                                            width={600}
-                                            height={200}
-                                            className={styles.audioCanvas}
-                                        />
+                                        {liveInfo?.streamType === 'video' ? (
+                                            <div className={styles.videoStreamContainer}>
+                                                <RemoteVideoFeed />
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className={styles.audioIconWrapper}>
+                                                    <Headphones size={56} />
+                                                </div>
+                                                <canvas
+                                                    ref={canvasRef}
+                                                    width={600}
+                                                    height={200}
+                                                    className={styles.audioCanvas}
+                                                />
+                                            </>
+                                        )}
                                         <RoomAudioRenderer />
                                         <p className={styles.audioLabel}>
-                                            {isPlaying ? '🎙️ Audio Stream — Playing' : 'Waiting for audio stream...'}
+                                            {isPlaying ? (liveInfo?.streamType === 'video' ? '📷 Video Stream — Playing' : '🎙️ Audio Stream — Playing') : `Waiting for stream...`}
                                         </p>
                                     </div>
                                 </div>
@@ -263,7 +308,7 @@ export default function LiveViewer() {
                                 />
 
                                 <div className={styles.streamInfo}>
-                                    <p>🎙️ Audio-only stream — Pro Real-time Audio powered by LiveKit</p>
+                                    <p>{liveInfo?.streamType === 'video' ? '📷 High-Quality Video Stream powered by LiveKit' : '🎙️ Audio-only stream — Pro Real-time Audio powered by LiveKit'}</p>
                                 </div>
 
                                 {pastSessions.length > 0 && (

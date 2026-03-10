@@ -35,6 +35,10 @@ export default function ScholarLiveStudio() {
     const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
     const [isAudioMuted, setIsAudioMuted] = useState(false);
     const [status, setStatus] = useState<string>('Ready to start');
+    const [streamTitle, setStreamTitle] = useState('Understanding the Wisdom of Ramadan');
+    const [streamDescription, setStreamDescription] = useState('Join us for a deep dive into the spiritual and practical aspects of Ramadan.');
+    const [streamType, setStreamType] = useState<'audio' | 'video'>('audio');
+    const videoRef = useRef<HTMLVideoElement>(null);
     const { user } = useAuthStore();
     const scholarId = user?.id || '12345';
 
@@ -53,6 +57,7 @@ export default function ScholarLiveStudio() {
     };
 
     // Initialize audio-only media
+    // Initialize media
     const initMedia = useCallback(async () => {
         if (mediaStream) {
             mediaStream.getTracks().forEach((track) => track.stop());
@@ -60,7 +65,7 @@ export default function ScholarLiveStudio() {
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: false,
+                video: streamType === 'video',
                 audio: {
                     echoCancellation: true,
                     noiseSuppression: true,
@@ -69,13 +74,26 @@ export default function ScholarLiveStudio() {
             });
 
             setMediaStream(stream);
-            startAudioVisualizer(stream);
+
+            if (streamType === 'audio') {
+                startAudioVisualizer(stream);
+            } else if (streamType === 'video' && videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
+
             setStatus('Ready to start');
         } catch (err) {
-            console.error('Error accessing microphone.', err);
-            setStatus('Error: Microphone permissions denied');
+            console.error('Error accessing media.', err);
+            setStatus('Error: Media permissions denied');
         }
-    }, []);
+    }, [streamType]);
+
+    useEffect(() => {
+        if (streamType === 'video' && videoRef.current && mediaStream) {
+            videoRef.current.srcObject = mediaStream;
+        }
+    }, [streamType, mediaStream]);
+
 
     useEffect(() => {
         initMedia();
@@ -92,6 +110,9 @@ export default function ScholarLiveStudio() {
                     setLkToken(tokenRes.data.token);
                     setIsStreaming(true);
                     setStatus('🔴 Live');
+                    if (data.title) setStreamTitle(data.title);
+                    if (data.description) setStreamDescription(data.description);
+                    if (data.streamType) setStreamType(data.streamType as 'audio' | 'video');
                 }
             } catch (err) {
                 console.warn('[LiveStream] Could not check live status:', err);
@@ -209,7 +230,11 @@ export default function ScholarLiveStudio() {
 
             // Notify backend
             try {
-                await api.post('/live/go-live');
+                await api.post('/live/go-live', {
+                    title: streamTitle,
+                    description: streamDescription,
+                    streamType: streamType,
+                });
             } catch (e) {
                 console.warn('[LiveStream] Could not notify backend go-live:', e);
             }
@@ -330,7 +355,7 @@ export default function ScholarLiveStudio() {
 
             {lkToken ? (
                 <LiveKitRoom
-                    video={false}
+                    video={streamType === 'video'}
                     audio={!isAudioMuted}
                     token={lkToken}
                     serverUrl={lkServerUrl}
@@ -340,17 +365,30 @@ export default function ScholarLiveStudio() {
                         <div className={styles.leftCol}>
                             <div className={styles.streamCard}>
                                 <div className={styles.audioVisualizerContainer}>
-                                    <canvas
-                                        ref={canvasRef}
-                                        width={600}
-                                        height={200}
-                                        className={styles.audioCanvas}
-                                    />
+                                    {streamType === 'audio' ? (
+                                        <canvas
+                                            ref={canvasRef}
+                                            width={600}
+                                            height={200}
+                                            className={styles.audioCanvas}
+                                        />
+                                    ) : (
+                                        <div className={styles.videoStreamContainer}>
+                                            <video
+                                                ref={videoRef}
+                                                autoPlay
+                                                muted
+                                                playsInline
+                                                className={styles.localVideo}
+                                            />
+                                        </div>
+                                    )}
                                     <RoomAudioRenderer />
                                 </div>
 
                                 <div className={styles.sessionInfo}>
-                                    <h2 className={styles.sessionTitle}>Understanding the Wisdom of Ramadan</h2>
+                                    <h2 className={styles.sessionTitle}>{streamTitle}</h2>
+                                    {streamDescription && <p className={styles.streamDescription}>{streamDescription}</p>}
                                     <div className={styles.scholarInfo}>
                                         <span className={styles.scholarName}>{user?.name || 'Scholar Name'}</span>
                                         <CheckCircle2 size={16} className={styles.verifiedIcon} />
@@ -465,16 +503,67 @@ export default function ScholarLiveStudio() {
                     <div className={styles.leftCol}>
                         <div className={styles.streamCard}>
                             <div className={styles.audioVisualizerContainer}>
-                                <canvas
-                                    ref={canvasRef}
-                                    width={600}
-                                    height={200}
-                                    className={styles.audioCanvas}
-                                />
+                                {streamType === 'audio' ? (
+                                    <canvas
+                                        ref={canvasRef}
+                                        width={600}
+                                        height={200}
+                                        className={styles.audioCanvas}
+                                    />
+                                ) : (
+                                    <div className={styles.videoStreamContainer}>
+                                        <video
+                                            ref={videoRef}
+                                            autoPlay
+                                            muted
+                                            playsInline
+                                            className={styles.localVideo}
+                                        />
+                                    </div>
+                                )}
                             </div>
 
                             <div className={styles.sessionInfo}>
-                                <h2 className={styles.sessionTitle}>Ready to Broadcast</h2>
+                                <div className={styles.streamConfig}>
+                                    <div className={styles.inputGroup}>
+                                        <label>Stream Title</label>
+                                        <input
+                                            type="text"
+                                            value={streamTitle}
+                                            onChange={(e) => setStreamTitle(e.target.value)}
+                                            placeholder="Enter stream title..."
+                                            className={styles.titleInput}
+                                        />
+                                    </div>
+                                    <div className={styles.inputGroup}>
+                                        <label>Description (Optional)</label>
+                                        <textarea
+                                            value={streamDescription}
+                                            onChange={(e) => setStreamDescription(e.target.value)}
+                                            placeholder="What is this stream about?"
+                                            className={styles.descInput}
+                                        />
+                                    </div>
+
+                                    <div className={styles.streamTypeSelector}>
+                                        <label>Stream Type</label>
+                                        <div className={styles.typeButtons}>
+                                            <button
+                                                className={`${styles.typeBtn} ${streamType === 'audio' ? styles.activeType : ''}`}
+                                                onClick={() => setStreamType('audio')}
+                                            >
+                                                🎙️ Audio Session
+                                            </button>
+                                            <button
+                                                className={`${styles.typeBtn} ${streamType === 'video' ? styles.activeType : ''}`}
+                                                onClick={() => setStreamType('video')}
+                                            >
+                                                📷 Video Stream
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div className={styles.scholarInfo}>
                                     <span className={styles.scholarName}>{user?.name || 'Scholar Name'}</span>
                                     <CheckCircle2 size={16} className={styles.verifiedIcon} />

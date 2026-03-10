@@ -36,6 +36,9 @@ export class LiveStreamController {
             isLive,
             startedAt: info?.startedAt || null,
             viewerCount: info?.viewerCount || 0,
+            title: info?.title,
+            description: info?.description,
+            streamType: info?.streamType || 'audio',
         };
     }
 
@@ -68,9 +71,9 @@ export class LiveStreamController {
     /** POST /api/v1/live/go-live — mark the authenticated scholar as live */
     @Post('go-live')
     @UseGuards(JwtAuthGuard)
-    goLive(@Req() req: any) {
+    goLive(@Req() req: any, @Body() body: { title?: string; description?: string; streamType?: string }) {
         const scholarId = req.user.id || req.user.sub;
-        this.liveStreamService.goLive(scholarId, `http-${scholarId}`);
+        this.liveStreamService.goLive(scholarId, `http-${scholarId}`, body.title, body.description, body.streamType);
         return { success: true };
     }
 
@@ -159,10 +162,14 @@ export class LiveStreamController {
             }
         }
 
+        // Get current live info to use original title
+        const liveInfo = this.liveStreamService.getLiveInfo(scholarId);
+        const title = liveInfo?.title || `Live Session - ${new Date().toLocaleDateString()}`;
+
         // Save session to Prisma
         const session = await this.prisma.liveSession.create({
             data: {
-                title: `Live Session - ${new Date().toLocaleDateString()}`,
+                title,
                 audioUrl,
                 scholarId,
             }

@@ -17,6 +17,8 @@ interface LiveScholar {
     isLive: boolean;
     startedAt: string | null;
     viewerCount: number;
+    title?: string;
+    description?: string;
 }
 
 export default function LiveListPage() {
@@ -102,15 +104,15 @@ export default function LiveListPage() {
                                         className={styles.avatar}
                                     />
                                     <div className={styles.scholarDetails}>
-                                        <h3 className={styles.scholarName}>{scholar.name}</h3>
-                                        <p className={styles.specialization}>
-                                            {scholar.specialization}
+                                        <h3 className={styles.streamTitle}>{scholar.title || `${scholar.name}'s Live Session`}</h3>
+                                        <div className={styles.scholarMeta}>
+                                            <span className={styles.scholarName}>{scholar.name}</span>
                                             {scholar.startedAt && (
-                                                <span style={{ marginLeft: '0.5rem', color: '#ef4444', fontSize: '0.7rem', fontWeight: 600 }}>
+                                                <span className={styles.liveDuration}>
                                                     • {formatDuration(scholar.startedAt)}
                                                 </span>
                                             )}
-                                        </p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
