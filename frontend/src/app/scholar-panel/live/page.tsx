@@ -1,19 +1,31 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Mic, MicOff, Play, Square, AlertCircle, Headphones, Settings, LogOut, Hand, Check, X, Volume2, Timer, Users, CheckCircle2 } from 'lucide-react';
+import {
+    Play,
+    Square,
+    Video,
+    VideoOff,
+    Mic,
+    MicOff,
+    Hand,
+    Check,
+    X,
+    Volume2,
+    Timer,
+    Users,
+    CheckCircle2
+} from 'lucide-react';
 import styles from './live.module.css';
 import { useAuthStore } from '@/store/auth.store';
 import api from '@/lib/axios';
 import LiveChat from '@/components/live/LiveChat';
 import {
     LiveKitRoom,
-    AudioTrack,
-    ControlBar,
     RoomAudioRenderer,
-    useTracks,
-    TrackLoop,
-    GridLayout
+    TrackToggle,
+    useLocalParticipant,
+    VideoTrack
 } from '@livekit/components-react';
 import { Track } from 'livekit-client';
 import '@livekit/components-styles';
@@ -34,6 +46,7 @@ export default function ScholarLiveStudio() {
     const [uploadProgress, setUploadProgress] = useState(0);
     const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
     const [isAudioMuted, setIsAudioMuted] = useState(false);
+    const [isVideoMuted, setIsVideoMuted] = useState(false);
     const [status, setStatus] = useState<string>('Ready to start');
     const [streamTitle, setStreamTitle] = useState('Understanding the Wisdom of Ramadan');
     const [streamDescription, setStreamDescription] = useState('Join us for a deep dive into the spiritual and practical aspects of Ramadan.');
@@ -210,6 +223,15 @@ export default function ScholarLiveStudio() {
         }
     };
 
+    const toggleVideo = () => {
+        if (mediaStream && streamType === 'video') {
+            mediaStream.getVideoTracks().forEach((track) => {
+                track.enabled = !track.enabled;
+            });
+            setIsVideoMuted(!isVideoMuted);
+        }
+    };
+
     const [lkToken, setLkToken] = useState<string | null>(null);
     const lkServerUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://livekit.deenjiggasa.info';
 
@@ -355,7 +377,7 @@ export default function ScholarLiveStudio() {
 
             {lkToken ? (
                 <LiveKitRoom
-                    video={streamType === 'video'}
+                    video={streamType === 'video' && !isVideoMuted}
                     audio={!isAudioMuted}
                     token={lkToken}
                     serverUrl={lkServerUrl}
@@ -406,9 +428,15 @@ export default function ScholarLiveStudio() {
                                         </div>
                                     </button>
 
-                                    <button className={styles.roundControlBtn}>
-                                        <Volume2 size={24} />
-                                    </button>
+                                    {streamType === 'video' ? (
+                                        <button onClick={toggleVideo} className={styles.roundControlBtn} title={isVideoMuted ? "Turn on camera" : "Turn off camera"}>
+                                            {isVideoMuted ? <VideoOff size={24} /> : <Video size={24} />}
+                                        </button>
+                                    ) : (
+                                        <button className={styles.roundControlBtn}>
+                                            <Volume2 size={24} />
+                                        </button>
+                                    )}
                                 </div>
 
                                 {isUploading && (
@@ -579,9 +607,15 @@ export default function ScholarLiveStudio() {
                                     <Play size={28} fill="white" />
                                 </button>
 
-                                <button className={styles.roundControlBtn}>
-                                    <Volume2 size={24} />
-                                </button>
+                                {streamType === 'video' ? (
+                                    <button onClick={toggleVideo} className={styles.roundControlBtn} title={isVideoMuted ? "Turn on camera" : "Turn off camera"}>
+                                        {isVideoMuted ? <VideoOff size={24} /> : <Video size={24} />}
+                                    </button>
+                                ) : (
+                                    <button className={styles.roundControlBtn}>
+                                        <Volume2 size={24} />
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
