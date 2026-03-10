@@ -535,7 +535,20 @@ export default function ScholarLiveStudio() {
                                     />
                                 ) : (
                                     <div className={styles.videoStreamContainer}>
-                                        <LocalVideoPreview streamType={streamType} videoRef={videoRef} mediaStream={mediaStream} />
+                                        <video
+                                            autoPlay
+                                            muted
+                                            playsInline
+                                            className={styles.localVideo}
+                                            ref={(el) => {
+                                                if (videoRef && 'current' in videoRef) {
+                                                    (videoRef as any).current = el;
+                                                }
+                                                if (el && mediaStream) {
+                                                    el.srcObject = mediaStream;
+                                                }
+                                            }}
+                                        />
                                     </div>
                                 )}
                             </div>
