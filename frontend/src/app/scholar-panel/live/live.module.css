@@ -236,30 +236,7 @@
     color: #ef4444;
 }
 
-/* ===== Info Box ===== */
-.infoBox {
-    margin-top: 2rem;
-    padding: 1.5rem;
-    background-color: #f8fafc;
-    border-radius: 8px;
-    border-left: 4px solid #3b82f6;
-}
 
-.infoBox h3 {
-    margin-top: 0;
-    margin-bottom: 0.5rem;
-    color: #1e293b;
-}
-
-.infoBox ul {
-    margin: 0;
-    padding-left: 1.5rem;
-    color: #475569;
-}
-
-.infoBox li {
-    margin-bottom: 0.25rem;
-}
 
 @keyframes pulse {
     0% {
