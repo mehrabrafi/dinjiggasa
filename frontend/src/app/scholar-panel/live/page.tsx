@@ -346,16 +346,6 @@ export default function ScholarLiveStudio() {
                                 </div>
                             </div>
 
-                            <div className={styles.infoBox}>
-                                <h3>Quick Tips:</h3>
-                                <ul>
-                                    <li>Ensure you have a stable internet connection.</li>
-                                    <li>Use a headset for better audio quality.</li>
-                                    <li>Viewers will hear your voice with a beautiful audio visualizer.</li>
-                                    <li>Your live listening URL will be: <b>{typeof window !== 'undefined' ? window.location.host : 'deenjiggasa.info'}/live/{scholarId}</b></li>
-                                    <li>Powered by LiveKit — Pro Real-time Audio Streaming!</li>
-                                </ul>
-                            </div>
 
                             {/* Raised Hands Panel */}
                             {isStreaming && (
