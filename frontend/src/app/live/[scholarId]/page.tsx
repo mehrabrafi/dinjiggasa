@@ -143,7 +143,7 @@ export default function LiveViewer() {
                                 {lkToken ? (
                                     <LiveKitRoom
                                         video={false}
-                                        audio={true}
+                                        audio={false}
                                         token={lkToken}
                                         serverUrl={lkServerUrl}
                                         connect={true}

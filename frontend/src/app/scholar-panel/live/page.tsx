@@ -216,7 +216,7 @@ export default function ScholarLiveStudio() {
                             {lkToken ? (
                                 <LiveKitRoom
                                     video={false}
-                                    audio={true}
+                                    audio={!isAudioMuted}
                                     token={lkToken}
                                     serverUrl={lkServerUrl}
                                     connect={true}
