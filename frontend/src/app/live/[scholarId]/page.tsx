@@ -120,36 +120,36 @@ export default function LiveViewer() {
                     🎙️ Live Audio Session
                 </h1>
 
-                <div className={styles.mainLayout}>
-                    <div className={styles.leftCol}>
-                        <div className={styles.audioContainer}>
-                            {connecting && (
-                                <div className={styles.connectingOverlay}>
-                                    <div className={styles.spinner}></div>
-                                    <p>Connecting to audio stream...</p>
-                                </div>
-                            )}
-                            {error && (
-                                <div className={styles.errorOverlay}>
-                                    <AlertCircle size={40} className={styles.errorIcon} />
-                                    <p>{error}</p>
-                                    <button onClick={() => window.location.reload()} className={styles.retryBtn}>
-                                        Retry Connection
-                                    </button>
-                                </div>
-                            )}
+                {lkToken ? (
+                    <LiveKitRoom
+                        video={false}
+                        audio={false}
+                        token={lkToken}
+                        serverUrl={lkServerUrl}
+                        connect={true}
+                        onDisconnected={() => setIsPlaying(false)}
+                        onConnected={() => setIsPlaying(true)}
+                    >
+                        <div className={styles.mainLayout}>
+                            <div className={styles.leftCol}>
+                                <div className={styles.audioContainer}>
+                                    {connecting && (
+                                        <div className={styles.connectingOverlay}>
+                                            <div className={styles.spinner}></div>
+                                            <p>Connecting to audio stream...</p>
+                                        </div>
+                                    )}
+                                    {error && (
+                                        <div className={styles.errorOverlay}>
+                                            <AlertCircle size={40} className={styles.errorIcon} />
+                                            <p>{error}</p>
+                                            <button onClick={() => window.location.reload()} className={styles.retryBtn}>
+                                                Retry Connection
+                                            </button>
+                                        </div>
+                                    )}
 
-                            <div className={styles.audioVisualizer}>
-                                {lkToken ? (
-                                    <LiveKitRoom
-                                        video={false}
-                                        audio={false}
-                                        token={lkToken}
-                                        serverUrl={lkServerUrl}
-                                        connect={true}
-                                        onDisconnected={() => setIsPlaying(false)}
-                                        onConnected={() => setIsPlaying(true)}
-                                    >
+                                    <div className={styles.audioVisualizer}>
                                         <div className={styles.audioIconWrapper}>
                                             <Headphones size={56} />
                                         </div>
@@ -160,60 +160,118 @@ export default function LiveViewer() {
                                             className={styles.audioCanvas}
                                         />
                                         <RoomAudioRenderer />
-                                    </LiveKitRoom>
-                                ) : (
-                                    <>
-                                        <div className={styles.audioIconWrapper}>
-                                            <Headphones size={56} />
+                                        <p className={styles.audioLabel}>
+                                            {isPlaying ? '🎙️ Audio Stream — Playing' : 'Waiting for audio stream...'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className={styles.streamInfo}>
+                                    <p>🎙️ Audio-only stream — Pro Real-time Audio powered by LiveKit</p>
+                                </div>
+
+                                {pastSessions.length > 0 && (
+                                    <div className={styles.pastSessionsContainer}>
+                                        <h2 className={styles.pastSessionsTitle}>
+                                            <Clock size={20} /> Past Live Sessions
+                                        </h2>
+                                        <div className={styles.sessionList}>
+                                            {pastSessions.map((session) => (
+                                                <div key={session.id} className={styles.sessionItem}>
+                                                    <div className={styles.sessionHeader}>
+                                                        <span className={styles.sessionName}>{session.title || 'Live Session'}</span>
+                                                        <span className={styles.sessionDate}>
+                                                            {new Date(session.createdAt).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
+                                                    <audio controls src={session.audioUrl} className={styles.audioPlayer} preload="none" />
+                                                </div>
+                                            ))}
                                         </div>
-                                        <canvas
-                                            ref={canvasRef}
-                                            width={600}
-                                            height={200}
-                                            className={styles.audioCanvas}
-                                        />
-                                    </>
+                                    </div>
                                 )}
-                                <p className={styles.audioLabel}>
-                                    {isPlaying ? '🎙️ Audio Stream — Playing' : 'Waiting for audio stream...'}
-                                </p>
+                            </div>
+
+                            <div className={styles.rightCol}>
+                                <LiveChat
+                                    scholarId={scholarId as string}
+                                    userName={user?.name || `Viewer-${Math.floor(Math.random() * 1000)}`}
+                                    userId={user?.id || `anon-${Math.floor(Math.random() * 10000)}`}
+                                />
                             </div>
                         </div>
+                    </LiveKitRoom>
+                ) : (
+                    <div className={styles.mainLayout}>
+                        <div className={styles.leftCol}>
+                            <div className={styles.audioContainer}>
+                                {connecting && (
+                                    <div className={styles.connectingOverlay}>
+                                        <div className={styles.spinner}></div>
+                                        <p>Connecting to audio stream...</p>
+                                    </div>
+                                )}
+                                {error && (
+                                    <div className={styles.errorOverlay}>
+                                        <AlertCircle size={40} className={styles.errorIcon} />
+                                        <p>{error}</p>
+                                        <button onClick={() => window.location.reload()} className={styles.retryBtn}>
+                                            Retry Connection
+                                        </button>
+                                    </div>
+                                )}
 
-                        <div className={styles.streamInfo}>
-                            <p>🎙️ Audio-only stream — Pro Real-time Audio powered by LiveKit</p>
-                        </div>
-
-                        {pastSessions.length > 0 && (
-                            <div className={styles.pastSessionsContainer}>
-                                <h2 className={styles.pastSessionsTitle}>
-                                    <Clock size={20} /> Past Live Sessions
-                                </h2>
-                                <div className={styles.sessionList}>
-                                    {pastSessions.map((session) => (
-                                        <div key={session.id} className={styles.sessionItem}>
-                                            <div className={styles.sessionHeader}>
-                                                <span className={styles.sessionName}>{session.title || 'Live Session'}</span>
-                                                <span className={styles.sessionDate}>
-                                                    {new Date(session.createdAt).toLocaleDateString()}
-                                                </span>
-                                            </div>
-                                            <audio controls src={session.audioUrl} className={styles.audioPlayer} preload="none" />
-                                        </div>
-                                    ))}
+                                <div className={styles.audioVisualizer}>
+                                    <div className={styles.audioIconWrapper}>
+                                        <Headphones size={56} />
+                                    </div>
+                                    <canvas
+                                        ref={canvasRef}
+                                        width={600}
+                                        height={200}
+                                        className={styles.audioCanvas}
+                                    />
+                                    <p className={styles.audioLabel}>
+                                        Waiting for audio stream...
+                                    </p>
                                 </div>
                             </div>
-                        )}
-                    </div>
 
-                    <div className={styles.rightCol}>
-                        <LiveChat
-                            scholarId={scholarId as string}
-                            userName={user?.name || `Viewer-${Math.floor(Math.random() * 1000)}`}
-                            userId={user?.id || `anon-${Math.floor(Math.random() * 10000)}`}
-                        />
+                            <div className={styles.streamInfo}>
+                                <p>🎙️ Audio-only stream — Pro Real-time Audio powered by LiveKit</p>
+                            </div>
+
+                            {pastSessions.length > 0 && (
+                                <div className={styles.pastSessionsContainer}>
+                                    <h2 className={styles.pastSessionsTitle}>
+                                        <Clock size={20} /> Past Live Sessions
+                                    </h2>
+                                    <div className={styles.sessionList}>
+                                        {pastSessions.map((session) => (
+                                            <div key={session.id} className={styles.sessionItem}>
+                                                <div className={styles.sessionHeader}>
+                                                    <span className={styles.sessionName}>{session.title || 'Live Session'}</span>
+                                                    <span className={styles.sessionDate}>
+                                                        {new Date(session.createdAt).toLocaleDateString()}
+                                                    </span>
+                                                </div>
+                                                <audio controls src={session.audioUrl} className={styles.audioPlayer} preload="none" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className={styles.rightCol}>
+                            <LiveChat
+                                scholarId={scholarId as string}
+                                userName={user?.name || `Viewer-${Math.floor(Math.random() * 1000)}`}
+                                userId={user?.id || `anon-${Math.floor(Math.random() * 10000)}`}
+                            />
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         </DashboardLayout>
     );

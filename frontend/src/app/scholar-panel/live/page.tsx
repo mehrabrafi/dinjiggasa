@@ -202,25 +202,25 @@ export default function ScholarLiveStudio() {
                 </div>
             </div>
 
-            <div className={styles.mainLayout}>
-                <div className={styles.leftCol}>
-                    <div className={styles.streamContainer}>
-                        {status.includes('Error') && (
-                            <div className={styles.errorOverlay}>
-                                <AlertCircle className={styles.alertIcon} size={40} />
-                                <p>{status}</p>
-                            </div>
-                        )}
+            {lkToken ? (
+                <LiveKitRoom
+                    video={false}
+                    audio={!isAudioMuted}
+                    token={lkToken}
+                    serverUrl={lkServerUrl}
+                    connect={true}
+                >
+                    <div className={styles.mainLayout}>
+                        <div className={styles.leftCol}>
+                            <div className={styles.streamContainer}>
+                                {status.includes('Error') && (
+                                    <div className={styles.errorOverlay}>
+                                        <AlertCircle className={styles.alertIcon} size={40} />
+                                        <p>{status}</p>
+                                    </div>
+                                )}
 
-                        <div className={styles.audioVisualizerContainer}>
-                            {lkToken ? (
-                                <LiveKitRoom
-                                    video={false}
-                                    audio={!isAudioMuted}
-                                    token={lkToken}
-                                    serverUrl={lkServerUrl}
-                                    connect={true}
-                                >
+                                <div className={styles.audioVisualizerContainer}>
                                     <div className={styles.audioIcon}>
                                         <Headphones size={64} />
                                     </div>
@@ -231,78 +231,122 @@ export default function ScholarLiveStudio() {
                                         className={styles.audioCanvas}
                                     />
                                     <RoomAudioRenderer />
-                                </LiveKitRoom>
-                            ) : (
-                                <>
-                                    <div className={styles.audioIcon}>
-                                        <Headphones size={64} />
-                                    </div>
-                                    <canvas
-                                        ref={canvasRef}
-                                        width={600}
-                                        height={200}
-                                        className={styles.audioCanvas}
-                                    />
-                                </>
-                            )}
-                            <p className={styles.audioModeLabel}>
-                                {isStreaming ? '🔴 Audio Stream — Live' : 'Audio Only Mode'}
-                            </p>
-                        </div>
+                                    <p className={styles.audioModeLabel}>
+                                        {isStreaming ? '🔴 Audio Stream — Live' : 'Audio Only Mode'}
+                                    </p>
+                                </div>
 
-                        <div className={styles.controlsOverlay}>
-                            <div className={styles.mediaControls}>
-                                <button onClick={toggleAudio} className={styles.controlBtn} title={isAudioMuted ? "Unmute mic" : "Mute mic"}>
-                                    {isAudioMuted ? <MicOff size={24} /> : <Mic size={24} />}
-                                </button>
+                                <div className={styles.controlsOverlay}>
+                                    <div className={styles.mediaControls}>
+                                        <button onClick={toggleAudio} className={styles.controlBtn} title={isAudioMuted ? "Unmute mic" : "Mute mic"}>
+                                            {isAudioMuted ? <MicOff size={24} /> : <Mic size={24} />}
+                                        </button>
+                                    </div>
+
+                                    <div className={styles.actionControls}>
+                                        {isUploading && (
+                                            <div className={styles.uploadProgressWrapper}>
+                                                <div className={styles.progressBarBg}>
+                                                    <div
+                                                        className={styles.progressBarFill}
+                                                        style={{ width: `${uploadProgress}%` }}
+                                                    ></div>
+                                                </div>
+                                                <span className={styles.progressText}>Uploading: {uploadProgress}%</span>
+                                            </div>
+                                        )}
+                                        <button onClick={stopStreaming} className={styles.stopBtn}>
+                                            <Square size={20} /> End Stream
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className={styles.actionControls}>
-                                {isUploading && (
-                                    <div className={styles.uploadProgressWrapper}>
-                                        <div className={styles.progressBarBg}>
-                                            <div
-                                                className={styles.progressBarFill}
-                                                style={{ width: `${uploadProgress}%` }}
-                                            ></div>
-                                        </div>
-                                        <span className={styles.progressText}>Uploading: {uploadProgress}%</span>
-                                    </div>
-                                )}
-                                {!isStreaming ? (
+                            <div className={styles.infoBox}>
+                                <h3>Quick Tips:</h3>
+                                <ul>
+                                    <li>Ensure you have a stable internet connection.</li>
+                                    <li>Use a headset for better audio quality.</li>
+                                    <li>Viewers will hear your voice with a beautiful audio visualizer.</li>
+                                    <li>Your live listening URL will be: <b>{typeof window !== 'undefined' ? window.location.host : 'deenjiggasa.info'}/live/{scholarId}</b></li>
+                                    <li>Powered by LiveKit — Pro Real-time Audio Streaming!</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div className={styles.rightCol}>
+                            <LiveChat
+                                scholarId={scholarId}
+                                userName={user?.name || 'Scholar'}
+                                userId={user?.id || '12345'}
+                                isScholar={true}
+                            />
+                        </div>
+                    </div>
+                </LiveKitRoom>
+            ) : (
+                <div className={styles.mainLayout}>
+                    <div className={styles.leftCol}>
+                        <div className={styles.streamContainer}>
+                            {status.includes('Error') && (
+                                <div className={styles.errorOverlay}>
+                                    <AlertCircle className={styles.alertIcon} size={40} />
+                                    <p>{status}</p>
+                                </div>
+                            )}
+
+                            <div className={styles.audioVisualizerContainer}>
+                                <div className={styles.audioIcon}>
+                                    <Headphones size={64} />
+                                </div>
+                                <canvas
+                                    ref={canvasRef}
+                                    width={600}
+                                    height={200}
+                                    className={styles.audioCanvas}
+                                />
+                                <p className={styles.audioModeLabel}>
+                                    Audio Only Mode
+                                </p>
+                            </div>
+
+                            <div className={styles.controlsOverlay}>
+                                <div className={styles.mediaControls}>
+                                    <button onClick={toggleAudio} className={styles.controlBtn} title={isAudioMuted ? "Unmute mic" : "Mute mic"}>
+                                        {isAudioMuted ? <MicOff size={24} /> : <Mic size={24} />}
+                                    </button>
+                                </div>
+
+                                <div className={styles.actionControls}>
                                     <button onClick={startStreaming} className={styles.startBtn} disabled={isUploading}>
                                         <Play size={20} /> {isUploading ? 'Finalizing...' : 'Start Streaming'}
                                     </button>
-                                ) : (
-                                    <button onClick={stopStreaming} className={styles.stopBtn}>
-                                        <Square size={20} /> End Stream
-                                    </button>
-                                )}
+                                </div>
                             </div>
+                        </div>
+
+                        <div className={styles.infoBox}>
+                            <h3>Quick Tips:</h3>
+                            <ul>
+                                <li>Ensure you have a stable internet connection.</li>
+                                <li>Use a headset for better audio quality.</li>
+                                <li>Viewers will hear your voice with a beautiful audio visualizer.</li>
+                                <li>Your live listening URL will be: <b>{typeof window !== 'undefined' ? window.location.host : 'deenjiggasa.info'}/live/{scholarId}</b></li>
+                                <li>Powered by LiveKit — Pro Real-time Audio Streaming!</li>
+                            </ul>
                         </div>
                     </div>
 
-                    <div className={styles.infoBox}>
-                        <h3>Quick Tips:</h3>
-                        <ul>
-                            <li>Ensure you have a stable internet connection.</li>
-                            <li>Use a headset for better audio quality.</li>
-                            <li>Viewers will hear your voice with a beautiful audio visualizer.</li>
-                            <li>Your live listening URL will be: <b>{typeof window !== 'undefined' ? window.location.host : 'deenjiggasa.info'}/live/{scholarId}</b></li>
-                            <li>Powered by LiveKit — Pro Real-time Audio Streaming!</li>
-                        </ul>
+                    <div className={styles.rightCol}>
+                        <LiveChat
+                            scholarId={scholarId}
+                            userName={user?.name || 'Scholar'}
+                            userId={user?.id || '12345'}
+                            isScholar={true}
+                        />
                     </div>
                 </div>
-
-                <div className={styles.rightCol}>
-                    <LiveChat
-                        scholarId={scholarId}
-                        userName={user?.name || 'Scholar'}
-                        userId={user?.id || '12345'}
-                        isScholar={true}
-                    />
-                </div>
-            </div>
+            )}
         </div>
     );
 }
