@@ -37,7 +37,7 @@ export default function ScholarLiveStudio() {
 
     // Get the signalling URL for this scholar's stream (with ?direction=send for ingest)
     const getSignallingUrl = () => {
-        return `wss://stream.deenjiggasa.info/app/${scholarId}?direction=send`;
+        return `wss://livekit.deenjiggasa.info/app/${scholarId}?direction=send`;
     };
 
     // Initialize audio-only media
@@ -158,7 +158,7 @@ export default function ScholarLiveStudio() {
     };
 
     const [lkToken, setLkToken] = useState<string | null>(null);
-    const lkServerUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || 'ws://89.167.127.36:7880';
+    const lkServerUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://livekit.deenjiggasa.info';
 
     const startStreaming = useCallback(async () => {
         try {

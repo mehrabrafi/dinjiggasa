@@ -23,7 +23,7 @@ interface LiveSession {
 
 export default function LiveViewer() {
     const { scholarId } = useParams();
-    const lkServerUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || 'ws://89.167.127.36:7880';
+    const lkServerUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://livekit.deenjiggasa.info';
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationRef = useRef<number>(0);
     const [lkToken, setLkToken] = useState<string | null>(null);
