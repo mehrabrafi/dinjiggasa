@@ -105,12 +105,9 @@ function ChatInterface({ scholarId, userName, userId, isScholar }: LiveChatProps
             {/* Chat Header */}
             <div className={styles.chatHeader}>
                 <div className={styles.chatTitleRow}>
-                    <MessageCircle size={18} />
+                    <MessageCircle size={18} className={styles.chatIcon} />
                     <span className={styles.chatTitle}>Live Chat</span>
-                </div>
-                <div className={styles.viewerBadge}>
-                    <Users size={14} />
-                    <span>{viewerCount}</span>
+                    <div className={styles.statusDotHeader}></div>
                 </div>
             </div>
 
@@ -137,26 +134,24 @@ function ChatInterface({ scholarId, userName, userId, isScholar }: LiveChatProps
                             key={msg.id}
                             className={`${styles.messageItem} ${decoded.senderId === 'system'
                                 ? styles.systemMessage
-                                : decoded.isScholar
-                                    ? styles.scholarMessage
-                                    : decoded.senderId === userId
-                                        ? styles.ownMessage
-                                        : ''
+                                : ''
                                 }`}
                         >
                             {decoded.senderId === 'system' ? (
                                 <span className={styles.systemText}>{decoded.text}</span>
                             ) : (
-                                <>
-                                    <div className={styles.messageMeta}>
-                                        <span className={`${styles.senderName} ${decoded.isScholar ? styles.scholarName : ''}`}>
-                                            {decoded.senderName}
-                                            {decoded.isScholar && <span className={styles.scholarTag}>Scholar</span>}
-                                        </span>
-                                        <span className={styles.messageTime}>{formatTime(msg.timestamp)}</span>
+                                <div className={styles.messageContentWrapper}>
+                                    <div className={styles.avatar}>
+                                        {decoded.senderName.charAt(0)}
                                     </div>
-                                    <p className={styles.messageText}>{decoded.text}</p>
-                                </>
+                                    <div className={styles.messageBody}>
+                                        <div className={styles.senderName}>{decoded.senderName}</div>
+                                        <div className={`${styles.messageBubble} ${decoded.isScholar ? styles.isScholarBubble : ''}`}>
+                                            {decoded.text}
+                                        </div>
+                                        <div className={styles.messageTime}>{formatTime(msg.timestamp)}</div>
+                                    </div>
+                                </div>
                             )}
                         </div>
                     );
@@ -220,12 +215,9 @@ export default function LiveChat(props: LiveChatProps) {
         <div className={styles.chatContainer}>
             <div className={styles.chatHeader}>
                 <div className={styles.chatTitleRow}>
-                    <MessageCircle size={18} />
+                    <MessageCircle size={18} className={styles.chatIcon} />
                     <span className={styles.chatTitle}>Live Chat</span>
-                </div>
-                <div className={styles.viewerBadge}>
-                    <Users size={14} />
-                    <span>0</span>
+                    <div className={styles.statusDotHeader}></div>
                 </div>
             </div>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Mic, MicOff, Play, Square, AlertCircle, Headphones, Settings, LogOut, Hand, Check, X, Volume2 } from 'lucide-react';
+import { Mic, MicOff, Play, Square, AlertCircle, Headphones, Settings, LogOut, Hand, Check, X, Volume2, Timer, Users, CheckCircle2 } from 'lucide-react';
 import styles from './live.module.css';
 import { useAuthStore } from '@/store/auth.store';
 import api from '@/lib/axios';
@@ -22,6 +22,9 @@ export default function ScholarLiveStudio() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationRef = useRef<number>(0);
     const analyserRef = useRef<AnalyserNode | null>(null);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const [elapsedSeconds, setElapsedSeconds] = useState(0);
+    const [listenerCount, setListenerCount] = useState(0);
     const pcRef = useRef<RTCPeerConnection | null>(null);
     const wsRef = useRef<WebSocket | null>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -196,6 +199,13 @@ export default function ScholarLiveStudio() {
             setLkToken(data.token);
             setIsStreaming(true);
             setStatus('🔴 Live');
+            setElapsedSeconds(0);
+
+            // Start timer
+            if (timerRef.current) clearInterval(timerRef.current);
+            timerRef.current = setInterval(() => {
+                setElapsedSeconds(prev => prev + 1);
+            }, 1000);
 
             // Notify backend
             try {
@@ -213,6 +223,10 @@ export default function ScholarLiveStudio() {
         setLkToken(null);
         setIsStreaming(false);
         setStatus('Ready to start');
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+        }
 
         try {
             await api.post('/live/go-offline');
@@ -221,6 +235,13 @@ export default function ScholarLiveStudio() {
         }
     }, []);
 
+    const formatElapsedTime = (seconds: number) => {
+        const hrs = Math.floor(seconds / 3600);
+        const mins = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+
     // Poll for raised hands every 3 seconds while streaming
     useEffect(() => {
         if (!isStreaming) return;
@@ -228,6 +249,10 @@ export default function ScholarLiveStudio() {
             try {
                 const { data } = await api.get(`/live/raised-hands/${scholarId}`);
                 setRaisedHands(data);
+
+                // Update listener count too
+                const statusRes = await api.get(`/live/status/${scholarId}`);
+                setListenerCount(statusRes.data.viewerCount || 0);
             } catch (err) {
                 // Silently fail
             }
@@ -279,10 +304,27 @@ export default function ScholarLiveStudio() {
     return (
         <div className={styles.container}>
             <div className={styles.header}>
-                <h1 className={styles.title}>🎙️ Audio Live Studio</h1>
-                <div className={styles.statusBadge} data-streaming={isStreaming}>
-                    <div className={styles.statusDot}></div>
-                    {status}
+                <div className={styles.headerLeft}>
+                    <h1 className={styles.title}>Live Audio Stream</h1>
+                    <p className={styles.subtitle}>Broadcasting to DinJiggasa Community</p>
+                </div>
+                <div className={styles.headerRight}>
+                    {isStreaming && (
+                        <>
+                            <div className={styles.listenersBadge}>
+                                <Users size={16} />
+                                <span>{listenerCount.toLocaleString()} listeners</span>
+                            </div>
+                            <div className={styles.timerBadge}>
+                                <Timer size={16} />
+                                <span>{formatElapsedTime(elapsedSeconds)}</span>
+                            </div>
+                        </>
+                    )}
+                    <div className={styles.statusBadge} data-streaming={isStreaming}>
+                        <div className={styles.statusDot}></div>
+                        {status}
+                    </div>
                 </div>
             </div>
 
@@ -296,18 +338,8 @@ export default function ScholarLiveStudio() {
                 >
                     <div className={styles.mainLayout}>
                         <div className={styles.leftCol}>
-                            <div className={styles.streamContainer}>
-                                {status.includes('Error') && (
-                                    <div className={styles.errorOverlay}>
-                                        <AlertCircle className={styles.alertIcon} size={40} />
-                                        <p>{status}</p>
-                                    </div>
-                                )}
-
+                            <div className={styles.streamCard}>
                                 <div className={styles.audioVisualizerContainer}>
-                                    <div className={styles.audioIcon}>
-                                        <Headphones size={64} />
-                                    </div>
                                     <canvas
                                         ref={canvasRef}
                                         width={600}
@@ -315,37 +347,46 @@ export default function ScholarLiveStudio() {
                                         className={styles.audioCanvas}
                                     />
                                     <RoomAudioRenderer />
-                                    <p className={styles.audioModeLabel}>
-                                        {isStreaming ? '🔴 Audio Stream — Live' : 'Audio Only Mode'}
-                                    </p>
                                 </div>
 
-                                <div className={styles.controlsOverlay}>
-                                    <div className={styles.mediaControls}>
-                                        <button onClick={toggleAudio} className={styles.controlBtn} title={isAudioMuted ? "Unmute mic" : "Mute mic"}>
-                                            {isAudioMuted ? <MicOff size={24} /> : <Mic size={24} />}
-                                        </button>
+                                <div className={styles.sessionInfo}>
+                                    <h2 className={styles.sessionTitle}>Understanding the Wisdom of Ramadan</h2>
+                                    <div className={styles.scholarInfo}>
+                                        <span className={styles.scholarName}>{user?.name || 'Scholar Name'}</span>
+                                        <CheckCircle2 size={16} className={styles.verifiedIcon} />
                                     </div>
+                                </div>
 
-                                    <div className={styles.actionControls}>
-                                        {isUploading && (
-                                            <div className={styles.uploadProgressWrapper}>
-                                                <div className={styles.progressBarBg}>
-                                                    <div
-                                                        className={styles.progressBarFill}
-                                                        style={{ width: `${uploadProgress}%` }}
-                                                    ></div>
-                                                </div>
-                                                <span className={styles.progressText}>Uploading: {uploadProgress}%</span>
+                                <div className={styles.controlsSection}>
+                                    <button onClick={toggleAudio} className={styles.roundControlBtn} title={isAudioMuted ? "Unmute mic" : "Mute mic"}>
+                                        {isAudioMuted ? <MicOff size={24} /> : <Mic size={24} />}
+                                    </button>
+
+                                    <button onClick={stopStreaming} className={styles.stopBtnLarge}>
+                                        <div className={styles.stopInner}>
+                                            <Square size={24} fill="white" />
+                                        </div>
+                                    </button>
+
+                                    <button className={styles.roundControlBtn}>
+                                        <Volume2 size={24} />
+                                    </button>
+                                </div>
+
+                                {isUploading && (
+                                    <div className={styles.uploadOverlay}>
+                                        <div className={styles.uploadProgressWrapper}>
+                                            <div className={styles.progressBarBg}>
+                                                <div
+                                                    className={styles.progressBarFill}
+                                                    style={{ width: `${uploadProgress}%` }}
+                                                ></div>
                                             </div>
-                                        )}
-                                        <button onClick={stopStreaming} className={styles.stopBtn}>
-                                            <Square size={20} /> End Stream
-                                        </button>
+                                            <span className={styles.progressText}>Uploading: {uploadProgress}%</span>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
-
 
                             {/* Raised Hands Panel */}
                             {isStreaming && (
@@ -422,41 +463,36 @@ export default function ScholarLiveStudio() {
             ) : (
                 <div className={styles.mainLayout}>
                     <div className={styles.leftCol}>
-                        <div className={styles.streamContainer}>
-                            {status.includes('Error') && (
-                                <div className={styles.errorOverlay}>
-                                    <AlertCircle className={styles.alertIcon} size={40} />
-                                    <p>{status}</p>
-                                </div>
-                            )}
-
+                        <div className={styles.streamCard}>
                             <div className={styles.audioVisualizerContainer}>
-                                <div className={styles.audioIcon}>
-                                    <Headphones size={64} />
-                                </div>
                                 <canvas
                                     ref={canvasRef}
                                     width={600}
                                     height={200}
                                     className={styles.audioCanvas}
                                 />
-                                <p className={styles.audioModeLabel}>
-                                    Audio Only Mode
-                                </p>
                             </div>
 
-                            <div className={styles.controlsOverlay}>
-                                <div className={styles.mediaControls}>
-                                    <button onClick={toggleAudio} className={styles.controlBtn} title={isAudioMuted ? "Unmute mic" : "Mute mic"}>
-                                        {isAudioMuted ? <MicOff size={24} /> : <Mic size={24} />}
-                                    </button>
+                            <div className={styles.sessionInfo}>
+                                <h2 className={styles.sessionTitle}>Ready to Broadcast</h2>
+                                <div className={styles.scholarInfo}>
+                                    <span className={styles.scholarName}>{user?.name || 'Scholar Name'}</span>
+                                    <CheckCircle2 size={16} className={styles.verifiedIcon} />
                                 </div>
+                            </div>
 
-                                <div className={styles.actionControls}>
-                                    <button onClick={startStreaming} className={styles.startBtn} disabled={isUploading}>
-                                        <Play size={20} /> {isUploading ? 'Finalizing...' : 'Start Streaming'}
-                                    </button>
-                                </div>
+                            <div className={styles.controlsSection}>
+                                <button onClick={toggleAudio} className={styles.roundControlBtn} title={isAudioMuted ? "Unmute mic" : "Mute mic"}>
+                                    {isAudioMuted ? <MicOff size={24} /> : <Mic size={24} />}
+                                </button>
+
+                                <button onClick={startStreaming} className={styles.startBtnLarge} disabled={isUploading}>
+                                    <Play size={28} fill="white" />
+                                </button>
+
+                                <button className={styles.roundControlBtn}>
+                                    <Volume2 size={24} />
+                                </button>
                             </div>
                         </div>
                     </div>
