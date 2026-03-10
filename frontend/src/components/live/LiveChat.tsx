@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Send, MessageCircle, Users } from 'lucide-react';
-import { useChat, useParticipants, useConnectionState, ChatMessage as LiveKitChatMessage } from '@livekit/components-react';
+import { useChat, useParticipants, useConnectionState, ChatMessage as LiveKitChatMessage, useMaybeRoomContext } from '@livekit/components-react';
 import { ConnectionState } from 'livekit-client';
 import styles from './LiveChat.module.css';
 
@@ -15,7 +15,9 @@ interface LiveChatProps {
     isScholar?: boolean;
 }
 
-export default function LiveChat({ scholarId, userName, userId, isScholar = false }: LiveChatProps) {
+import { useLiveKitRoom } from '@livekit/components-react';
+
+function ChatInterface({ scholarId, userName, userId, isScholar }: LiveChatProps) {
     const { send, chatMessages, isSending } = useChat();
     const participants = useParticipants();
     const viewerCount = Math.max(0, participants.length - 1); // Exclude the scholar
@@ -194,6 +196,60 @@ export default function LiveChat({ scholarId, userName, userId, isScholar = fals
                         className={styles.sendBtn}
                         disabled={!newMessage.trim() || !isConnected || isSending}
                     >
+                        <Send size={18} />
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default function LiveChat(props: LiveChatProps) {
+    try {
+        const roomContext = useMaybeRoomContext();
+        if (roomContext) {
+            return <ChatInterface {...props} />;
+        }
+    } catch (e) {
+        // Fallthrough if it fails for any reason
+    }
+
+    // If we're not inside a LiveKitRoom context yet (e.g., token loading), 
+    // render a disabled chat UI
+    return (
+        <div className={styles.chatContainer}>
+            <div className={styles.chatHeader}>
+                <div className={styles.chatTitleRow}>
+                    <MessageCircle size={18} />
+                    <span className={styles.chatTitle}>Live Chat</span>
+                </div>
+                <div className={styles.viewerBadge}>
+                    <Users size={14} />
+                    <span>0</span>
+                </div>
+            </div>
+
+            <div className={styles.connectionStatus}>
+                <div className={styles.miniSpinner}></div>
+                Waiting for live stream to start...
+            </div>
+
+            <div className={styles.messagesContainer}>
+                <div className={styles.emptyChat}>
+                    <MessageCircle size={32} />
+                    <p>Chat will be available once the live stream starts.</p>
+                </div>
+            </div>
+
+            <div className={styles.inputArea}>
+                <div className={styles.inputContainer}>
+                    <input
+                        type="text"
+                        placeholder="Waiting for connection..."
+                        className={styles.chatInput}
+                        disabled={true}
+                    />
+                    <button className={styles.sendBtn} disabled={true}>
                         <Send size={18} />
                     </button>
                 </div>
