@@ -265,7 +265,7 @@ export default function ScholarLiveStudio() {
             console.error('[LiveStream] Error fetching token:', err);
             setStatus('Error: Failed to get streaming token');
         }
-    }, []);
+    }, [streamTitle, streamDescription, streamType]);
 
     const stopStreaming = useCallback(async () => {
         setLkToken(null);
@@ -353,7 +353,7 @@ export default function ScholarLiveStudio() {
         <div className={styles.container}>
             <div className={styles.header}>
                 <div className={styles.headerLeft}>
-                    <h1 className={styles.title}>Live Audio Stream</h1>
+                    <h1 className={styles.title}>{streamType === 'video' ? 'Live Video Stream' : 'Live Audio Stream'}</h1>
                     <p className={styles.subtitle}>Broadcasting to DinJiggasa Community</p>
                 </div>
                 <div className={styles.headerRight}>
