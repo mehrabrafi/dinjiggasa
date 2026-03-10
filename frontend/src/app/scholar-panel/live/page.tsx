@@ -25,7 +25,8 @@ import {
     RoomAudioRenderer,
     TrackToggle,
     useLocalParticipant,
-    VideoTrack
+    VideoTrack,
+    useTracks
 } from '@livekit/components-react';
 import { Track } from 'livekit-client';
 import '@livekit/components-styles';
@@ -396,13 +397,7 @@ export default function ScholarLiveStudio() {
                                         />
                                     ) : (
                                         <div className={styles.videoStreamContainer}>
-                                            <video
-                                                ref={videoRef}
-                                                autoPlay
-                                                muted
-                                                playsInline
-                                                className={styles.localVideo}
-                                            />
+                                            <LocalVideoPreview streamType={streamType} videoRef={videoRef} mediaStream={mediaStream} />
                                         </div>
                                     )}
                                     <RoomAudioRenderer />
@@ -540,13 +535,7 @@ export default function ScholarLiveStudio() {
                                     />
                                 ) : (
                                     <div className={styles.videoStreamContainer}>
-                                        <video
-                                            ref={videoRef}
-                                            autoPlay
-                                            muted
-                                            playsInline
-                                            className={styles.localVideo}
-                                        />
+                                        <LocalVideoPreview streamType={streamType} videoRef={videoRef} mediaStream={mediaStream} />
                                     </div>
                                 )}
                             </div>
@@ -631,5 +620,31 @@ export default function ScholarLiveStudio() {
                 </div>
             )}
         </div>
+    );
+}
+
+function LocalVideoPreview({ streamType, videoRef, mediaStream }: { streamType: string, videoRef: React.RefObject<HTMLVideoElement | null>, mediaStream: MediaStream | null }) {
+    const tracks = useTracks([{ source: Track.Source.Camera, withPlaceholder: false }]);
+    const localVideoTrack = tracks.find(t => t.participant.isLocal);
+
+    if (localVideoTrack?.publication) {
+        return <VideoTrack trackRef={localVideoTrack as any} className={styles.localVideo} />;
+    }
+
+    return (
+        <video
+            autoPlay
+            muted
+            playsInline
+            className={styles.localVideo}
+            ref={(el) => {
+                if (videoRef && 'current' in videoRef) {
+                    (videoRef as any).current = el;
+                }
+                if (el && mediaStream) {
+                    el.srcObject = mediaStream;
+                }
+            }}
+        />
     );
 }
