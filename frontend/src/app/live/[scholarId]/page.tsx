@@ -34,8 +34,14 @@ function ViewerInteraction({
     useEffect(() => {
         if (canPublish && handRaised) {
             setHandRaised(false);
+            // Automatically turn on microphone when approved
+            if (localParticipant) {
+                localParticipant.setMicrophoneEnabled(true).catch(err => {
+                    console.error('Failed to auto-enable microphone:', err);
+                });
+            }
         }
-    }, [canPublish, handRaised, setHandRaised]);
+    }, [canPublish, handRaised, setHandRaised, localParticipant]);
 
     if (canPublish) {
         return (
@@ -45,7 +51,7 @@ function ViewerInteraction({
                     <span className={styles.speakerTitle}>You are a Speaker</span>
                 </div>
                 <p className={styles.speakerHint}>
-                    The scholar approved your request. Click below to toggle your microphone.
+                    The scholar approved your request. Your microphone was turned on automatically! You can toggle it below.
                 </p>
                 <div className={styles.micToggleWrapper}>
                     <TrackToggle

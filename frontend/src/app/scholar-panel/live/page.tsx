@@ -368,6 +368,7 @@ export default function ScholarLiveStudio() {
                     token={lkToken}
                     serverUrl={lkServerUrl}
                     connect={true}
+                    options={{ disconnectOnPageLeave: false }}
                 >
                     <div className={styles.mainLayout}>
                         <div className={styles.leftCol}>
