@@ -16,7 +16,7 @@ import {
     useTracks,
     VideoTrack
 } from '@livekit/components-react';
-import { Track } from 'livekit-client';
+import { Track, VideoQuality, RemoteTrackPublication } from 'livekit-client';
 import '@livekit/components-styles';
 
 function ViewerInteraction({
@@ -91,6 +91,7 @@ interface LiveSession {
 
 function RemoteVideoFeed() {
     const tracks = useTracks([{ source: Track.Source.Camera, withPlaceholder: false }]);
+    const [quality, setQuality] = useState<VideoQuality>(VideoQuality.HIGH);
 
     const videoTrack = tracks.find(t => t.publication);
 
@@ -103,8 +104,37 @@ function RemoteVideoFeed() {
         );
     }
 
+    const switchQuality = (q: VideoQuality) => {
+        if (videoTrack?.publication && videoTrack.publication instanceof RemoteTrackPublication) {
+            videoTrack.publication.setVideoQuality(q);
+            setQuality(q);
+        }
+    };
+
     return (
-        <VideoTrack trackRef={videoTrack as any} className={styles.remoteVideo} />
+        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            <div className={styles.qualitySelector}>
+                <button 
+                    onClick={() => switchQuality(VideoQuality.LOW)} 
+                    className={`${styles.qualityBtn} ${quality === VideoQuality.LOW ? styles.activeQuality : ''}`}
+                >
+                    360p
+                </button>
+                <button 
+                    onClick={() => switchQuality(VideoQuality.MEDIUM)} 
+                    className={`${styles.qualityBtn} ${quality === VideoQuality.MEDIUM ? styles.activeQuality : ''}`}
+                >
+                    720p
+                </button>
+                <button 
+                    onClick={() => switchQuality(VideoQuality.HIGH)} 
+                    className={`${styles.qualityBtn} ${quality === VideoQuality.HIGH ? styles.activeQuality : ''}`}
+                >
+                    1080p
+                </button>
+            </div>
+            <VideoTrack trackRef={videoTrack as any} className={styles.remoteVideo} />
+        </div>
     );
 }
 

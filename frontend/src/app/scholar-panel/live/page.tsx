@@ -368,7 +368,21 @@ export default function ScholarLiveStudio() {
                     token={lkToken}
                     serverUrl={lkServerUrl}
                     connect={true}
-                    options={{ disconnectOnPageLeave: false }}
+                    options={{ 
+                        disconnectOnPageLeave: false,
+                        videoCaptureDefaults: {
+                            resolution: { width: 1280, height: 720, frameRate: 30 },
+                            deviceId: undefined,
+                        },
+                        publishDefaults: {
+                            simulcast: true,
+                            videoCodec: 'h264',
+                            videoEncoding: {
+                                maxBitrate: 3_000_000,
+                                maxFramerate: 30,
+                            },
+                        }
+                    }}
                 >
                     <div className={styles.mainLayout}>
                         <div className={styles.leftCol}>
