@@ -38,7 +38,7 @@ export class UploadService {
   ): Promise<string> {
     const bucketName = this.configService.getOrThrow<string>('WASABI_BUCKET_NAME');
     const endpoint = this.configService.getOrThrow<string>('WASABI_ENDPOINT');
-    
+
     // Construct public URL if not provided in env
     const publicUrl = this.configService.get<string>('WASABI_PUBLIC_URL') || `${endpoint}/${bucketName}`;
 
