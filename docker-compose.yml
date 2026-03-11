@@ -20,11 +20,12 @@ services:
       JWT_SECRET: your_random_secret_here
       # Update these to match your server IP or Domain
       FRONTEND_URL: https://deenjiggasa.info
-      R2_ACCESS_KEY_ID: a0017ece4e4345c55400f567fb570b20
-      R2_SECRET_ACCESS_KEY: 757f18239678408838ad83ffeecccbf33ffaaf06256d00459cabeb3dd9f4c855
-      R2_BUCKET_NAME: deenjiggasa
-      R2_ACCOUNT_ID: cfa83ebbd807204ffc47084e0880ca94
-      R2_PUBLIC_URL: https://pub-bdfe03272733446f8722cd7c4ffc3954.r2.dev
+      # Wasabi Storage
+      WASABI_ACCESS_KEY_ID: "N958KAFWDNC2HR1PON8I"
+      WASABI_SECRET_ACCESS_KEY: "EoazJu56EY3qW2ANhkeelD2n5Aj6hBHQf7nJ593V"
+      WASABI_BUCKET_NAME: "deenjiggasa"
+      WASABI_REGION: "ap-southeast-1"
+      WASABI_ENDPOINT: "https://s3.ap-southeast-1.wasabisys.com"
       ZEPTOMAIL_URL: https://api.zeptomail.com/v1.1/email
       ZEPTOMAIL_TOKEN: "Zoho-enczapikey wSsVR60l+ET2WqZ8yGWsdO9rmw9UBAikREws2Abz4yL4F6+Xosc5xBedDQL2TfAbRWA7E2AX8e0vmRoI2zEK3dgtzQ5WCyiF9mqRe1U4J3x17qnvhDzJW2pZlhuBLosJzgRrmGdhGsog+g=="
       ZEPTOMAIL_FROM_ADDRESS: noreply@deenjiggasa.info
