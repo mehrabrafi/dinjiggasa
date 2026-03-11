@@ -1,23 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SendMailClient } from 'zeptomail';
+import axios from 'axios';
 
 @Injectable()
 export class MailService {
-  private client: SendMailClient;
   private fromAddress: string;
   private fromName: string;
+  private apiToken: string;
+  private apiUrl: string = 'https://api.sender.net/v2/message/transactional';
 
   constructor(private configService: ConfigService) {
-    const url = this.configService.get<string>('ZEPTOMAIL_URL');
-    const token = this.configService.get<string>('ZEPTOMAIL_TOKEN');
+    this.apiToken = this.configService.getOrThrow<string>('SENDER_API_TOKEN');
     this.fromAddress =
-      this.configService.get<string>('ZEPTOMAIL_FROM_ADDRESS') ||
-      'noreply@deenjiggasa.info';
+      this.configService.get<string>('SENDER_FROM_ADDRESS') ||
+      'contact@deenjiggasa.info';
     this.fromName =
-      this.configService.get<string>('ZEPTOMAIL_FROM_NAME') || 'DinJiggasa';
-
-    this.client = new SendMailClient({ url, token });
+      this.configService.get<string>('SENDER_FROM_NAME') || 'DinJiggasa';
   }
 
   async sendMail(
@@ -26,25 +24,35 @@ export class MailService {
     htmlBody: string,
   ) {
     try {
-      await this.client.sendMail({
+      const payload = {
         from: {
-          address: this.fromAddress,
+          email: this.fromAddress,
           name: this.fromName,
         },
         to: [
           {
-            email_address: {
-              address: to.email,
-              name: to.name,
-            },
+            email: to.email,
+            name: to.name,
           },
         ],
         subject: subject,
-        htmlbody: htmlBody,
+        html: htmlBody,
+      };
+
+      await axios.post(this.apiUrl, payload, {
+        headers: {
+          Authorization: `Bearer ${this.apiToken}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
       });
+
       return true;
     } catch (error) {
-      console.error('Mail sending failed:', error);
+      console.error(
+        'Sender.net mail sending failed:',
+        error.response?.data || error.message,
+      );
       return false;
     }
   }

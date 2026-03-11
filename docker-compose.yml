@@ -26,10 +26,10 @@ services:
       WASABI_BUCKET_NAME: "deenjiggasa"
       WASABI_REGION: "ap-southeast-1"
       WASABI_ENDPOINT: "https://s3.ap-southeast-1.wasabisys.com"
-      ZEPTOMAIL_URL: https://api.zeptomail.com/v1.1/email
-      ZEPTOMAIL_TOKEN: "Zoho-enczapikey wSsVR60l+ET2WqZ8yGWsdO9rmw9UBAikREws2Abz4yL4F6+Xosc5xBedDQL2TfAbRWA7E2AX8e0vmRoI2zEK3dgtzQ5WCyiF9mqRe1U4J3x17qnvhDzJW2pZlhuBLosJzgRrmGdhGsog+g=="
-      ZEPTOMAIL_FROM_ADDRESS: noreply@deenjiggasa.info
-      ZEPTOMAIL_FROM_NAME: DinJiggasa
+      # Sender.net
+      SENDER_API_TOKEN: "your_sender_api_token_here"
+      SENDER_FROM_ADDRESS: "contact@deenjiggasa.info"
+      SENDER_FROM_NAME: "DinJiggasa"
     depends_on:
       - db
 
