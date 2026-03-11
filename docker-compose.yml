@@ -25,11 +25,11 @@ services:
       R2_SECRET_ACCESS_KEY: "10ce5b6107cdd7459cd96fb826e58679607baf639cfda005ecfd9ca8db9d1169"
       R2_BUCKET_NAME: "deenjiggasa"
       R2_ENDPOINT: "https://cfa83ebbd807204ffc47084e0880ca94.r2.cloudflarestorage.com"
-      R2_PUBLIC_URL: "https://pub-bdfe03272733446f8722cd7c4ffc3954.r2.dev"
-      # Sender.net
-      SENDER_API_TOKEN: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiMTE3YTk0MzY0ZWY5ODg1ODZhOTE2MDRhZDJhNjgxYTNjNDk4YjkwZGI1NzhmM2I2YmEyMzMyNTJlNDFiM2E5NzRiM2JiZDdkMGI0YzY2ZDEiLCJpYXQiOjE3NzMyMTc5NDYuMjI4Nzk2LCJuYmYiOjE3NzMyMTc5NDYuMjI4Nzk4LCJleHAiOjQ5MjY4MTc5NDYuMjI2NDgsInN1YiI6IjEwNTg4NDMiLCJzY29wZXMiOltdfQ.h9hmlu6rHl8-3RqO2MVjMkWPajfD2D3WgPLkaZ70gdD0inyF_rUCYWC-IyTjDNsUeMISLvrGT4MkLtwAf2k_T-iN7Z_BRYGDt82eIIGWviMfKsh4iQuPoPwkp0hciblTkSOOqxkWfQlaLmeq-C3540fBur3D9ngUAPAEgrppFhncJymX8oBBg9MD0HHzQ1CNSWG2t6Ye_AOW81Q9tBBtHUFVsEuNlCOa04RUYVSqJNjwwzfl4VU1z-l5W64ZwYGdbxETRv12b3q6htNqIAM1sFQt9c1ax7kf_mXszLqkrxBmm06-5OGgN4cUp9XngEDGUTpkasEHaymUg8FYCjNcwmEb9xZcgV3bvcri9SI6nwCCMTZBaJtGe5zzfYoroKRLSSyppe6MnXs52kikZ2C4HC0UCAl2YQvJreI_NlMf-TT75llb4vBxC7VJKF07NF4N1xSgQg05EwCFuVkcscy9TSzmXdKIUphCcAI2mmxxxIv64Hm0LKkBWIVqnKfkQ_J0ZJejh_t6E1kKXuqAFiATpyo-cSIh7ub0-3LUb4gWdq2k1WDRVv0jt8zoBm6QXQbCbzUu3Y_BpO4nzTtQYXSnTdmpXvFf74K4ubOiLctHhnyXnIffBzA7ciqxChbdYjDx1aVmM42zJcK-q7jLGQkgDz2KCFIXtBzVfBUPcYAkRJA"
-      SENDER_FROM_ADDRESS: "contact@deenjiggasa.info"
-      SENDER_FROM_NAME: "DinJiggasa"
+      R2_PUBLIC_URL: "https://media.deenjiggasa.info"
+      # Zoho ZeptoMail
+      ZEPTOMAIL_API_TOKEN: "Zoho-enczapikey wSsVR60l+ET2WqZ8yGWsdO9rmw9UBAikREws2Abz4yL4F6+Xosc5xBedDQL2TfAbRWA7E2AX8e0vmRoI2zEK3dgtzQ5WCyiF9mqRe1U4J3x17qnvhDzJW2pZlhuBLosJzgRrmGdhGsog+g=="
+      ZEPTOMAIL_SENDER_ADDRESS: "contact@deenjiggasa.info"
+      ZEPTOMAIL_SENDER_NAME: "DinJiggasa"
     depends_on:
       - db
 

@@ -7,15 +7,15 @@ export class MailService {
   private fromAddress: string;
   private fromName: string;
   private apiToken: string;
-  private apiUrl: string = 'https://api.sender.net/v2/messages/transactional';
+  private apiUrl: string = 'https://api.zeptomail.com/v1.1/email';
 
   constructor(private configService: ConfigService) {
-    this.apiToken = this.configService.getOrThrow<string>('SENDER_API_TOKEN');
+    this.apiToken = this.configService.getOrThrow<string>('ZEPTOMAIL_API_TOKEN');
     this.fromAddress =
-      this.configService.get<string>('SENDER_FROM_ADDRESS') ||
+      this.configService.get<string>('ZEPTOMAIL_SENDER_ADDRESS') ||
       'contact@deenjiggasa.info';
     this.fromName =
-      this.configService.get<string>('SENDER_FROM_NAME') || 'DinJiggasa';
+      this.configService.get<string>('ZEPTOMAIL_SENDER_NAME') || 'DinJiggasa';
   }
 
   async sendMail(
@@ -26,22 +26,24 @@ export class MailService {
     try {
       const payload = {
         from: {
-          email: this.fromAddress,
+          address: this.fromAddress,
           name: this.fromName,
         },
         to: [
           {
-            email: to.email,
-            name: to.name,
+            email_address: {
+              address: to.email,
+              name: to.name,
+            },
           },
         ],
         subject: subject,
-        html: htmlBody,
+        htmlbody: htmlBody,
       };
 
       await axios.post(this.apiUrl, payload, {
         headers: {
-          Authorization: `Bearer ${this.apiToken}`,
+          Authorization: this.apiToken,
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
@@ -50,7 +52,7 @@ export class MailService {
       return true;
     } catch (error) {
       console.error(
-        'Sender.net mail sending failed:',
+        'ZeptoMail sending failed:',
         error.response?.data || error.message,
       );
       return false;
