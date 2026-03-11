@@ -1,7 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
-
+import { 
+  AccessToken, 
+  RoomServiceClient, 
+  EgressClient, 
+  EncodedFileOutput, 
+  S3Upload, 
+  EncodingOptionsPreset 
+} from 'livekit-server-sdk';
 export interface LiveScholarInfo {
   scholarId: string;
   clientId: string;
@@ -28,6 +34,10 @@ export class LiveStreamService {
   private raisedHands: Map<string, RaisedHandInfo[]> = new Map();
   // LiveKit RoomServiceClient for updating participant permissions
   private roomService: RoomServiceClient;
+  // LiveKit EgressClient for recording streams
+  private egressClient: EgressClient;
+  // Map scholarId -> egressId to stop recording
+  private roomEgress: Map<string, string> = new Map();
 
   constructor(private prisma: PrismaService) {
     const lkHost =
@@ -37,10 +47,11 @@ export class LiveStreamService {
       process.env.LIVEKIT_API_SECRET ||
       'secretsecretsecretsecretsecretsecretsecret';
     this.roomService = new RoomServiceClient(lkHost, apiKey, apiSecret);
+    this.egressClient = new EgressClient(lkHost, apiKey, apiSecret);
   }
 
   /** Mark a scholar as live */
-  goLive(
+  async goLive(
     scholarId: string,
     clientId: string,
     title?: string,
@@ -60,24 +71,98 @@ export class LiveStreamService {
     console.log(
       `[LiveStream] Scholar ${scholarId} is now LIVE (${streamType}) with title: ${title}`,
     );
+
+    // Ensure the room exists on LiveKit before starting Egress
+    try {
+      await this.roomService.createRoom({
+        name: scholarId,
+        emptyTimeout: 10 * 60, // 10 minutes
+        maxParticipants: 100,
+      });
+      
+      const fileExt = streamType === 'video' ? 'mp4' : 'mp4';
+      const timestamp = Date.now();
+      const fileName = `live-recordings/${scholarId}-${timestamp}.${fileExt}`;
+      const bucketName = process.env.R2_BUCKET_NAME || 'deenjiggasa';
+      
+      const egressInfo = await this.egressClient.startRoomCompositeEgress(
+        scholarId,
+        new EncodedFileOutput({
+          filepath: fileName,
+          output: {
+            case: 's3',
+            value: new S3Upload({
+              accessKey: process.env.R2_ACCESS_KEY_ID,
+              secret: process.env.R2_SECRET_ACCESS_KEY,
+              region: 'auto',
+              endpoint: process.env.R2_ENDPOINT,
+              bucket: bucketName,
+            }),
+          },
+        }),
+        {
+          layout: 'grid',
+          encodingOptions: streamType === 'video' ? EncodingOptionsPreset.H264_720P_30 : undefined,
+          audioOnly: streamType !== 'video',
+          videoOnly: false,
+        }
+      );
+      
+      this.roomEgress.set(scholarId, egressInfo.egressId);
+      
+      // Save link in DB (assuming LiveSession model exists)
+      const publicUrl = process.env.R2_PUBLIC_URL || 'https://media.deenjiggasa.info';
+      await this.prisma.liveSession.create({
+        data: {
+          scholarId,
+          title: title || 'Live Session',
+          audioUrl: `${publicUrl}/${fileName}`,
+        }
+      });
+      
+    } catch (err) {
+      console.error(`[LiveStream] Failed to start egress for ${scholarId}:`, err);
+    }
   }
 
   /** Mark a scholar as offline by scholarId */
-  goOffline(scholarId: string) {
+  async goOffline(scholarId: string) {
     const info = this.liveScholars.get(scholarId);
     if (info) {
       this.clientToScholar.delete(info.clientId);
     }
     this.liveScholars.delete(scholarId);
+    
+    const egressId = this.roomEgress.get(scholarId);
+    if (egressId) {
+      try {
+        await this.egressClient.stopEgress(egressId);
+      } catch (e) {
+        console.error(`[LiveStream] could not stop egress:`, e);
+      }
+      this.roomEgress.delete(scholarId);
+    }
+    
     console.log(`[LiveStream] Scholar ${scholarId} went OFFLINE`);
   }
 
   /** Mark a scholar as offline by clientId (used on disconnect) */
-  goOfflineByClientId(clientId: string) {
+  async goOfflineByClientId(clientId: string) {
     const scholarId = this.clientToScholar.get(clientId);
     if (scholarId) {
       this.liveScholars.delete(scholarId);
       this.clientToScholar.delete(clientId);
+      
+      const egressId = this.roomEgress.get(scholarId);
+      if (egressId) {
+        try {
+          await this.egressClient.stopEgress(egressId);
+        } catch (e) {
+          console.error(`[LiveStream] could not stop egress:`, e);
+        }
+        this.roomEgress.delete(scholarId);
+      }
+      
       console.log(
         `[LiveStream] Scholar ${scholarId} went OFFLINE (client disconnected)`,
       );
