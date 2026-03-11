@@ -7,7 +7,7 @@ export class MailService {
   private fromAddress: string;
   private fromName: string;
   private apiToken: string;
-  private apiUrl: string = 'https://api.sender.net/v2/message/transactional';
+  private apiUrl: string = 'https://api.sender.net/v2/messages/transactional';
 
   constructor(private configService: ConfigService) {
     this.apiToken = this.configService.getOrThrow<string>('SENDER_API_TOKEN');
