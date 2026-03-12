@@ -1,6 +1,6 @@
 "use client"
 
-import { PlayCircle, Bell, MessageSquare, ArrowUp, ArrowDown, TrendingUp, GraduationCap, Share, CheckCircle2, Heart, BarChart3, HelpCircle, Activity, Flag, Eye, Video, Headphones } from "lucide-react"
+import { PlayCircle, Bell, MessageSquare, ArrowUp, ArrowDown, TrendingUp, GraduationCap, Share, CheckCircle2, Heart, BarChart3, HelpCircle, Activity, Flag } from "lucide-react"
 import Link from "next/link"
 import React, { Suspense, useEffect, useState } from "react"
 import { useSearchParams, useRouter as useNextRouter } from "next/navigation"
@@ -54,10 +54,6 @@ function DashboardView() {
   const [userId, setUserId] = useState<string | null>(null)
   const [stats, setStats] = useState<any>(null)
   const [topScholars, setTopScholars] = useState<any[]>([])
-  const [sessions, setSessions] = useState<{ live: any[], past: any[] }>({ live: [], past: [] })
-  const [series, setSeries] = useState<any[]>([])
-  const [activeTopic, setActiveTopic] = useState('All Topics')
-  const topics = ['All Topics', 'Fiqh', 'Hadith', 'Spirituality', 'Contemporary Issues', 'History', 'Tafsir']
 
   // Report Modal State
   const [reportModal, setReportModal] = useState({
@@ -113,29 +109,9 @@ function DashboardView() {
       }
     }
 
-    const fetchOverview = async () => {
-      try {
-        const res = await api.get('/live/overview')
-        setSessions(res.data)
-      } catch (err) {
-        console.error("Failed to fetch overview", err)
-      }
-    }
-
-    const fetchSeries = async () => {
-      try {
-        const res = await api.get('/live/series')
-        setSeries(res.data)
-      } catch (err) {
-        console.error("Failed to fetch series", err)
-      }
-    }
-
     fetchFeed()
     fetchStats()
     fetchTopScholars()
-    fetchOverview()
-    fetchSeries()
 
     // Poll for stats every 5 seconds for "live" feel
     const statsInterval = setInterval(fetchStats, 5000)
@@ -193,139 +169,135 @@ function DashboardView() {
 
   return (
     <DashboardLayout>
-      <main className={styles.feedContent} style={{ maxWidth: '1000px' }}>
-        
-        {/* Topics Filter Bar */}
-        <div className={styles.topicsBar}>
-          {topics.map(topic => (
-            <div 
-              key={topic} 
-              className={`${styles.topicPill} ${activeTopic === topic ? styles.topicPillActive : ''}`}
-              onClick={() => setActiveTopic(topic)}
-            >
-              {topic}
+      {/* Feed Column */}
+      <main className={styles.feedContent}>
+
+        {/* Card 1 - Live Carousel */}
+        <div className={styles.carouselContainer}>
+          {/* Slide 1 */}
+          <div className={`${styles.card} ${styles.liveCard} ${styles.carouselItem}`}>
+            <div className={styles.liveBadge}>LIVE SESSION</div>
+            <h2 className={styles.liveTitle}>Mastering Quranic Arabic</h2>
+            <p className={styles.liveSubtitle}>Join Sheikh Omar Suleiman for an exclusive live deep-dive into the linguistic miracles of Juz Amma...</p>
+            <button className={styles.listenButton}>
+              <PlayCircle size={18} /> Listen Now
+            </button>
+            <div className={styles.carouselDots}>
+              <div className={`${styles.dot} ${styles.dotActive}`}></div>
+              <div className={styles.dot}></div>
+              <div className={styles.dot}></div>
             </div>
-          ))}
+          </div>
+
+          {/* ... Slides 2 and 3 omitted for brevity in this replacement but assumed to be present ... */}
+          {/* Let's keep them all for full UI experience */}
+          {/* Slide 2 */}
+          <div className={`${styles.card} ${styles.liveCard} ${styles.carouselItem}`} style={{ backgroundImage: "linear-gradient(to right, rgba(0,0,0,0.8), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1588775005893-6629cb8c156f?q=80&w=1000&auto=format&fit=crop')" }}>
+            <div className={styles.liveBadge} style={{ backgroundColor: '#FF5C5C' }}>UPCOMING</div>
+            <h2 className={styles.liveTitle}>Fiqh of Finance</h2>
+            <p className={styles.liveSubtitle}>Dr. Yasin Malik explains the complexities of modern Zakat calculation in this upcoming detailed workshop...</p>
+            <button className={styles.listenButton}>
+              <Bell size={18} /> Set Reminder
+            </button>
+            <div className={styles.carouselDots}>
+              <div className={styles.dot}></div>
+              <div className={`${styles.dot} ${styles.dotActive}`}></div>
+              <div className={styles.dot}></div>
+            </div>
+          </div>
+
+          {/* Slide 3 */}
+          <div className={`${styles.card} ${styles.liveCard} ${styles.carouselItem}`} style={{ backgroundImage: "linear-gradient(to right, rgba(0,0,0,0.8), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1564683214965-3619addd900d?q=80&w=1000&auto=format&fit=crop')" }}>
+            <div className={styles.liveBadge} style={{ backgroundColor: '#3b82f6' }}>Q&A</div>
+            <h2 className={styles.liveTitle}>Ask Me Anything: Youth Issues</h2>
+            <p className={styles.liveSubtitle}>Open session with various scholars addressing contemporary challenges faced by Muslim youth...</p>
+            <button className={styles.listenButton}>
+              <MessageSquare size={18} /> Join Session
+            </button>
+            <div className={styles.carouselDots}>
+              <div className={styles.dot}></div>
+              <div className={styles.dot}></div>
+              <div className={`${styles.dot} ${styles.dotActive}`}></div>
+            </div>
+          </div>
         </div>
 
-        {/* Section 1: Live Sessions */}
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Home</h2>
-          <Link href="/live" className={styles.seeAllLink}>See All</Link>
-        </div>
+        {/* Dynamic Questions Feed */}
+        {isLoading ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>Loading feed...</div>
+        ) : questions.filter((q: any) => q.answers && q.answers.length > 0).length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No answered questions available right now.</div>
+        ) : (
+          questions.filter((q: any) => q.answers && q.answers.length > 0).map((question) => {
+            const upvotes = question.ratings?.filter((r: any) => r.value === 1).length || 0
+            const downvotes = question.ratings?.filter((r: any) => r.value === -1).length || 0
+            const voteScore = upvotes - downvotes
+            const myVote = question.ratings?.find((r: any) => r.userId === userId)?.value || 0
 
-        <div className={styles.horizontalScroll}>
-          {sessions.live.length > 0 ? (
-            sessions.live.map((session) => (
-              <Link href={`/live/${session.scholarId}`} key={session.id} className={styles.liveSessionCard} style={{ textDecoration: 'none' }}>
-                <div className={styles.cardThumbWrapper}>
-                  {session.thumbnailUrl ? (
-                    <img src={session.thumbnailUrl} className={styles.cardThumb} alt={session.title} />
-                  ) : (
-                    <div className={styles.audioVisual}>
-                      <Activity size={40} color="#10b981" />
+            return (
+              <div key={question.id} className={styles.card}>
+                <div className={styles.cardBody}>
+                  <div className={styles.cardTagsWrapper} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <div className={styles.cardTags}>
+                      <span className={styles.tagPrimaryDark}>{question.tags?.[0]?.name || "General"}</span>
                     </div>
-                  )}
-                  <div className={styles.liveOverlay}>
-                    <span className={styles.liveBadgeRed}>LIVE</span>
-                    <span className={styles.viewerCount}>
-                      <Eye size={12} /> {(session.viewerCount / 1000).toFixed(1)}k
+                  </div>
+
+                  {/* Make title clickable to open question details */}
+                  <Link href={`/questions/${question.id}`} style={{ textDecoration: 'none' }}>
+                    <h2 className={styles.cardTitle} style={{ cursor: 'pointer' }}>{question.title}</h2>
+                  </Link>
+
+                  <div className={styles.cardAuthorRow}>
+                    <img src={question.answers[0].author?.avatar || `https://ui-avatars.com/api/?name=${question.answers[0].author?.name}&background=10b981&color=fff`} alt={question.answers[0].author?.name} className={styles.cardAuthorAvatar} />
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span className={styles.cardAuthorName}>{question.answers[0].author?.name}</span>
+                      {question.answers[0].author?.isVerified && <CheckCircle2 size={14} color="#006D5B" fill="#006D5B1A" />}
+                      • {new Date(question.answers[0].createdAt || question.createdAt).toLocaleDateString()}
                     </span>
                   </div>
-                </div>
-                <div className={styles.cardDetails}>
-                  <div className={styles.cardCategory}>{session.specialization?.split('&')[0] || "GENERAL"}</div>
-                  <h3 className={styles.sessionTitleSmall}>{session.title}</h3>
-                  <div className={styles.scholarNameSmall}>{session.name}</div>
-                  <div className={styles.cardFooterMeta}>
-                    <div className={styles.viewerAvatars}>
-                      <img src="https://i.pravatar.cc/50?img=1" className={styles.avatarMini} />
-                      <img src="https://i.pravatar.cc/50?img=2" className={styles.avatarMini} />
-                      <span className={styles.moreViewers}>+5</span>
+
+                  <p className={styles.cardText}>
+                    {question.body.length > 200 ? `${question.body.substring(0, 200)}...` : question.body}
+                  </p>
+
+                  <div className={styles.cardActions}>
+                    <div className={styles.voteGroup}>
+                      <button
+                        className={`${styles.voteAction} ${myVote === 1 ? styles.voteUp : ''}`}
+                        onClick={() => handleVote(question.id, 1)}
+                        style={{ color: myVote === 1 ? '#10b981' : undefined }}
+                      >
+                        <ArrowUp size={16} /> {voteScore}
+                      </button>
+                      <div className={styles.voteDivider}></div>
+                      <button
+                        className={`${styles.voteAction}`}
+                        onClick={() => handleVote(question.id, -1)}
+                        style={{ color: myVote === -1 ? '#ef4444' : undefined }}
+                      >
+                        <ArrowDown size={16} />
+                      </button>
                     </div>
-                    <span className={styles.timeAgo}>Started 24m ago</span>
-                  </div>
-                </div>
-              </Link>
-            ))
-          ) : (
-             <div className={styles.card} style={{ flex: '0 0 100%', padding: '2rem', textAlign: 'center', color: '#64748b' }}>
-                No scholar is currently live.
-             </div>
-          )}
-        </div>
-
-        {/* Section 2: Featured Series */}
-        <div className={styles.sectionHeader} style={{ marginTop: '2.5rem' }}>
-          <h2 className={styles.sectionTitle}>Featured Series</h2>
-          <Link href="/series" className={styles.seeAllLink}>See All</Link>
-        </div>
-
-        <div className={styles.horizontalScroll}>
-          {series.length > 0 ? (
-            series.map((s) => (
-              <div key={s.id} className={styles.seriesCardLarge}>
-                <img src={s.thumbnailUrl || '/assets/images/mock/seerah.png'} className={styles.seriesCardBg} alt={s.title} />
-                <div className={styles.seriesContent}>
-                  <div className={styles.episodeCountBadge}>{s.episodeCount} EPISODES</div>
-                  <h3 className={styles.seriesTitleLarge}>{s.title}</h3>
-                  <p className={styles.seriesDesc}>{s.description}</p>
-                  <div className={styles.seriesScholar}>
-                    <img src={s.scholar?.avatar || `https://ui-avatars.com/api/?name=${s.scholar?.name}`} className={styles.seriesScholarAvatar} />
-                    <span className={styles.seriesScholarName}>{s.scholar?.name}</span>
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div style={{ padding: '2rem', color: '#64748b' }}>Coming soon...</div>
-          )}
-        </div>
-
-        {/* Section 3: Recent Streams */}
-        <div className={styles.sectionHeader} style={{ marginTop: '2.5rem' }}>
-          <h2 className={styles.sectionTitle}>Recent Streams</h2>
-          <Link href="/recorded" className={styles.seeAllLink}>See All</Link>
-        </div>
-
-        <div className={styles.recentGrid}>
-          {sessions.past.length > 0 ? (
-            sessions.past.map((record) => (
-              <div key={record.id} className={styles.recentCard}>
-                <div className={styles.recentThumbWrapper}>
-                  <img src={record.thumbnailUrl || (record.type === 'VIDEO' ? '/assets/images/mock/recent1.png' : '/assets/images/mock/recent2.png')} className={styles.cardThumb} alt={record.title} />
-                  <div className={styles.durationBadge}>
-                    {Math.floor((record.duration || 0) / 60)}:{(record.duration || 0) % 60 < 10 ? '0' : ''}{(record.duration || 0) % 60}
-                  </div>
-                  <div className={styles.typeIcon}>
-                    {record.type === 'VIDEO' ? <Video size={14} /> : <Headphones size={14} />}
-                  </div>
-                </div>
-                <div className={styles.recentDetails}>
-                  <h4 className={styles.recentTitle}>{record.title}</h4>
-                  <div className={styles.recentScholar}>{record.scholar?.name}</div>
-                  <div className={styles.recentMeta}>
-                    <span>{new Date(record.createdAt).toLocaleDateString()}</span>
-                    <div className={styles.recentViews}>
-                      <Eye size={12} /> {((record.viewCount || 200) / 1000).toFixed(1)}k
+                    <div className={styles.actionGroup}>
+                      <button className={styles.actionBtn}>
+                        <Share size={16} /> Share
+                      </button>
                     </div>
                   </div>
                 </div>
               </div>
-            ))
-          ) : (
-            <div style={{ padding: '2rem', color: '#64748b' }}>No recorded sessions yet.</div>
-          )}
-        </div>
+            )
+          })
+        )}
 
+        <ReportModal
+          isOpen={reportModal.isOpen}
+          onClose={() => setReportModal({ ...reportModal, isOpen: false })}
+          questionId={reportModal.questionId}
+          title={reportModal.title}
+        />
       </main>
-
-      <ReportModal
-        isOpen={reportModal.isOpen}
-        onClose={() => setReportModal({ ...reportModal, isOpen: false })}
-        questionId={reportModal.questionId}
-        title={reportModal.title}
-      />
 
       {/* Right Sidebar */}
       <aside className={styles.rightSidebar}>
