@@ -221,10 +221,6 @@ function DashboardView() {
                 <div className={styles.cardThumbWrapper}>
                   {session.thumbnailUrl ? (
                     <img src={session.thumbnailUrl} className={styles.cardThumb} alt={session.title} />
-                  ) : session.streamType === 'video' ? (
-                     <div className={styles.audioVisual} style={{ background: '#0f172a' }}>
-                        <Video size={40} color="#3b82f6" />
-                     </div>
                   ) : (
                     <div className={styles.audioVisual}>
                       <Activity size={40} color="#10b981" />
@@ -309,12 +305,12 @@ function DashboardView() {
             sessions.past.map((record) => (
               <div key={record.id} className={styles.recentCard}>
                 <div className={styles.recentThumbWrapper}>
-                  <img src={record.thumbnailUrl || (record.type === 'VIDEO' ? '/assets/images/mock/recent1.png' : '/assets/images/mock/recent2.png')} className={styles.cardThumb} alt={record.title} />
+                  <img src={record.thumbnailUrl || '/assets/images/mock/recent2.png'} className={styles.cardThumb} alt={record.title} />
                   <div className={styles.durationBadge}>
                     {Math.floor((record.duration || 0) / 60)}:{(record.duration || 0) % 60 < 10 ? '0' : ''}{(record.duration || 0) % 60}
                   </div>
                   <div className={styles.typeIcon}>
-                    {record.type === 'VIDEO' ? <Video size={14} /> : <Headphones size={14} />}
+                    <Headphones size={14} />
                   </div>
                 </div>
                 <div className={styles.recentDetails}>

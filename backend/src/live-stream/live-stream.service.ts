@@ -4,9 +4,6 @@ import {
   AccessToken, 
   RoomServiceClient, 
   EgressClient, 
-  IngressClient,
-  IngressInput,
-  CreateIngressOptions,
   EncodedFileOutput, 
   S3Upload, 
   EncodingOptionsPreset,
@@ -19,8 +16,6 @@ export interface LiveScholarInfo {
   viewerCount: number;
   title?: string;
   description?: string;
-  streamType?: string;
-  isObsMode?: boolean;
 }
 
 export interface RaisedHandInfo {
@@ -41,12 +36,8 @@ export class LiveStreamService {
   private roomService: RoomServiceClient;
   // LiveKit EgressClient for recording streams
   private egressClient: EgressClient;
-  // LiveKit IngressClient for OBS streams
-  private ingressClient: IngressClient;
   // Map scholarId -> egressId to stop recording
   private roomEgress: Map<string, string> = new Map();
-  // Map scholarId -> ingressId
-  private roomIngress: Map<string, string> = new Map();
 
   constructor(private prisma: PrismaService) {
     const lkUrl = process.env.LIVEKIT_URL || 'https://livekit.deenjiggasa.info';
@@ -60,7 +51,6 @@ export class LiveStreamService {
       
     this.roomService = new RoomServiceClient(lkHost, apiKey, apiSecret);
     this.egressClient = new EgressClient(lkHost, apiKey, apiSecret);
-    this.ingressClient = new IngressClient(lkHost, apiKey, apiSecret);
   }
 
   /** Mark a scholar as live */
@@ -69,9 +59,7 @@ export class LiveStreamService {
     clientId: string,
     title?: string,
     description?: string,
-    streamType: string = 'audio',
     seriesId?: string,
-    isObsMode: boolean = false,
   ) {
     this.liveScholars.set(scholarId, {
       scholarId,
@@ -80,12 +68,10 @@ export class LiveStreamService {
       viewerCount: 0,
       title,
       description,
-      streamType,
-      isObsMode,
     });
     this.clientToScholar.set(clientId, scholarId);
     console.log(
-      `[LiveStream] Scholar ${scholarId} is now LIVE (${streamType}) with title: ${title}`,
+      `[LiveStream] Scholar ${scholarId} is now LIVE with title: ${title}`,
     );
 
     // Ensure the room exists on LiveKit
@@ -118,8 +104,7 @@ export class LiveStreamService {
         }),
         {
           layout: 'grid',
-          encodingOptions: streamType === 'video' ? EncodingOptionsPreset.H264_720P_30 : undefined,
-          audioOnly: streamType !== 'video',
+          audioOnly: true,
           videoOnly: false,
         }
       );
@@ -134,9 +119,7 @@ export class LiveStreamService {
           scholarId,
           title: title || 'Live Session',
           description,
-          audioUrl: streamType === 'audio' ? `${publicUrl}/${fileName}` : null,
-          videoUrl: streamType === 'video' ? `${publicUrl}/${fileName}` : null,
-          type: streamType.toUpperCase(),
+          audioUrl: `${publicUrl}/${fileName}`,
           seriesId: seriesId || null,
         }
       });
@@ -246,7 +229,7 @@ export class LiveStreamService {
         viewerCount: liveInfo?.viewerCount || 0,
         title: liveInfo?.title,
         description: liveInfo?.description,
-        streamType: liveInfo?.streamType || 'audio',
+        streamType: 'audio',
       };
     });
   }
@@ -384,67 +367,6 @@ export class LiveStreamService {
   clearRaisedHands(roomName: string) {
     this.raisedHands.delete(roomName);
   }
-
-  /** Create/Get an Ingress for OBS streaming */
-  async createIngress(scholarId: string, roomName: string, streamType: string = 'video') {
-    console.log(`[LiveStream] Ingress request - Scholar: ${scholarId}, Room: ${roomName}`);
-    
-    try {
-      // Find existing ingress for this room
-      const ingresses = await this.ingressClient.listIngress({ roomName });
-      
-      // If we find an existing one, let's delete it to ensure we recreate with proper TrackSource tagging
-      // This is necessary because once created, configurations like video source tagging might be immutable or cached
-      if (ingresses.length > 0) {
-        console.log(`[LiveStream] Found ${ingresses.length} existing ingresses. Cleaning up...`);
-        for (const ing of ingresses) {
-          try {
-            await this.ingressClient.deleteIngress(ing.ingressId);
-          } catch (e) {
-            console.warn(`[LiveStream] Failed to delete old ingress ${ing.ingressId}:`, e);
-          }
-        }
-      }
-
-      console.log(`[LiveStream] No valid ingress found, creating new one...`);
-      
-      const ingress = await this.ingressClient.createIngress(
-        IngressInput.RTMP_INPUT,
-        {
-          name: `scholar-${scholarId}`,
-          roomName: roomName,
-          participantIdentity: scholarId,
-          participantName: 'Scholar (OBS)',
-          // Explicitly set sources so viewers' useTracks({ source: Camera }) finds it
-          // In SDK v2, these are often plain objects or need to match the proto structure
-          video: {
-            source: TrackSource.CAMERA,
-            name: 'video',
-          } as any,
-          audio: {
-            source: TrackSource.MICROPHONE,
-            name: 'audio',
-          } as any
-        }
-      );
-
-      let url = ingress.url;
-      if (!url) {
-        console.warn(`[LiveStream] Ingress created but URL is empty! Using fallback.`);
-        const lkPublicUrl = process.env.LIVEKIT_URL || 'wss://livekit.deenjiggasa.info';
-        const host = lkPublicUrl.replace('wss://', '').replace('ws://', '').split(':')[0];
-        url = `rtmp://${host}:1935/live`;
-      }
-
-      console.log(`[LiveStream] Ingress ready: ${url}`);
-      this.roomIngress.set(scholarId, ingress.ingressId);
-      return {
-        url: url,
-        streamKey: ingress.streamKey,
-      };
-    } catch (err) {
-      console.error(`[LiveStream] Failed to create/list ingress:`, err);
-      throw err;
-    }
-  }
 }
+
+

@@ -229,11 +229,9 @@ model LiveSession {
   title        String
   description  String?  @db.Text
   audioUrl     String?
-  videoUrl     String?
   thumbnailUrl String?
   duration     Int?     // duration in seconds
   viewCount    Int      @default(0)
-  type         String   @default("AUDIO") // AUDIO, VIDEO
   
   scholarId  String
   scholar    User     @relation("ScholarLiveSessions", fields: [scholarId], references: [id])

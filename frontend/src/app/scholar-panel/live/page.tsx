@@ -17,7 +17,6 @@ import {
     RoomAudioRenderer,
     TrackToggle,
     useLocalParticipant,
-    VideoTrack,
     useTracks
 } from '@livekit/components-react';
 import { Track } from 'livekit-client';
@@ -39,31 +38,14 @@ export default function ScholarLiveStudio() {
     const [status, setStatus] = useState<string>('Ready to start');
     const [streamTitle, setStreamTitle] = useState('Understanding the Wisdom of Ramadan');
     const [streamDescription, setStreamDescription] = useState('Join us for a deep dive into the spiritual and practical aspects of Ramadan.');
-    const [streamType, setStreamType] = useState<'audio' | 'video'>('audio');
     const [mySeries, setMySeries] = useState<any[]>([]);
     const [selectedSeriesId, setSelectedSeriesId] = useState<string>('');
     const [isCreatingSeries, setIsCreatingSeries] = useState(false);
     const [newSeriesData, setNewSeriesData] = useState({ title: '', description: '', category: 'General' });
-    const [isObsMode, setIsObsMode] = useState(false);
-    const [ingressDetails, setIngressDetails] = useState<{ url: string, streamKey: string } | null>(null);
-    const videoRef = useRef<HTMLVideoElement>(null);
     const { user } = useAuthStore();
     const scholarId = user?.id || '12345';
-    const [isFetchingIngress, setIsFetchingIngress] = useState(false);
 
-    const fetchIngress = useCallback(async () => {
-        setIsFetchingIngress(true);
-        try {
-            const { data } = await api.post('/live/ingress', { streamType });
-            setIngressDetails(data);
-            return data;
-        } catch (err) {
-            console.error('Failed to fetch ingress details:', err);
-            toast.error('Failed to load OBS stream keys');
-        } finally {
-            setIsFetchingIngress(false);
-        }
-    }, []);
+
 
     // Raised hand state
     interface RaisedHandInfo {
@@ -88,7 +70,7 @@ export default function ScholarLiveStudio() {
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: streamType === 'video',
+                video: false,
                 audio: {
                     echoCancellation: true,
                     noiseSuppression: true,
@@ -98,24 +80,14 @@ export default function ScholarLiveStudio() {
 
             setMediaStream(stream);
 
-            if (streamType === 'audio') {
-                startAudioVisualizer(stream);
-            } else if (streamType === 'video' && videoRef.current) {
-                videoRef.current.srcObject = stream;
-            }
+            startAudioVisualizer(stream);
 
             setStatus('Ready to start');
         } catch (err) {
             console.error('Error accessing media.', err);
             setStatus('Error: Media permissions denied');
         }
-    }, [streamType]);
-
-    useEffect(() => {
-        if (streamType === 'video' && videoRef.current && mediaStream) {
-            videoRef.current.srcObject = mediaStream;
-        }
-    }, [streamType, mediaStream]);
+    }, []);
 
 
     useEffect(() => {
@@ -135,11 +107,6 @@ export default function ScholarLiveStudio() {
                     setStatus('🔴 Live');
                     if (data.title) setStreamTitle(data.title);
                     if (data.description) setStreamDescription(data.description);
-                    if (data.streamType) setStreamType(data.streamType as 'audio' | 'video');
-                    if (data.isObsMode) {
-                        setIsObsMode(true);
-                        api.post('/live/ingress').then(res => setIngressDetails(res.data)).catch(() => {});
-                    }
                 }
             } catch (err) {
                 console.warn('[LiveStream] Could not check live status:', err);
@@ -236,14 +203,7 @@ export default function ScholarLiveStudio() {
         }
     };
 
-    const toggleVideo = () => {
-        if (mediaStream && streamType === 'video') {
-            mediaStream.getVideoTracks().forEach((track) => {
-                track.enabled = !track.enabled;
-            });
-            setIsVideoMuted(!isVideoMuted);
-        }
-    };
+
 
     const [lkToken, setLkToken] = useState<string | null>(null);
     const lkServerUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://livekit.deenjiggasa.info';
@@ -251,12 +211,8 @@ export default function ScholarLiveStudio() {
     const startStreaming = useCallback(async () => {
         try {
             setStatus('Getting access token...');
-            
-            if (isObsMode && streamType === 'video') {
-                await fetchIngress();
-            }
 
-            const { data } = await api.get(`/live/token${isObsMode ? '?isBrowserManager=true' : ''}`);
+            const { data } = await api.get('/live/token');
             setLkToken(data.token);
             setIsStreaming(true);
             setStatus('🔴 Live');
@@ -273,9 +229,7 @@ export default function ScholarLiveStudio() {
                 await api.post('/live/go-live', {
                     title: streamTitle,
                     description: streamDescription,
-                    streamType: streamType,
                     seriesId: selectedSeriesId || null,
-                    isObsMode: isObsMode,
                 });
             } catch (e) {
                 console.warn('[LiveStream] Could not notify backend go-live:', e);
@@ -284,7 +238,7 @@ export default function ScholarLiveStudio() {
             console.error('[LiveStream] Error fetching token:', err);
             setStatus('Error: Failed to get streaming token');
         }
-    }, [streamTitle, streamDescription, streamType, isObsMode, selectedSeriesId]);
+    }, [streamTitle, streamDescription, selectedSeriesId]);
 
     const stopStreaming = useCallback(async () => {
         setLkToken(null);
@@ -372,7 +326,7 @@ export default function ScholarLiveStudio() {
         <div className={styles.container}>
             <div className={styles.header}>
                 <div className={styles.headerLeft}>
-                    <h1 className={styles.title}>{streamType === 'video' ? 'Live Video Stream' : 'Live Audio Stream'}</h1>
+                    <h1 className={styles.title}>Live Audio Stream</h1>
                     <p className={styles.subtitle}>Broadcasting to DinJiggasa Community</p>
                 </div>
                 <div className={styles.headerRight}>
@@ -397,92 +351,25 @@ export default function ScholarLiveStudio() {
 
             {lkToken ? (
                 <LiveKitRoom
-                    video={streamType === 'video' && !isObsMode && !isVideoMuted}
-                    audio={!isObsMode && !isAudioMuted}
+                    audio={!isAudioMuted}
                     token={lkToken}
                     serverUrl={lkServerUrl}
                     connect={true}
                     options={{
                         disconnectOnPageLeave: false,
-                        videoCaptureDefaults: {
-                            resolution: { width: 1280, height: 720, frameRate: 30 },
-                            deviceId: undefined,
-                        },
-                        publishDefaults: {
-                            simulcast: false,
-                            videoCodec: 'h264',
-                            videoEncoding: {
-                                maxBitrate: 5_000_000, // 5Mbps for 720p is ultra-high quality
-                                maxFramerate: 30,
-                            },
-                        }
                     }}
                 >
                     <div className={styles.mainLayout}>
                         <div className={styles.leftCol}>
                             <div className={styles.streamCard}>
                                 <div className={styles.audioVisualizerContainer}>
-                                    {streamType === 'audio' ? (
-                                        <canvas
-                                            ref={canvasRef}
-                                            width={600}
-                                            height={200}
-                                            className={styles.audioCanvas}
-                                        />
-                                    ) : (
-                                        <div className={styles.videoStreamContainer}>
-                                            {isObsMode ? (
-                                                <div className={styles.obsIngressInfo} style={{ position: 'relative' }}>
-                                                    <ScholarRemoteVideoPreview />
-                                                    <div className={styles.obsBadge}>
-                                                        <Monitor size={16} />
-                                                        <span>OBS Studio Mode</span>
-                                                    </div>
-                                                    <p className={styles.obsHelpText}>
-                                                        Copy these details into your OBS Studio settings (Settings {'>'} Stream {'>'} Custom)
-                                                    </p>
-                                                    <div className={styles.ingressField}>
-                                                        <label>Server URL</label>
-                                                        <div className={styles.copyRow}>
-                                                            <input 
-                                                                type="text" 
-                                                                readOnly 
-                                                                value={ingressDetails?.url || ''} 
-                                                                placeholder={isFetchingIngress ? "Generating URL..." : "rtmp://server-url-loading..."}
-                                                            />
-                                                            <button onClick={async () => {
-                                                                if (!ingressDetails?.url) {
-                                                                    await fetchIngress();
-                                                                }
-                                                                if (ingressDetails?.url) {
-                                                                    navigator.clipboard.writeText(ingressDetails.url);
-                                                                    toast.success('Copied URL');
-                                                                }
-                                                            }}><Copy size={16} /></button>
-                                                        </div>
-                                                    </div>
-                                                    <div className={styles.ingressField}>
-                                                        <label>Stream Key</label>
-                                                        <div className={styles.copyRow}>
-                                                            <input 
-                                                                type="password" 
-                                                                readOnly 
-                                                                value={ingressDetails?.streamKey || ''} 
-                                                            />
-                                                            <button onClick={() => {
-                                                                navigator.clipboard.writeText(ingressDetails?.streamKey || '');
-                                                                toast.success('Copied Stream Key');
-                                                            }}><Copy size={16} /></button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <LocalVideoPreview streamType={streamType} videoRef={videoRef} mediaStream={mediaStream} />
-                                            )}
-                                        </div>
-                                    )}
-                                    {/* Mute the background audio renderer when using OBS to prevent audio feedback loops */}
-                                    {!isObsMode && <RoomAudioRenderer />}
+                                    <canvas
+                                        ref={canvasRef}
+                                        width={600}
+                                        height={200}
+                                        className={styles.audioCanvas}
+                                    />
+                                    <RoomAudioRenderer />
                                 </div>
 
                                 <div className={styles.sessionInfo}>
@@ -505,15 +392,9 @@ export default function ScholarLiveStudio() {
                                         </div>
                                     </button>
 
-                                    {streamType === 'video' ? (
-                                        <button onClick={toggleVideo} className={styles.roundControlBtn} title={isVideoMuted ? "Turn on camera" : "Turn off camera"}>
-                                            {isVideoMuted ? <VideoOff size={24} /> : <Video size={24} />}
-                                        </button>
-                                    ) : (
-                                        <button className={styles.roundControlBtn}>
-                                            <Volume2 size={24} />
-                                        </button>
-                                    )}
+                                    <button className={styles.roundControlBtn}>
+                                        <Volume2 size={24} />
+                                    </button>
                                 </div>
 
 
@@ -596,31 +477,12 @@ export default function ScholarLiveStudio() {
                     <div className={styles.leftCol}>
                         <div className={styles.streamCard}>
                             <div className={styles.audioVisualizerContainer}>
-                                {streamType === 'audio' ? (
-                                    <canvas
-                                        ref={canvasRef}
-                                        width={600}
-                                        height={200}
-                                        className={styles.audioCanvas}
-                                    />
-                                ) : (
-                                    <div className={styles.videoStreamContainer}>
-                                        <video
-                                            autoPlay
-                                            muted
-                                            playsInline
-                                            className={styles.localVideo}
-                                            ref={(el) => {
-                                                if (videoRef && 'current' in videoRef) {
-                                                    (videoRef as any).current = el;
-                                                }
-                                                if (el && mediaStream) {
-                                                    el.srcObject = mediaStream;
-                                                }
-                                            }}
-                                        />
-                                    </div>
-                                )}
+                                <canvas
+                                    ref={canvasRef}
+                                    width={600}
+                                    height={200}
+                                    className={styles.audioCanvas}
+                                />
                             </div>
 
                             <div className={styles.sessionInfo}>
@@ -702,71 +564,7 @@ export default function ScholarLiveStudio() {
                                         </div>
                                     )}
 
-                                    <div className={styles.setupDivider}></div>
-
-                                    <div className={styles.streamModeSetup}>
-                                        <div className={styles.modeToggleGroup}>
-                                            <label>Stream Type</label>
-                                            <div className={styles.modeToggleOptions}>
-                                                <button
-                                                    className={`${styles.modeBtn} ${streamType === 'audio' ? styles.modeBtnActive : ''}`}
-                                                    onClick={() => {
-                                                        setStreamType('audio');
-                                                        setIsObsMode(false);
-                                                    }}
-                                                >
-                                                    <div className={styles.modeIcon}><Mic size={20} /></div>
-                                                    <div className={styles.modeInfo}>
-                                                        <span className={styles.modeLabel}>Audio Session</span>
-                                                        <span className={styles.modeSubLabel}>Microphone only</span>
-                                                    </div>
-                                                </button>
-                                                <button
-                                                    className={`${styles.modeBtn} ${streamType === 'video' ? styles.modeBtnActive : ''}`}
-                                                    onClick={() => setStreamType('video')}
-                                                >
-                                                    <div className={styles.modeIcon}><Video size={20} /></div>
-                                                    <div className={styles.modeInfo}>
-                                                        <span className={styles.modeLabel}>Video Stream</span>
-                                                        <span className={styles.modeSubLabel}>Camera + Audio</span>
-                                                    </div>
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {streamType === 'video' && (
-                                            <div className={styles.modeToggleGroup} style={{ marginTop: '1.5rem' }}>
-                                                <label>Broadcasting Method</label>
-                                                <div className={styles.modeToggleOptions}>
-                                                    <button 
-                                                        className={`${styles.modeBtn} ${!isObsMode ? styles.modeBtnActive : ''}`}
-                                                        onClick={() => setIsObsMode(false)}
-                                                    >
-                                                        <div className={styles.modeIcon}><Globe size={20} /></div>
-                                                        <div className={styles.modeInfo}>
-                                                            <span className={styles.modeLabel}>Web Browser</span>
-                                                            <span className={styles.modeSubLabel}>Direct & Simple</span>
-                                                        </div>
-                                                    </button>
-                                                    <button 
-                                                        className={`${styles.modeBtn} ${isObsMode ? styles.modeBtnActive : ''}`}
-                                                        onClick={() => setIsObsMode(true)}
-                                                    >
-                                                        <div className={styles.modeIcon}><Monitor size={20} /></div>
-                                                        <div className={styles.modeInfo}>
-                                                            <span className={styles.modeLabel}>OBS Studio</span>
-                                                            <span className={styles.modeSubLabel}>Professional Setup</span>
-                                                        </div>
-                                                    </button>
-                                                </div>
-                                                <p className={styles.modeHint}>
-                                                    {isObsMode 
-                                                        ? "Best for highest quality. You'll receive a Stream Key to use in OBS Studio." 
-                                                        : "Simplest way. Start streaming directly from your browser camera."}
-                                                </p>
-                                            </div>
-                                        )}
-                                    </div>
+                                        <div className={styles.setupDivider}></div>
                                 </div>
 
                                 <div className={styles.scholarInfo}>
@@ -780,20 +578,14 @@ export default function ScholarLiveStudio() {
                                     {isAudioMuted ? <MicOff size={24} /> : <Mic size={24} />}
                                 </button>
 
-                                <button onClick={startStreaming} className={styles.startBtnLarge} title={isObsMode ? "Get Stream Keys" : "Start streaming now"}>
-                                    {isObsMode ? <Monitor size={32} fill="white" /> : <Play size={32} fill="white" />}
-                                    <span className={styles.startBtnText}>{isObsMode ? 'GET KEYS' : 'GO LIVE'}</span>
+                                <button onClick={startStreaming} className={styles.startBtnLarge} title="Start streaming now">
+                                    <Play size={32} fill="white" />
+                                    <span className={styles.startBtnText}>GO LIVE</span>
                                 </button>
 
-                                {streamType === 'video' ? (
-                                    <button onClick={toggleVideo} className={styles.roundControlBtn} title={isVideoMuted ? "Turn on camera" : "Turn off camera"}>
-                                        {isVideoMuted ? <VideoOff size={24} /> : <Video size={24} />}
-                                    </button>
-                                ) : (
-                                    <button className={styles.roundControlBtn}>
-                                        <Volume2 size={24} />
-                                    </button>
-                                )}
+                                <button className={styles.roundControlBtn}>
+                                    <Volume2 size={24} />
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -812,52 +604,3 @@ export default function ScholarLiveStudio() {
     );
 }
 
-function LocalVideoPreview({ streamType, videoRef, mediaStream }: { streamType: string, videoRef: React.RefObject<HTMLVideoElement | null>, mediaStream: MediaStream | null }) {
-    const tracks = useTracks([{ source: Track.Source.Camera, withPlaceholder: false }]);
-    const localVideoTrack = tracks.find(t => t.participant.isLocal);
-
-    if (localVideoTrack?.publication) {
-        return <VideoTrack trackRef={localVideoTrack as any} className={styles.localVideo} />;
-    }
-
-    return (
-        <video
-            autoPlay
-            muted
-            playsInline
-            className={styles.localVideo}
-            ref={(el) => {
-                if (videoRef && 'current' in videoRef) {
-                    (videoRef as any).current = el;
-                }
-                if (el && mediaStream) {
-                    el.srcObject = mediaStream;
-                }
-            }}
-        />
-    );
-}
-
-function ScholarRemoteVideoPreview() {
-    const tracks = useTracks([
-        { source: Track.Source.Camera, withPlaceholder: false },
-        { source: Track.Source.ScreenShare, withPlaceholder: false },
-        { source: Track.Source.Unknown, withPlaceholder: false }
-    ]);
-    const videoTrack = tracks.find(t => 
-        t.publication && (
-            t.publication.kind === Track.Kind.Video || 
-            t.source === Track.Source.Camera || 
-            t.source === Track.Source.ScreenShare
-        )
-    );
-
-    if (!videoTrack) return null;
-
-    return (
-        <div style={{ position: 'absolute', top: 16, right: 16, width: '200px', height: '112px', borderRadius: '8px', overflow: 'hidden', border: '2px solid #10b981', zIndex: 10, background: '#000' }}>
-            <VideoTrack trackRef={videoTrack as any} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.7)', color: 'white', fontSize: '11px', padding: '4px', textAlign: 'center' }}>OBS Live Preview</div>
-        </div>
-    );
-}

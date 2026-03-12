@@ -21,9 +21,7 @@ interface Session {
     title: string;
     description: string | null;
     audioUrl: string | null;
-    videoUrl: string | null;
     duration: number | null;
-    type: string;
     createdAt: string;
 }
 
@@ -153,8 +151,8 @@ export default function SeriesDetailPage() {
                                     <h3 className={styles.episodeTitle}>{session.title}</h3>
                                     <div className={styles.episodeMeta}>
                                         <div className={styles.metaItem}>
-                                            {session.type === 'VIDEO' ? <Video size={14} /> : <Volume2 size={14} />}
-                                            {session.type}
+                                            <Volume2 size={14} />
+                                            Audio
                                         </div>
                                         <div className={styles.metaItem}>
                                             <Clock size={14} />
@@ -195,30 +193,21 @@ export default function SeriesDetailPage() {
                             <X size={24} />
                         </button>
 
-                        {activeSession.type === 'VIDEO' && activeSession.videoUrl ? (
-                            <video 
-                                src={activeSession.videoUrl} 
+                        <div className={styles.audioPlayerWrapper}>
+                            <div className={styles.nowPlayingIcon}>
+                                <Volume2 size={40} />
+                            </div>
+                            <div className={styles.nowPlayingInfo}>
+                                <h3 className={styles.nowPlayingTitle}>{activeSession.title}</h3>
+                                <p className={styles.nowPlayingScholar}>by {series.scholar.name}</p>
+                            </div>
+                            <audio 
+                                src={activeSession.audioUrl || ''} 
                                 controls 
                                 autoPlay 
-                                className={styles.videoPlayer}
+                                className={styles.customAudio} 
                             />
-                        ) : (
-                            <div className={styles.audioPlayerWrapper}>
-                                <div className={styles.nowPlayingIcon}>
-                                    <Volume2 size={40} />
-                                </div>
-                                <div className={styles.nowPlayingInfo}>
-                                    <h3 className={styles.nowPlayingTitle}>{activeSession.title}</h3>
-                                    <p className={styles.nowPlayingScholar}>by {series.scholar.name}</p>
-                                </div>
-                                <audio 
-                                    src={activeSession.audioUrl || ''} 
-                                    controls 
-                                    autoPlay 
-                                    className={styles.customAudio} 
-                                />
-                            </div>
-                        )}
+                        </div>
                     </div>
                 </div>
             )}

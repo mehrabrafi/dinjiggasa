@@ -47,8 +47,7 @@ export class LiveStreamController {
       viewerCount: info?.viewerCount || 0,
       title: info?.title,
       description: info?.description,
-      streamType: info?.streamType || 'audio',
-      isObsMode: info?.isObsMode || false,
+      streamType: 'audio',
     };
   }
 
@@ -97,7 +96,7 @@ export class LiveStreamController {
   @UseGuards(JwtAuthGuard)
   goLive(
     @Req() req: any,
-    @Body() body: { title?: string; description?: string; streamType?: string; seriesId?: string; isObsMode?: boolean },
+    @Body() body: { title?: string; description?: string; seriesId?: string },
   ) {
     const scholarId = req.user.id || req.user.sub;
     this.liveStreamService.goLive(
@@ -105,9 +104,7 @@ export class LiveStreamController {
       `http-${scholarId}`,
       body.title,
       body.description,
-      body.streamType,
       body.seriesId,
-      body.isObsMode,
     );
     return { success: true };
   }
@@ -250,13 +247,6 @@ export class LiveStreamController {
     });
   }
 
-  /** POST /api/v1/live/ingress — create/get OBS stream keys */
-  @Post('ingress')
-  @UseGuards(JwtAuthGuard)
-  async getIngress(@Req() req: any, @Body() body: { streamType?: string }) {
-    const scholarId = req.user.id || req.user.sub;
-    return this.liveStreamService.createIngress(scholarId, scholarId, body?.streamType);
-  }
 
   /** POST /api/v1/live/webhook — LiveKit webhook to auto-detect disconnections */
   @Post('webhook')

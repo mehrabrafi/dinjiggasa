@@ -13,10 +13,9 @@ import {
     RoomAudioRenderer,
     useLocalParticipant,
     TrackToggle,
-    useTracks,
-    VideoTrack
+    useTracks
 } from '@livekit/components-react';
-import { Track, VideoQuality, RemoteTrackPublication } from 'livekit-client';
+import { Track } from 'livekit-client';
 import '@livekit/components-styles';
 
 function ViewerInteraction({
@@ -89,66 +88,7 @@ interface LiveSession {
     createdAt: string;
 }
 
-function RemoteVideoFeed() {
-    // Look for Camera OR ScreenShare since Ingress might be tagged differently depending on OBS setup
-    const tracks = useTracks([
-        { source: Track.Source.Camera, withPlaceholder: false },
-        { source: Track.Source.ScreenShare, withPlaceholder: false },
-        { source: Track.Source.Unknown, withPlaceholder: false }
-    ]);
-    const [quality, setQuality] = useState<VideoQuality>(VideoQuality.HIGH);
 
-    // Ensure we only grab a VIDEO track. OBS Ingress might send Audio as Unknown source, which would crash the VideoTrack component or stay blank.
-    const videoTrack = tracks.find(t => 
-        t.publication && (
-            t.publication.kind === Track.Kind.Video || 
-            t.source === Track.Source.Camera || 
-            t.source === Track.Source.ScreenShare
-        )
-    );
-
-    if (!videoTrack) {
-        return (
-            <div className={styles.videoPlaceholder}>
-                <div className={styles.spinner}></div>
-                <p>Waiting for scholar's video feed...</p>
-            </div>
-        );
-    }
-
-    const switchQuality = (q: VideoQuality) => {
-        if (videoTrack?.publication && videoTrack.publication instanceof RemoteTrackPublication) {
-            videoTrack.publication.setVideoQuality(q);
-            setQuality(q);
-        }
-    };
-
-    return (
-        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-            <div className={styles.qualitySelector}>
-                <button 
-                    onClick={() => switchQuality(VideoQuality.LOW)} 
-                    className={`${styles.qualityBtn} ${quality === VideoQuality.LOW ? styles.activeQuality : ''}`}
-                >
-                    360p
-                </button>
-                <button 
-                    onClick={() => switchQuality(VideoQuality.MEDIUM)} 
-                    className={`${styles.qualityBtn} ${quality === VideoQuality.MEDIUM ? styles.activeQuality : ''}`}
-                >
-                    720p
-                </button>
-                <button 
-                    onClick={() => switchQuality(VideoQuality.HIGH)} 
-                    className={`${styles.qualityBtn} ${quality === VideoQuality.HIGH ? styles.activeQuality : ''}`}
-                >
-                    1080p
-                </button>
-            </div>
-            <VideoTrack trackRef={videoTrack as any} className={styles.remoteVideo} />
-        </div>
-    );
-}
 
 export default function LiveViewer() {
     const { scholarId } = useParams();
@@ -162,7 +102,7 @@ export default function LiveViewer() {
     const [pastSessions, setPastSessions] = useState<LiveSession[]>([]);
     const [viewerIdentity, setViewerIdentity] = useState<string>('');
     const [handRaised, setHandRaised] = useState(false);
-    const [liveInfo, setLiveInfo] = useState<{ title?: string; description?: string; streamType?: string } | null>(null);
+    const [liveInfo, setLiveInfo] = useState<{ title?: string; description?: string } | null>(null);
     const { user } = useAuthStore();
 
     // Fetch view token
@@ -183,7 +123,6 @@ export default function LiveViewer() {
                     setLiveInfo({
                         title: statusData.title,
                         description: statusData.description,
-                        streamType: statusData.streamType || 'audio',
                     });
                 }
 
@@ -324,26 +263,18 @@ export default function LiveViewer() {
                                     )}
 
                                     <div className={styles.audioVisualizer}>
-                                        {liveInfo?.streamType === 'video' ? (
-                                            <div className={styles.videoStreamContainer}>
-                                                <RemoteVideoFeed />
-                                            </div>
-                                        ) : (
-                                            <>
-                                                <div className={styles.audioIconWrapper}>
-                                                    <Headphones size={56} />
-                                                </div>
-                                                <canvas
-                                                    ref={canvasRef}
-                                                    width={600}
-                                                    height={200}
-                                                    className={styles.audioCanvas}
-                                                />
-                                            </>
-                                        )}
+                                        <div className={styles.audioIconWrapper}>
+                                            <Headphones size={56} />
+                                        </div>
+                                        <canvas
+                                            ref={canvasRef}
+                                            width={600}
+                                            height={200}
+                                            className={styles.audioCanvas}
+                                        />
                                         <RoomAudioRenderer />
                                         <p className={styles.audioLabel}>
-                                            {isPlaying ? (liveInfo?.streamType === 'video' ? '📷 Video Stream — Playing' : '🎙️ Audio Stream — Playing') : `Waiting for stream...`}
+                                            {isPlaying ? '🎙️ Audio Stream — Playing' : `Waiting for stream...`}
                                         </p>
                                     </div>
                                 </div>
@@ -356,7 +287,7 @@ export default function LiveViewer() {
                                 />
 
                                 <div className={styles.streamInfo}>
-                                    <p>{liveInfo?.streamType === 'video' ? '📷 High-Quality Video Stream powered by LiveKit' : '🎙️ Audio-only stream — Pro Real-time Audio powered by LiveKit'}</p>
+                                    <p>🎙️ Audio-only stream — Pro Real-time Audio powered by LiveKit</p>
                                 </div>
 
                                 {pastSessions.length > 0 && (
