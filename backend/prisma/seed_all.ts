@@ -241,6 +241,115 @@ async function main() {
         }
     }
     console.log('Questions and answers seeded successfully!');
+
+    // --- Seed Series and Live Sessions ---
+    console.log('Upserting series and live sessions...');
+    
+    // 1. Seerah Series
+    const seerahSeries = await prisma.series.upsert({
+        where: { id: 'series-seerah-1' },
+        update: {},
+        create: {
+            id: 'series-seerah-1',
+            title: 'The Seerah of Prophet Muhammad (ﷺ)',
+            description: 'A comprehensive look at the life and teachings of the final messenger, from birth to the spread of the message.',
+            thumbnailUrl: '/assets/images/mock/seerah.png',
+            episodeCount: 12,
+            category: 'History',
+            scholarId: seededScholars[3].id, // Dr. Omar Farooq (History)
+        }
+    });
+
+    // 2. Tazkiyah Series
+    const tazkiyahSeries = await prisma.series.upsert({
+        where: { id: 'series-tazkiyah-1' },
+        update: {},
+        create: {
+            id: 'series-tazkiyah-1',
+            title: 'Heart Softeners: Tazkiyah',
+            description: 'Purifying the soul in a materialistic world through ancient wisdom and modern application.',
+            thumbnailUrl: '/assets/images/mock/tazkiyah.png',
+            episodeCount: 8,
+            category: 'Spirituality',
+            scholarId: seededScholars[4].id, // Sheikh Ibrahim Musa (Theology)
+        }
+    });
+
+    // 3. Live Sessions
+    const liveSessionsData = [
+        {
+            id: 'live-fiqh-1',
+            title: 'Principles of Zakat in Modern Finance',
+            description: 'Understanding how to calculate Zakat on stocks, crypto, and business assets.',
+            thumbnailUrl: '/assets/images/mock/fiqh.png',
+            viewCount: 1200,
+            type: 'VIDEO',
+            scholarId: seededScholars[0].id, // Dr. Ahmed Al-Falahi
+            createdAt: new Date(Date.now() - 24 * 60000), // 24m ago
+        },
+        {
+            id: 'live-spirituality-1',
+            title: 'The Art of Gratitude (Shukr)',
+            description: 'Finding inner peace through the continuous remembrance of Allah’s blessings.',
+            thumbnailUrl: '/assets/images/mock/spirituality.png',
+            viewCount: 842,
+            type: 'VIDEO',
+            scholarId: seededScholars[1].id, // Sheikh Yusuf Rahman
+            createdAt: new Date(Date.now() - 10 * 60000), // 10m ago
+        },
+        {
+            id: 'live-audio-1',
+            title: 'Open Q&A: Family & Social Issues',
+            description: 'Live community session addressing daily challenges and social interactions.',
+            thumbnailUrl: null, // Audio only might not have a thumbnail in the card top, or use a placeholder
+            viewCount: 2100,
+            type: 'AUDIO',
+            scholarId: seededScholars[2].id, // Ustadha Amina Zafar
+            createdAt: new Date(Date.now() - 45 * 60000), // 45m ago
+        }
+    ];
+
+    for (const session of liveSessionsData) {
+        await prisma.liveSession.upsert({
+            where: { id: session.id },
+            update: session,
+            create: session,
+        });
+    }
+
+    // 4. Recent (Recorded) Sessions
+    const recentSessionsData = [
+        {
+            id: 'recent-1',
+            title: 'Wisdom of Ramadan: Harvesting Spiritual Fruits',
+            thumbnailUrl: '/assets/images/mock/recent1.png',
+            viewCount: 4500,
+            duration: 2535, // 42:15
+            type: 'VIDEO',
+            scholarId: seededScholars[5].id, // Ustadha Sarah Karim
+            createdAt: new Date(Date.now() - 2 * 24 * 60 * 60000), // 2 days ago
+        },
+        {
+            id: 'recent-2',
+            title: 'Hadith of the Day: The Power of Intentions',
+            thumbnailUrl: '/assets/images/mock/recent2.png',
+            viewCount: 5800,
+            duration: 1510, // 25:10
+            type: 'AUDIO',
+            scholarId: seededScholars[7].id, // Sheikh Khalid Mansour
+            createdAt: new Date(Date.now() - 14 * 24 * 60 * 60000), // 2 weeks ago
+        }
+    ];
+
+    for (const session of recentSessionsData) {
+        await prisma.liveSession.upsert({
+            where: { id: session.id },
+            update: session,
+            create: session,
+        });
+    }
+
+    console.log('Series and sessions seeded successfully!');
 }
 
 main()

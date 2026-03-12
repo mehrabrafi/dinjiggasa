@@ -48,6 +48,10 @@ export default function ScholarLiveStudio() {
     const [streamTitle, setStreamTitle] = useState('Understanding the Wisdom of Ramadan');
     const [streamDescription, setStreamDescription] = useState('Join us for a deep dive into the spiritual and practical aspects of Ramadan.');
     const [streamType, setStreamType] = useState<'audio' | 'video'>('audio');
+    const [mySeries, setMySeries] = useState<any[]>([]);
+    const [selectedSeriesId, setSelectedSeriesId] = useState<string>('');
+    const [isCreatingSeries, setIsCreatingSeries] = useState(false);
+    const [newSeriesData, setNewSeriesData] = useState({ title: '', description: '', category: 'General' });
     const videoRef = useRef<HTMLVideoElement>(null);
     const { user } = useAuthStore();
     const scholarId = user?.id || '12345';
@@ -128,7 +132,17 @@ export default function ScholarLiveStudio() {
                 console.warn('[LiveStream] Could not check live status:', err);
             }
         };
+        const fetchMySeries = async () => {
+            try {
+                const { data } = await api.get('/live/series/my');
+                setMySeries(data);
+            } catch (err) {
+                console.warn('[LiveStream] Could not fetch series:', err);
+            }
+        };
+
         checkLiveStatus();
+        fetchMySeries();
 
         return () => {
             // Don't call stopStreaming on unmount during refresh
@@ -242,6 +256,7 @@ export default function ScholarLiveStudio() {
                     title: streamTitle,
                     description: streamDescription,
                     streamType: streamType,
+                    seriesId: selectedSeriesId || null,
                 });
             } catch (e) {
                 console.warn('[LiveStream] Could not notify backend go-live:', e);
@@ -562,6 +577,57 @@ export default function ScholarLiveStudio() {
                                             className={styles.descInput}
                                         />
                                     </div>
+
+                                    <div className={styles.inputGroup}>
+                                        <label>Associated Series (Optional)</label>
+                                        <div className={styles.seriesSelectorRow}>
+                                            <select 
+                                                value={selectedSeriesId} 
+                                                onChange={(e) => setSelectedSeriesId(e.target.value)}
+                                                className={styles.seriesSelect}
+                                            >
+                                                <option value="">No Series (Standalone Session)</option>
+                                                {mySeries.map(s => (
+                                                    <option key={s.id} value={s.id}>{s.title}</option>
+                                                ))}
+                                            </select>
+                                            <button 
+                                                className={styles.createSeriesBtn}
+                                                onClick={() => setIsCreatingSeries(true)}
+                                            >
+                                                + New Series
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {isCreatingSeries && (
+                                        <div className={styles.createSeriesForm}>
+                                            <input 
+                                                type="text" 
+                                                placeholder="Series Title" 
+                                                value={newSeriesData.title}
+                                                onChange={e => setNewSeriesData({...newSeriesData, title: e.target.value})}
+                                            />
+                                            <textarea 
+                                                placeholder="Series Description" 
+                                                value={newSeriesData.description}
+                                                onChange={e => setNewSeriesData({...newSeriesData, description: e.target.value})}
+                                            />
+                                            <div className={styles.formActions}>
+                                                <button onClick={async () => {
+                                                    if (!newSeriesData.title) return;
+                                                    try {
+                                                        const { data } = await api.post('/live/series', newSeriesData);
+                                                        setMySeries([data, ...mySeries]);
+                                                        setSelectedSeriesId(data.id);
+                                                        setIsCreatingSeries(false);
+                                                        setNewSeriesData({ title: '', description: '', category: 'General' });
+                                                    } catch (e) { console.error(e); }
+                                                }}>Create</button>
+                                                <button onClick={() => setIsCreatingSeries(false)} className={styles.cancelBtn}>Cancel</button>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     <div className={styles.streamTypeSelector}>
                                         <label>Stream Type</label>

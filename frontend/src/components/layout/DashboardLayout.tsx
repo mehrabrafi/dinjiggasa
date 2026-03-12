@@ -121,6 +121,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { name: "Home", icon: <Home size={20} />, href: "/" },
         { name: "Scholars", icon: <Users size={20} />, href: "/scholars" },
         { name: "Live", icon: <Video size={20} color="#ef4444" />, href: "/live" },
+        { name: "Series", icon: <Hash size={20} />, href: "/series" },
         { name: "Topics", icon: <List size={20} />, href: "/topics" },
     ]
 

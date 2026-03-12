@@ -1227,3 +1227,385 @@
     color: var(--primary);
     font-weight: 600;
 }
+
+/* ===== Premium Dashboard Sections ===== */
+
+.sectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    padding: 0 0.25rem;
+}
+
+.sectionTitle {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1a202c;
+    letter-spacing: -0.01em;
+}
+
+.seeAllLink {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #0d9488;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.seeAllLink:hover {
+    color: #0f766e;
+    text-decoration: underline;
+}
+
+/* Horizontal Scroll Container */
+.horizontalScroll {
+    display: flex;
+    overflow-x: auto;
+    gap: 1.25rem;
+    padding-bottom: 1rem;
+    margin: 0 -0.5rem;
+    padding-left: 0.5rem;
+    scrollbar-width: none; /* Hide scrollbar Firefox */
+}
+
+.horizontalScroll::-webkit-scrollbar {
+    display: none; /* Hide scrollbar Chrome/Safari */
+}
+
+/* Live Session Card */
+.liveSessionCard {
+    flex: 0 0 280px;
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.liveSessionCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.cardThumbWrapper {
+    position: relative;
+    height: 157px;
+    width: 100%;
+    background-color: #f1f5f9;
+}
+
+.cardThumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.liveOverlay {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    display: flex;
+    gap: 0.5rem;
+    z-index: 5;
+}
+
+.liveBadgeRed {
+    background: #ef4444;
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+}
+
+.viewerCount {
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.audioVisual {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.2) 100%);
+}
+
+.cardDetails {
+    padding: 1rem;
+}
+
+.cardCategory {
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: #0d9488;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+}
+
+.sessionTitleSmall {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 0.25rem;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.scholarNameSmall {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-bottom: 0.75rem;
+}
+
+.cardFooterMeta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.75rem;
+    border-top: 1px solid #f1f5f9;
+}
+
+.viewerAvatars {
+    display: flex;
+    align-items: center;
+}
+
+.avatarMini {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid white;
+    margin-left: -6px;
+}
+
+.avatarMini:first-child {
+    margin-left: 0;
+}
+
+.moreViewers {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #64748b;
+    margin-left: 4px;
+}
+
+.timeAgo {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+/* Featured Series Card */
+.seriesCardLarge {
+    flex: 0 0 540px;
+    height: 280px;
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+    background-color: #0f172a;
+    color: white;
+}
+
+.seriesCardLarge::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.2) 100%);
+    z-index: 1;
+}
+
+.seriesCardBg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.6;
+}
+
+.seriesContent {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    max-width: 70%;
+}
+
+.episodeCountBadge {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(4px);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    width: fit-content;
+    margin-bottom: 1rem;
+}
+
+.seriesTitleLarge {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    line-height: 1.2;
+}
+
+.seriesDesc {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+.seriesScholar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.seriesScholarAvatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.seriesScholarName {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+/* Recent Streams (Grid of Cards) */
+.recentGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.recentCard {
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid #f1f5f9;
+}
+
+.recentThumbWrapper {
+    position: relative;
+    aspect-ratio: 16/9;
+}
+
+.durationBadge {
+    position: absolute;
+    bottom: 0.5rem;
+    right: 0.5rem;
+    background: rgba(0, 0, 0, 0.75);
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.typeIcon {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.recentDetails {
+    padding: 0.875rem 1rem;
+}
+
+.recentTitle {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 0.25rem;
+    line-height: 1.4;
+}
+
+.recentScholar {
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-bottom: 0.5rem;
+}
+
+.recentMeta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.recentViews {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Topics Bar */
+.topicsBar {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    padding: 0.5rem 0.25rem;
+    margin-bottom: 2rem;
+    scrollbar-width: none;
+}
+
+.topicPill {
+    padding: 0.5rem 1.25rem;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 9999px;
+    font-size: 0.825rem;
+    font-weight: 600;
+    color: #64748b;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.topicPillActive {
+    background: #0d9488;
+    color: white;
+    border-color: #0d9488;
+}
+
+.topicPill:hover:not(.topicPillActive) {
+    border-color: #0d9488;
+    color: #0d9488;
+}

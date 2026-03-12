@@ -84,7 +84,7 @@ export class LiveStreamController {
   @UseGuards(JwtAuthGuard)
   goLive(
     @Req() req: any,
-    @Body() body: { title?: string; description?: string; streamType?: string },
+    @Body() body: { title?: string; description?: string; streamType?: string; seriesId?: string },
   ) {
     const scholarId = req.user.id || req.user.sub;
     this.liveStreamService.goLive(
@@ -93,6 +93,7 @@ export class LiveStreamController {
       body.title,
       body.description,
       body.streamType,
+      body.seriesId,
     );
     return { success: true };
   }
@@ -170,6 +171,54 @@ export class LiveStreamController {
     return this.prisma.liveSession.findMany({
       where: { scholarId },
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /** GET /api/v1/live/overview — returns live and past sessions for home page */
+  @Get('overview')
+  async getOverview() {
+    const live = await this.liveStreamService.getLiveScholars();
+    const past = await this.prisma.liveSession.findMany({
+      include: { scholar: true },
+      orderBy: { createdAt: 'desc' },
+      take: 20, // Limit for home page
+    });
+    return { live, past };
+  }
+
+  /** GET /api/v1/live/series — returns all series */
+  @Get('series')
+  async getSeries() {
+    return this.prisma.series.findMany({
+      include: { scholar: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /** GET /api/v1/live/series/my — returns series owned by authenticated scholar */
+  @Get('series/my')
+  @UseGuards(JwtAuthGuard)
+  async getMySeries(@Req() req: any) {
+    const scholarId = req.user.id || req.user.sub;
+    return this.prisma.series.findMany({
+      where: { scholarId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /** POST /api/v1/live/series — create a new series */
+  @Post('series')
+  @UseGuards(JwtAuthGuard)
+  async createSeries(
+    @Req() req: any,
+    @Body() body: { title: string; description?: string; category?: string; thumbnailUrl?: string },
+  ) {
+    const scholarId = req.user.id || req.user.sub;
+    return this.prisma.series.create({
+      data: {
+        ...body,
+        scholarId,
+      },
     });
   }
 }

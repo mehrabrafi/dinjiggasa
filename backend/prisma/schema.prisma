@@ -58,6 +58,7 @@ model User {
   sentNotifications     Notification[] @relation("SenderNotifications")
 
   liveSessions          LiveSession[] @relation("ScholarLiveSessions")
+  series                Series[]      @relation("ScholarSeries")
 
   reportsSent Report[] @relation("Reporter")
 
@@ -222,15 +223,41 @@ model Report {
   updatedAt  DateTime @updatedAt
 }
 
-// Live Session Model for recorded audio streams
+// Live Session Model for recorded audio/video streams
 model LiveSession {
-  id         String   @id @default(uuid())
-  title      String
-  audioUrl   String
-  duration   Int?     // duration in seconds
+  id           String   @id @default(uuid())
+  title        String
+  description  String?  @db.Text
+  audioUrl     String?
+  videoUrl     String?
+  thumbnailUrl String?
+  duration     Int?     // duration in seconds
+  viewCount    Int      @default(0)
+  type         String   @default("AUDIO") // AUDIO, VIDEO
   
   scholarId  String
   scholar    User     @relation("ScholarLiveSessions", fields: [scholarId], references: [id])
 
+  seriesId   String?
+  series     Series?  @relation(fields: [seriesId], references: [id])
+
   createdAt  DateTime @default(now())
+}
+
+// Series Model for group of sessions
+model Series {
+  id           String   @id @default(uuid())
+  title        String
+  description  String?  @db.Text
+  thumbnailUrl String?
+  episodeCount Int      @default(0)
+  category     String?  // e.g. Seerah, Fiqh
+  
+  scholarId    String
+  scholar      User     @relation("ScholarSeries", fields: [scholarId], references: [id])
+  
+  sessions     LiveSession[]
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }

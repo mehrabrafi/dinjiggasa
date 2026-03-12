@@ -57,6 +57,7 @@ export class LiveStreamService {
     title?: string,
     description?: string,
     streamType: string = 'audio',
+    seriesId?: string,
   ) {
     this.liveScholars.set(scholarId, {
       scholarId,
@@ -72,15 +73,15 @@ export class LiveStreamService {
       `[LiveStream] Scholar ${scholarId} is now LIVE (${streamType}) with title: ${title}`,
     );
 
-    // Ensure the room exists on LiveKit before starting Egress
+    // Ensure the room exists on LiveKit
     try {
       await this.roomService.createRoom({
         name: scholarId,
-        emptyTimeout: 10 * 60, // 10 minutes
+        emptyTimeout: 10 * 60,
         maxParticipants: 100,
       });
       
-      const fileExt = streamType === 'video' ? 'mp4' : 'mp4';
+      const fileExt = 'mp4';
       const timestamp = Date.now();
       const fileName = `live-recordings/${scholarId}-${timestamp}.${fileExt}`;
       const bucketName = process.env.R2_BUCKET_NAME || 'deenjiggasa';
@@ -110,15 +111,28 @@ export class LiveStreamService {
       
       this.roomEgress.set(scholarId, egressInfo.egressId);
       
-      // Save link in DB (assuming LiveSession model exists)
       const publicUrl = process.env.R2_PUBLIC_URL || 'https://media.deenjiggasa.info';
+      
+      // Save session in DB
       await this.prisma.liveSession.create({
         data: {
           scholarId,
           title: title || 'Live Session',
-          audioUrl: `${publicUrl}/${fileName}`,
+          description,
+          audioUrl: streamType === 'audio' ? `${publicUrl}/${fileName}` : null,
+          videoUrl: streamType === 'video' ? `${publicUrl}/${fileName}` : null,
+          type: streamType.toUpperCase(),
+          seriesId: seriesId || null,
         }
       });
+
+      // Update series episode count
+      if (seriesId) {
+        await this.prisma.series.update({
+          where: { id: seriesId },
+          data: { episodeCount: { increment: 1 } }
+        });
+      }
       
     } catch (err) {
       console.error(`[LiveStream] Failed to start egress for ${scholarId}:`, err);
