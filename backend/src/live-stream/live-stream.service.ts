@@ -47,12 +47,15 @@ export class LiveStreamService {
   private roomIngress: Map<string, string> = new Map();
 
   constructor(private prisma: PrismaService) {
-    const lkHost =
-      process.env.LIVEKIT_HOST || 'https://livekit.deenjiggasa.info';
+    const lkUrl = process.env.LIVEKIT_URL || 'https://livekit.deenjiggasa.info';
+    // API server needs https/http, not wss/ws
+    const lkHost = lkUrl.replace('wss://', 'https://').replace('ws://', 'http://');
+    
     const apiKey = process.env.LIVEKIT_API_KEY || 'devkey';
     const apiSecret =
       process.env.LIVEKIT_API_SECRET ||
       'secretsecretsecretsecretsecretsecretsecret';
+      
     this.roomService = new RoomServiceClient(lkHost, apiKey, apiSecret);
     this.egressClient = new EgressClient(lkHost, apiKey, apiSecret);
     this.ingressClient = new IngressClient(lkHost, apiKey, apiSecret);
@@ -380,20 +383,22 @@ export class LiveStreamService {
 
   /** Create/Get an Ingress for OBS streaming */
   async createIngress(scholarId: string, roomName: string) {
-    console.log(`[LiveStream] Requesting ingress for scholar ${scholarId} in room ${roomName}`);
+    console.log(`[LiveStream] Ingress request - Scholar: ${scholarId}, Room: ${roomName}`);
     
-    // Try to find existing ingress for this room/scholar to avoid duplicates
-    const ingresses = await this.ingressClient.listIngress({ roomName });
-    
-    let ingressData;
-    if (ingresses.length > 0) {
-      console.log(`[LiveStream] Found existing ingress ${ingresses[0].ingressId}`);
-      ingressData = {
-        url: ingresses[0].url,
-        streamKey: ingresses[0].streamKey,
-      };
-    } else {
-      console.log(`[LiveStream] Creating new ingress...`);
+    try {
+      // Find existing ingress for this room
+      const ingresses = await this.ingressClient.listIngress({ roomName });
+      
+      if (ingresses.length > 0) {
+        // Find first one that has a URL
+        const existing = ingresses.find(i => !!i.url);
+        if (existing) {
+          console.log(`[LiveStream] Found valid existing ingress: ${existing.ingressId}`);
+          return { url: existing.url, streamKey: existing.streamKey };
+        }
+      }
+
+      console.log(`[LiveStream] No valid ingress found, creating new one...`);
       const ingress = await this.ingressClient.createIngress(
         IngressInput.RTMP_INPUT,
         {
@@ -403,21 +408,19 @@ export class LiveStreamService {
           participantName: 'Scholar (OBS)',
         }
       );
+
+      if (!ingress.url) {
+        console.warn(`[LiveStream] Ingress created but URL is empty! This usually means Ingress is not fully configured on the LiveKit server.`);
+      }
+
       this.roomIngress.set(scholarId, ingress.ingressId);
-      ingressData = {
+      return {
         url: ingress.url,
         streamKey: ingress.streamKey,
       };
+    } catch (err) {
+      console.error(`[LiveStream] Failed to create/list ingress:`, err);
+      throw err;
     }
-
-    // Fallback logic: if Server URL is empty, construct it from LIVEKIT_URL
-    if (!ingressData.url) {
-      const lkUrl = process.env.LIVEKIT_URL || 'wss://livekit.deenjiggasa.info';
-      const host = lkUrl.replace('wss://', '').replace('ws://', '');
-      ingressData.url = `rtmp://${host}:1935/x`;
-      console.log(`[LiveStream] LiveKit returned empty URL, using fallback: ${ingressData.url}`);
-    }
-
-    return ingressData;
   }
 }

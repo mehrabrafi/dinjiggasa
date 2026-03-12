@@ -47,19 +47,18 @@ export class LiveStreamController {
   @Get('token')
   @UseGuards(JwtAuthGuard)
   async getToken(@Req() req: any, @Query('isBrowserManager') isBrowserManager?: string) {
-    let scholarId = req.user.id || req.user.sub;
+    const scholarId = req.user.id || req.user.sub;
     const userName = req.user.name || 'Scholar';
     
-    // If scholar is using OBS, the browser joins as a "manager" to avoid identity conflict
-    if (isBrowserManager === 'true') {
-      scholarId = `${scholarId}-manager`;
-    }
+    // Identity must be unique, but roomName must be consistent
+    const identity = isBrowserManager === 'true' ? `${scholarId}-manager` : scholarId;
 
     return {
       token: await this.liveStreamService.generateToken(
-        scholarId,
+        scholarId, // roomName
         userName,
         true,
+        identity,
       ),
     };
   }
@@ -246,7 +245,6 @@ export class LiveStreamController {
   @UseGuards(JwtAuthGuard)
   async getIngress(@Req() req: any) {
     const scholarId = req.user.id || req.user.sub;
-    const roomName = `http-${scholarId}`;
-    return this.liveStreamService.createIngress(scholarId, roomName);
+    return this.liveStreamService.createIngress(scholarId, scholarId);
   }
 }
