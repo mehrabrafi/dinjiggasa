@@ -594,35 +594,38 @@ export default function ScholarLiveStudio() {
 
                             <div className={styles.sessionInfo}>
                                 <div className={styles.streamConfig}>
-                                    <div className={styles.inputGroup}>
-                                        <label>Stream Title</label>
-                                        <input
-                                            type="text"
-                                            value={streamTitle}
-                                            onChange={(e) => setStreamTitle(e.target.value)}
-                                            placeholder="Enter stream title..."
-                                            className={styles.titleInput}
-                                        />
-                                    </div>
-                                    <div className={styles.inputGroup}>
-                                        <label>Description (Optional)</label>
-                                        <textarea
-                                            value={streamDescription}
-                                            onChange={(e) => setStreamDescription(e.target.value)}
-                                            placeholder="What is this stream about?"
-                                            className={styles.descInput}
-                                        />
+                                    <div className={styles.configGrid}>
+                                        <div className={styles.inputGroup}>
+                                            <label>Stream Title</label>
+                                            <input
+                                                type="text"
+                                                value={streamTitle}
+                                                onChange={(e) => setStreamTitle(e.target.value)}
+                                                placeholder="Enter a descriptive title..."
+                                                className={styles.titleInput}
+                                            />
+                                        </div>
+                                        
+                                        <div className={styles.inputGroup}>
+                                            <label>Description (Optional)</label>
+                                            <textarea
+                                                value={streamDescription}
+                                                onChange={(e) => setStreamDescription(e.target.value)}
+                                                placeholder="What will you discuss today?"
+                                                className={styles.descInput}
+                                            />
+                                        </div>
                                     </div>
 
                                     <div className={styles.inputGroup}>
-                                        <label>Associated Series (Optional)</label>
+                                        <label>Associated Series</label>
                                         <div className={styles.seriesSelectorRow}>
                                             <select
                                                 value={selectedSeriesId}
                                                 onChange={(e) => setSelectedSeriesId(e.target.value)}
                                                 className={styles.seriesSelect}
                                             >
-                                                <option value="">No Series (Standalone Session)</option>
+                                                <option value="">Standalone Session (No Series)</option>
                                                 {Array.isArray(mySeries) && mySeries.map(s => (
                                                     <option key={s.id} value={s.id}>{s.title}</option>
                                                 ))}
@@ -658,50 +661,81 @@ export default function ScholarLiveStudio() {
                                                         setSelectedSeriesId(data.id);
                                                         setIsCreatingSeries(false);
                                                         setNewSeriesData({ title: '', description: '', category: 'General' });
-                                                    } catch (e) { console.error(e); }
-                                                }}>Create</button>
+                                                        toast.success('Series created successfully');
+                                                    } catch (e) {
+                                                        toast.error('Failed to create series');
+                                                    }
+                                                }}>Create Series</button>
                                                 <button onClick={() => setIsCreatingSeries(false)} className={styles.cancelBtn}>Cancel</button>
                                             </div>
                                         </div>
                                     )}
 
-                                    <div className={styles.streamTypeSelector}>
-                                        <label>Stream Type</label>
-                                        <div className={styles.typeButtons}>
-                                            <button
-                                                className={`${styles.typeBtn} ${streamType === 'audio' ? styles.activeType : ''}`}
-                                                onClick={() => setStreamType('audio')}
-                                            >
-                                                🎙️ Audio Session
-                                            </button>
-                                            <button
-                                                className={`${styles.typeBtn} ${streamType === 'video' ? styles.activeType : ''}`}
-                                                onClick={() => setStreamType('video')}
-                                            >
-                                                📷 Video Stream
-                                            </button>
-                                        </div>
-                                    </div>
+                                    <div className={styles.setupDivider}></div>
 
-                                    {streamType === 'video' && (
-                                        <div className={styles.streamTypeSelector}>
-                                            <label>Streaming Source</label>
-                                            <div className={styles.typeButtons}>
-                                                <button 
-                                                    className={`${styles.typeBtn} ${!isObsMode ? styles.activeType : ''}`}
-                                                    onClick={() => setIsObsMode(false)}
+                                    <div className={styles.streamModeSetup}>
+                                        <div className={styles.modeToggleGroup}>
+                                            <label>Stream Type</label>
+                                            <div className={styles.modeToggleOptions}>
+                                                <button
+                                                    className={`${styles.modeBtn} ${streamType === 'audio' ? styles.modeBtnActive : ''}`}
+                                                    onClick={() => {
+                                                        setStreamType('audio');
+                                                        setIsObsMode(false);
+                                                    }}
                                                 >
-                                                    <Globe size={16} /> Browser (Direct)
+                                                    <div className={styles.modeIcon}><Mic size={20} /></div>
+                                                    <div className={styles.modeInfo}>
+                                                        <span className={styles.modeLabel}>Audio Session</span>
+                                                        <span className={styles.modeSubLabel}>Microphone only</span>
+                                                    </div>
                                                 </button>
-                                                <button 
-                                                    className={`${styles.typeBtn} ${isObsMode ? styles.activeType : ''}`}
-                                                    onClick={() => setIsObsMode(true)}
+                                                <button
+                                                    className={`${styles.modeBtn} ${streamType === 'video' ? styles.modeBtnActive : ''}`}
+                                                    onClick={() => setStreamType('video')}
                                                 >
-                                                    <Monitor size={16} /> OBS Studio
+                                                    <div className={styles.modeIcon}><Video size={20} /></div>
+                                                    <div className={styles.modeInfo}>
+                                                        <span className={styles.modeLabel}>Video Stream</span>
+                                                        <span className={styles.modeSubLabel}>Camera + Audio</span>
+                                                    </div>
                                                 </button>
                                             </div>
                                         </div>
-                                    )}
+
+                                        {streamType === 'video' && (
+                                            <div className={styles.modeToggleGroup} style={{ marginTop: '1.5rem' }}>
+                                                <label>Broadcasting Method</label>
+                                                <div className={styles.modeToggleOptions}>
+                                                    <button 
+                                                        className={`${styles.modeBtn} ${!isObsMode ? styles.modeBtnActive : ''}`}
+                                                        onClick={() => setIsObsMode(false)}
+                                                    >
+                                                        <div className={styles.modeIcon}><Globe size={20} /></div>
+                                                        <div className={styles.modeInfo}>
+                                                            <span className={styles.modeLabel}>Web Browser</span>
+                                                            <span className={styles.modeSubLabel}>Direct & Simple</span>
+                                                        </div>
+                                                    </button>
+                                                    <button 
+                                                        className={`${styles.modeBtn} ${isObsMode ? styles.modeBtnActive : ''}`}
+                                                        onClick={() => setIsObsMode(true)}
+                                                    >
+                                                        <div className={styles.modeIcon}><Monitor size={20} /></div>
+                                                        <div className={styles.modeInfo}>
+                                                            <span className={styles.modeLabel}>OBS Studio</span>
+                                                            <span className={styles.modeSubLabel}>Professional Setup</span>
+                                                        </div>
+                                                    </button>
+                                                </div>
+                                                <p className={styles.modeHint}>
+                                                    {isObsMode 
+                                                        ? "Best for highest quality. You'll receive a Stream Key to use in OBS Studio." 
+                                                        : "Simplest way. Start streaming directly from your browser camera."}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div className={styles.scholarInfo}>
@@ -715,8 +749,9 @@ export default function ScholarLiveStudio() {
                                     {isAudioMuted ? <MicOff size={24} /> : <Mic size={24} />}
                                 </button>
 
-                                <button onClick={startStreaming} className={styles.startBtnLarge}>
-                                    <Play size={28} fill="white" />
+                                <button onClick={startStreaming} className={styles.startBtnLarge} title={isObsMode ? "Get Stream Keys" : "Start streaming now"}>
+                                    {isObsMode ? <Monitor size={32} fill="white" /> : <Play size={32} fill="white" />}
+                                    <span className={styles.startBtnText}>{isObsMode ? 'GET KEYS' : 'GO LIVE'}</span>
                                 </button>
 
                                 {streamType === 'video' ? (
