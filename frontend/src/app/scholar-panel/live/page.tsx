@@ -22,6 +22,34 @@ import {
 import { Track } from 'livekit-client';
 import '@livekit/components-styles';
 
+/** Detects when local audio track is published and starts Track Composite Egress */
+function RecordingStarter() {
+    const { localParticipant } = useLocalParticipant();
+    const recordingStartedRef = useRef(false);
+
+    useEffect(() => {
+        if (recordingStartedRef.current) return;
+
+        // Get the local participant's audio tracks
+        const audioTracks = localParticipant.audioTrackPublications;
+        if (!audioTracks || audioTracks.size === 0) return;
+
+        // Find the first published audio track
+        for (const [, pub] of audioTracks) {
+            if (pub.track && pub.trackSid) {
+                recordingStartedRef.current = true;
+                console.log(`[RecordingStarter] Audio track published: ${pub.trackSid}`);
+                api.post('/live/start-recording', { audioTrackId: pub.trackSid })
+                    .then(res => console.log('[RecordingStarter] Recording started:', res.data))
+                    .catch(err => console.warn('[RecordingStarter] Failed to start recording:', err));
+                break;
+            }
+        }
+    }, [localParticipant, localParticipant.audioTrackPublications]);
+
+    return null;
+}
+
 export default function ScholarLiveStudio() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationRef = useRef<number>(0);
@@ -359,6 +387,7 @@ export default function ScholarLiveStudio() {
                         disconnectOnPageLeave: false,
                     }}
                 >
+                    <RecordingStarter />
                     <div className={styles.mainLayout}>
                         <div className={styles.leftCol}>
                             <div className={styles.streamCard}>

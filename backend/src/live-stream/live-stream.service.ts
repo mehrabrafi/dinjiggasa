@@ -41,8 +41,6 @@ export class LiveStreamService {
   private roomEgress: Map<string, string> = new Map();
   // Map scholarId -> liveSessionId to update audioUrl after egress completes
   private scholarToSession: Map<string, string> = new Map();
-  // Map scholarId -> predicted recording filename for egress
-  private scholarToFileName: Map<string, string> = new Map();
 
   constructor(private prisma: PrismaService) {
     const lkUrl = process.env.LIVEKIT_URL || 'https://livekit.deenjiggasa.info';
@@ -86,14 +84,12 @@ export class LiveStreamService {
         emptyTimeout: 10 * 60,
         maxParticipants: 100,
       });
-      // Generate the recording filename now so audioUrl is available instantly
+
+      // Generate filename now so audioUrl is available instantly
       const timestamp = Date.now();
       const fileName = `live-recordings/${scholarId}-${timestamp}.ogg`;
       const publicUrl = process.env.R2_PUBLIC_URL || 'https://media.deenjiggasa.info';
       const audioUrl = `${publicUrl}/${fileName}`;
-
-      // Store filename for egress to use when the audio track is published
-      this.scholarToFileName.set(scholarId, fileName);
 
       // Save session in DB with audioUrl set immediately
       const session = await this.prisma.liveSession.create({
@@ -122,28 +118,42 @@ export class LiveStreamService {
   }
 
   /**
-   * Start Track Composite Egress when the scholar publishes their audio track.
-   * Called from the webhook handler when a 'track_published' event is received.
-   * Track Composite Egress captures audio directly from the media pipeline
-   * (no headless Chrome), producing clean, gap-free recordings.
+   * Start Track Composite Egress recording after the scholar has published audio.
+   * Called from the frontend after connecting to LiveKit and getting the audio track SID.
+   * This uses direct audio pipeline capture (no headless Chrome) for clean recordings.
    */
-  async startEgressForTrack(roomName: string, audioTrackId: string) {
-    // Only start egress if the scholar is live and doesn't already have an egress running
-    if (!this.isLive(roomName) || this.roomEgress.has(roomName)) {
-      return;
+  async startRecording(scholarId: string, audioTrackId: string) {
+    // Don't start if scholar is not live or already recording
+    if (!this.isLive(scholarId)) {
+      console.warn(`[LiveStream] Scholar ${scholarId} is not live, cannot start recording`);
+      return { success: false, error: 'Not live' };
+    }
+    if (this.roomEgress.has(scholarId)) {
+      console.log(`[LiveStream] Egress already running for ${scholarId}`);
+      return { success: true, message: 'Already recording' };
     }
 
     try {
-      // Use the filename that was pre-generated in goLive()
-      const fileName = this.scholarToFileName.get(roomName);
-      if (!fileName) {
-        console.warn(`[LiveStream] No pre-generated filename for ${roomName}, skipping egress`);
-        return;
+      // Get the audioUrl from the session to extract the filename
+      const sessionId = this.scholarToSession.get(scholarId);
+      if (!sessionId) {
+        console.warn(`[LiveStream] No session found for ${scholarId}`);
+        return { success: false, error: 'No session' };
       }
+
+      const session = await this.prisma.liveSession.findUnique({
+        where: { id: sessionId },
+        select: { audioUrl: true },
+      });
+
+      // Extract filename from the audioUrl
+      const publicUrl = process.env.R2_PUBLIC_URL || 'https://media.deenjiggasa.info';
+      const fileName = session?.audioUrl?.replace(`${publicUrl}/`, '') 
+        || `live-recordings/${scholarId}-${Date.now()}.ogg`;
       const bucketName = process.env.R2_BUCKET_NAME || 'deenjiggasa';
 
       const egressInfo = await this.egressClient.startTrackCompositeEgress(
-        roomName,
+        scholarId,
         new EncodedFileOutput({
           fileType: EncodedFileType.OGG,
           filepath: fileName,
@@ -165,10 +175,12 @@ export class LiveStreamService {
         }
       );
 
-      this.roomEgress.set(roomName, egressInfo.egressId);
-      console.log(`[LiveStream] Track Composite Egress started: ${egressInfo.egressId} for track ${audioTrackId} in room ${roomName}`);
+      this.roomEgress.set(scholarId, egressInfo.egressId);
+      console.log(`[LiveStream] Track Composite Egress started: ${egressInfo.egressId} for track ${audioTrackId} in room ${scholarId}`);
+      return { success: true, egressId: egressInfo.egressId };
     } catch (err) {
-      console.error(`[LiveStream] Failed to start track egress for ${roomName}:`, err);
+      console.error(`[LiveStream] Failed to start track egress for ${scholarId}:`, err);
+      return { success: false, error: String(err) };
     }
   }
 
@@ -191,7 +203,7 @@ export class LiveStreamService {
       }
       this.roomEgress.delete(scholarId);
     }
-    this.scholarToFileName.delete(scholarId);
+
     
     console.log(`[LiveStream] Scholar ${scholarId} went OFFLINE`);
   }

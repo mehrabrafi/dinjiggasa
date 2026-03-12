@@ -14,7 +14,6 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UploadService } from '../upload/upload.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { WebhookReceiver } from 'livekit-server-sdk';
-import { TrackType, TrackSource } from '@livekit/protocol';
 
 @Controller('live')
 export class LiveStreamController {
@@ -118,6 +117,17 @@ export class LiveStreamController {
     this.liveStreamService.goOffline(scholarId);
     this.liveStreamService.clearRaisedHands(scholarId);
     return { success: true };
+  }
+
+  /** POST /api/v1/live/start-recording — start track egress after scholar publishes audio */
+  @Post('start-recording')
+  @UseGuards(JwtAuthGuard)
+  async startRecording(
+    @Req() req: any,
+    @Body() body: { audioTrackId: string },
+  ) {
+    const scholarId = req.user.id || req.user.sub;
+    return this.liveStreamService.startRecording(scholarId, body.audioTrackId);
   }
 
   // ─── Raise Hand / Speaker Management ────────────────────────────
@@ -282,27 +292,6 @@ export class LiveStreamController {
         }
       }
 
-      // When a track is published → start Track Composite Egress for audio recording
-      // This fires when the scholar starts publishing audio in the room
-      if (event.event === 'track_published' && event.room?.name && event.participant?.identity && event.track) {
-        const scholarId = event.room.name;
-        const participantId = event.participant.identity;
-        const trackType = event.track.type; // AUDIO or VIDEO
-        const trackSource = event.track.source; // MICROPHONE, CAMERA, etc.
-        const trackSid = event.track.sid;
-
-        console.log(`[LiveKit Webhook] Track published: type=${trackType}, source=${trackSource}, sid=${trackSid}, by ${participantId} in room ${scholarId}`);
-
-        // Only start egress when the scholar (not a viewer) publishes an audio track
-        // TrackType.AUDIO = 0, TrackSource.MICROPHONE = 2 (protobuf enums)
-        if (
-          (participantId === scholarId || participantId === `${scholarId}-manager`) &&
-          (trackType === TrackType.AUDIO || trackSource === TrackSource.MICROPHONE)
-        ) {
-          console.log(`[LiveKit Webhook] Scholar audio track detected → starting Track Composite Egress`);
-          await this.liveStreamService.startEgressForTrack(scholarId, trackSid);
-        }
-      }
 
       // When the scholar (publisher) leaves the room → mark offline
       if (event.event === 'participant_left' && event.room?.name && event.participant?.identity) {
