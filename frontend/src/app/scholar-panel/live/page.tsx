@@ -424,10 +424,17 @@ export default function ScholarLiveStudio() {
                                                     <div className={styles.ingressField}>
                                                         <label>Server URL</label>
                                                         <div className={styles.copyRow}>
-                                                            <code>{ingressDetails?.url}</code>
+                                                            <input 
+                                                                type="text" 
+                                                                readOnly 
+                                                                value={ingressDetails?.url || ''} 
+                                                                placeholder="rtmp://server-url-loading..."
+                                                            />
                                                             <button onClick={() => {
-                                                                navigator.clipboard.writeText(ingressDetails?.url || '');
-                                                                toast.success('Copied URL');
+                                                                if (ingressDetails?.url) {
+                                                                    navigator.clipboard.writeText(ingressDetails.url);
+                                                                    toast.success('Copied URL');
+                                                                }
                                                             }}><Copy size={16} /></button>
                                                         </div>
                                                     </div>
