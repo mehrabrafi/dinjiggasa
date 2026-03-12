@@ -417,7 +417,7 @@ export class LiveStreamService {
         console.warn(`[LiveStream] Ingress created but URL is empty! Using fallback.`);
         const lkPublicUrl = process.env.LIVEKIT_URL || 'wss://livekit.deenjiggasa.info';
         const host = lkPublicUrl.replace('wss://', '').replace('ws://', '').split(':')[0];
-        url = `rtmp://${host}/live`;
+        url = `rtmp://${host}:1935/live`;
       }
 
       console.log(`[LiveStream] Ingress ready: ${url}`);
