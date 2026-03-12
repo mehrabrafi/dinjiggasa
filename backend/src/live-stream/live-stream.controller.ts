@@ -40,6 +40,7 @@ export class LiveStreamController {
       title: info?.title,
       description: info?.description,
       streamType: info?.streamType || 'audio',
+      isObsMode: info?.isObsMode || false,
     };
   }
 
@@ -88,7 +89,7 @@ export class LiveStreamController {
   @UseGuards(JwtAuthGuard)
   goLive(
     @Req() req: any,
-    @Body() body: { title?: string; description?: string; streamType?: string; seriesId?: string },
+    @Body() body: { title?: string; description?: string; streamType?: string; seriesId?: string; isObsMode?: boolean },
   ) {
     const scholarId = req.user.id || req.user.sub;
     this.liveStreamService.goLive(
@@ -98,6 +99,7 @@ export class LiveStreamController {
       body.description,
       body.streamType,
       body.seriesId,
+      body.isObsMode,
     );
     return { success: true };
   }

@@ -49,6 +49,21 @@ export default function ScholarLiveStudio() {
     const videoRef = useRef<HTMLVideoElement>(null);
     const { user } = useAuthStore();
     const scholarId = user?.id || '12345';
+    const [isFetchingIngress, setIsFetchingIngress] = useState(false);
+
+    const fetchIngress = useCallback(async () => {
+        setIsFetchingIngress(true);
+        try {
+            const { data } = await api.post('/live/ingress');
+            setIngressDetails(data);
+            return data;
+        } catch (err) {
+            console.error('Failed to fetch ingress details:', err);
+            toast.error('Failed to load OBS stream keys');
+        } finally {
+            setIsFetchingIngress(false);
+        }
+    }, []);
 
     // Raised hand state
     interface RaisedHandInfo {
@@ -121,6 +136,10 @@ export default function ScholarLiveStudio() {
                     if (data.title) setStreamTitle(data.title);
                     if (data.description) setStreamDescription(data.description);
                     if (data.streamType) setStreamType(data.streamType as 'audio' | 'video');
+                    if (data.isObsMode) {
+                        setIsObsMode(true);
+                        api.post('/live/ingress').then(res => setIngressDetails(res.data)).catch(() => {});
+                    }
                 }
             } catch (err) {
                 console.warn('[LiveStream] Could not check live status:', err);
@@ -234,8 +253,7 @@ export default function ScholarLiveStudio() {
             setStatus('Getting access token...');
             
             if (isObsMode && streamType === 'video') {
-                const { data: ingress } = await api.post('/live/ingress');
-                setIngressDetails(ingress);
+                await fetchIngress();
             }
 
             const { data } = await api.get(`/live/token${isObsMode ? '?isBrowserManager=true' : ''}`);
@@ -257,6 +275,7 @@ export default function ScholarLiveStudio() {
                     description: streamDescription,
                     streamType: streamType,
                     seriesId: selectedSeriesId || null,
+                    isObsMode: isObsMode,
                 });
             } catch (e) {
                 console.warn('[LiveStream] Could not notify backend go-live:', e);
@@ -428,9 +447,12 @@ export default function ScholarLiveStudio() {
                                                                 type="text" 
                                                                 readOnly 
                                                                 value={ingressDetails?.url || ''} 
-                                                                placeholder="rtmp://server-url-loading..."
+                                                                placeholder={isFetchingIngress ? "Generating URL..." : "rtmp://server-url-loading..."}
                                                             />
-                                                            <button onClick={() => {
+                                                            <button onClick={async () => {
+                                                                if (!ingressDetails?.url) {
+                                                                    await fetchIngress();
+                                                                }
                                                                 if (ingressDetails?.url) {
                                                                     navigator.clipboard.writeText(ingressDetails.url);
                                                                     toast.success('Copied URL');

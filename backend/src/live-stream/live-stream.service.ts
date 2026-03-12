@@ -19,6 +19,7 @@ export interface LiveScholarInfo {
   title?: string;
   description?: string;
   streamType?: string;
+  isObsMode?: boolean;
 }
 
 export interface RaisedHandInfo {
@@ -69,6 +70,7 @@ export class LiveStreamService {
     description?: string,
     streamType: string = 'audio',
     seriesId?: string,
+    isObsMode: boolean = false,
   ) {
     this.liveScholars.set(scholarId, {
       scholarId,
@@ -78,6 +80,7 @@ export class LiveStreamService {
       title,
       description,
       streamType,
+      isObsMode,
     });
     this.clientToScholar.set(clientId, scholarId);
     console.log(
@@ -391,7 +394,7 @@ export class LiveStreamService {
       
       if (ingresses.length > 0) {
         // Find first one that has a URL
-        const existing = ingresses.find(i => !!i.url);
+        const existing = ingresses.find(i => !!i.url && !!i.streamKey);
         if (existing) {
           console.log(`[LiveStream] Found valid existing ingress: ${existing.ingressId}`);
           return { url: existing.url, streamKey: existing.streamKey };
@@ -409,13 +412,18 @@ export class LiveStreamService {
         }
       );
 
-      if (!ingress.url) {
-        console.warn(`[LiveStream] Ingress created but URL is empty! This usually means Ingress is not fully configured on the LiveKit server.`);
+      let url = ingress.url;
+      if (!url) {
+        console.warn(`[LiveStream] Ingress created but URL is empty! Using fallback.`);
+        const lkPublicUrl = process.env.LIVEKIT_URL || 'wss://livekit.deenjiggasa.info';
+        const host = lkPublicUrl.replace('wss://', '').replace('ws://', '').split(':')[0];
+        url = `rtmp://${host}/live`;
       }
 
+      console.log(`[LiveStream] Ingress ready: ${url}`);
       this.roomIngress.set(scholarId, ingress.ingressId);
       return {
-        url: ingress.url,
+        url: url,
         streamKey: ingress.streamKey,
       };
     } catch (err) {
