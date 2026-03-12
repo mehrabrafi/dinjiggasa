@@ -9,7 +9,8 @@ import {
   CreateIngressOptions,
   EncodedFileOutput, 
   S3Upload, 
-  EncodingOptionsPreset 
+  EncodingOptionsPreset,
+  TrackSource
 } from 'livekit-server-sdk';
 export interface LiveScholarInfo {
   scholarId: string;
@@ -385,23 +386,28 @@ export class LiveStreamService {
   }
 
   /** Create/Get an Ingress for OBS streaming */
-  async createIngress(scholarId: string, roomName: string) {
+  async createIngress(scholarId: string, roomName: string, streamType: string = 'video') {
     console.log(`[LiveStream] Ingress request - Scholar: ${scholarId}, Room: ${roomName}`);
     
     try {
       // Find existing ingress for this room
       const ingresses = await this.ingressClient.listIngress({ roomName });
       
+      // If we find an existing one, let's delete it to ensure we recreate with proper TrackSource tagging
+      // This is necessary because once created, configurations like video source tagging might be immutable or cached
       if (ingresses.length > 0) {
-        // Find first one that has a URL
-        const existing = ingresses.find(i => !!i.url && !!i.streamKey);
-        if (existing) {
-          console.log(`[LiveStream] Found valid existing ingress: ${existing.ingressId}`);
-          return { url: existing.url, streamKey: existing.streamKey };
+        console.log(`[LiveStream] Found ${ingresses.length} existing ingresses. Cleaning up...`);
+        for (const ing of ingresses) {
+          try {
+            await this.ingressClient.deleteIngress(ing.ingressId);
+          } catch (e) {
+            console.warn(`[LiveStream] Failed to delete old ingress ${ing.ingressId}:`, e);
+          }
         }
       }
 
       console.log(`[LiveStream] No valid ingress found, creating new one...`);
+      
       const ingress = await this.ingressClient.createIngress(
         IngressInput.RTMP_INPUT,
         {
@@ -409,6 +415,16 @@ export class LiveStreamService {
           roomName: roomName,
           participantIdentity: scholarId,
           participantName: 'Scholar (OBS)',
+          // Explicitly set sources so viewers' useTracks({ source: Camera }) finds it
+          // In SDK v2, these are often plain objects or need to match the proto structure
+          video: {
+            source: TrackSource.CAMERA,
+            name: 'video',
+          } as any,
+          audio: {
+            source: TrackSource.MICROPHONE,
+            name: 'audio',
+          } as any
         }
       );
 

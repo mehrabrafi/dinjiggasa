@@ -90,7 +90,12 @@ interface LiveSession {
 }
 
 function RemoteVideoFeed() {
-    const tracks = useTracks([{ source: Track.Source.Camera, withPlaceholder: false }]);
+    // Look for Camera OR ScreenShare since Ingress might be tagged differently depending on OBS setup
+    const tracks = useTracks([
+        { source: Track.Source.Camera, withPlaceholder: false },
+        { source: Track.Source.ScreenShare, withPlaceholder: false },
+        { source: Track.Source.Unknown, withPlaceholder: false }
+    ]);
     const [quality, setQuality] = useState<VideoQuality>(VideoQuality.HIGH);
 
     const videoTrack = tracks.find(t => t.publication);

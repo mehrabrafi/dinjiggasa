@@ -245,8 +245,8 @@ export class LiveStreamController {
   /** POST /api/v1/live/ingress — create/get OBS stream keys */
   @Post('ingress')
   @UseGuards(JwtAuthGuard)
-  async getIngress(@Req() req: any) {
+  async getIngress(@Req() req: any, @Body() body: { streamType?: string }) {
     const scholarId = req.user.id || req.user.sub;
-    return this.liveStreamService.createIngress(scholarId, scholarId);
+    return this.liveStreamService.createIngress(scholarId, scholarId, body.streamType);
   }
 }

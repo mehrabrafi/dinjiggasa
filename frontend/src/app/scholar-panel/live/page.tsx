@@ -54,7 +54,7 @@ export default function ScholarLiveStudio() {
     const fetchIngress = useCallback(async () => {
         setIsFetchingIngress(true);
         try {
-            const { data } = await api.post('/live/ingress');
+            const { data } = await api.post('/live/ingress', { streamType });
             setIngressDetails(data);
             return data;
         } catch (err) {
