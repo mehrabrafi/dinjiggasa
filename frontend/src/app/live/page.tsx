@@ -264,7 +264,7 @@ function DashboardView() {
         <div className={styles.horizontalScroll}>
           {series.length > 0 ? (
             series.map((s) => (
-              <div key={s.id} className={styles.seriesCardLarge}>
+              <Link href={`/series/${s.id}`} key={s.id} className={styles.seriesCardLarge} style={{ textDecoration: 'none' }}>
                 <img src={s.thumbnailUrl || '/assets/images/mock/seerah.png'} className={styles.seriesCardBg} alt={s.title} />
                 <div className={styles.seriesContent}>
                   <div className={styles.episodeCountBadge}>{s.episodeCount} EPISODES</div>
@@ -275,7 +275,7 @@ function DashboardView() {
                     <span className={styles.seriesScholarName}>{s.scholar?.name}</span>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))
           ) : (
             <div style={{ padding: '2rem', color: '#64748b' }}>Coming soon...</div>

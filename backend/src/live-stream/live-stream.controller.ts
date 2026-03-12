@@ -195,6 +195,20 @@ export class LiveStreamController {
     });
   }
 
+  /** GET /api/v1/live/series/:id — returns a specific series with its sessions */
+  @Get('series/:id')
+  async getSeriesById(@Param('id') id: string) {
+    return this.prisma.series.findUnique({
+      where: { id },
+      include: {
+        scholar: true,
+        sessions: {
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+    });
+  }
+
   /** GET /api/v1/live/series/my — returns series owned by authenticated scholar */
   @Get('series/my')
   @UseGuards(JwtAuthGuard)
