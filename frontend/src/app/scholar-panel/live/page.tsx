@@ -24,28 +24,25 @@ import '@livekit/components-styles';
 
 /** Detects when local audio track is published and starts Track Composite Egress */
 function RecordingStarter() {
-    const { localParticipant } = useLocalParticipant();
+    const tracks = useTracks([{ source: Track.Source.Microphone, withPlaceholder: false }]);
     const recordingStartedRef = useRef(false);
 
     useEffect(() => {
         if (recordingStartedRef.current) return;
 
-        // Get the local participant's audio tracks
-        const audioTracks = localParticipant.audioTrackPublications;
-        if (!audioTracks || audioTracks.size === 0) return;
-
-        // Find the first published audio track
-        for (const [, pub] of audioTracks) {
-            if (pub.track && pub.trackSid) {
+        // Find the first published local audio track
+        for (const trackRef of tracks) {
+            if (trackRef.participant.isLocal && trackRef.publication?.trackSid) {
                 recordingStartedRef.current = true;
-                console.log(`[RecordingStarter] Audio track published: ${pub.trackSid}`);
-                api.post('/live/start-recording', { audioTrackId: pub.trackSid })
+                const trackSid = trackRef.publication.trackSid;
+                console.log(`[RecordingStarter] Audio track published: ${trackSid}`);
+                api.post('/live/start-recording', { audioTrackId: trackSid })
                     .then(res => console.log('[RecordingStarter] Recording started:', res.data))
                     .catch(err => console.warn('[RecordingStarter] Failed to start recording:', err));
                 break;
             }
         }
-    }, [localParticipant, localParticipant.audioTrackPublications]);
+    }, [tracks]);
 
     return null;
 }
