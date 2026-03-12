@@ -1,21 +1,11 @@
-'use client';
-
 import { useEffect, useRef, useState, useCallback } from 'react';
-import {
-    Play,
-    Square,
-    Video,
-    VideoOff,
-    Mic,
-    MicOff,
-    Hand,
-    Check,
-    X,
-    Volume2,
-    Timer,
-    Users,
-    CheckCircle2
-} from 'lucide-react';
+import { 
+    PlayCircle, Bell, MessageSquare, ArrowUp, ArrowDown, TrendingUp, GraduationCap, 
+    Share, CheckCircle2, Heart, BarChart3, HelpCircle, Activity, Flag, Eye, 
+    Video, Headphones, Mic, MicOff, VideoOff, Volume2, Timer, Users, Square, 
+    Hand, Check, X, Globe, Monitor, Copy, ExternalLink, Play
+} from "lucide-react";
+import toast from 'react-hot-toast';
 import styles from './live.module.css';
 import { useAuthStore } from '@/store/auth.store';
 import api from '@/lib/axios';
@@ -52,6 +42,8 @@ export default function ScholarLiveStudio() {
     const [selectedSeriesId, setSelectedSeriesId] = useState<string>('');
     const [isCreatingSeries, setIsCreatingSeries] = useState(false);
     const [newSeriesData, setNewSeriesData] = useState({ title: '', description: '', category: 'General' });
+    const [isObsMode, setIsObsMode] = useState(false);
+    const [ingressDetails, setIngressDetails] = useState<{ url: string, streamKey: string } | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const { user } = useAuthStore();
     const scholarId = user?.id || '12345';
@@ -238,7 +230,13 @@ export default function ScholarLiveStudio() {
     const startStreaming = useCallback(async () => {
         try {
             setStatus('Getting access token...');
-            const { data } = await api.get('/live/token');
+            
+            if (isObsMode && streamType === 'video') {
+                const { data: ingress } = await api.post('/live/ingress');
+                setIngressDetails(ingress);
+            }
+
+            const { data } = await api.get(`/live/token${isObsMode ? '?isBrowserManager=true' : ''}`);
             setLkToken(data.token);
             setIsStreaming(true);
             setStatus('🔴 Live');
@@ -265,7 +263,7 @@ export default function ScholarLiveStudio() {
             console.error('[LiveStream] Error fetching token:', err);
             setStatus('Error: Failed to get streaming token');
         }
-    }, [streamTitle, streamDescription, streamType]);
+    }, [streamTitle, streamDescription, streamType, isObsMode, selectedSeriesId]);
 
     const stopStreaming = useCallback(async () => {
         setLkToken(null);
@@ -378,24 +376,24 @@ export default function ScholarLiveStudio() {
 
             {lkToken ? (
                 <LiveKitRoom
-                    video={streamType === 'video' && !isVideoMuted}
-                    audio={!isAudioMuted}
+                    video={streamType === 'video' && !isObsMode && !isVideoMuted}
+                    audio={!isObsMode && !isAudioMuted}
                     token={lkToken}
                     serverUrl={lkServerUrl}
                     connect={true}
-                    options={{ 
+                    options={{
                         disconnectOnPageLeave: false,
-                        publishDefaults: {
-                            simulcast: false, 
-                            videoCodec: 'vp9', // Superior to H264 for crispness
-                            videoEncoding: {
-                                maxBitrate: 4_500_000, 
-                                maxFramerate: 30,
-                            },
-                        },
                         videoCaptureDefaults: {
                             resolution: { width: 1280, height: 720, frameRate: 30 },
-                            facingMode: 'user',
+                            deviceId: undefined,
+                        },
+                        publishDefaults: {
+                            simulcast: false,
+                            videoCodec: 'h264',
+                            videoEncoding: {
+                                maxBitrate: 5_000_000, // 5Mbps for 720p is ultra-high quality
+                                maxFramerate: 30,
+                            },
                         }
                     }}
                 >
@@ -412,7 +410,43 @@ export default function ScholarLiveStudio() {
                                         />
                                     ) : (
                                         <div className={styles.videoStreamContainer}>
-                                            <LocalVideoPreview streamType={streamType} videoRef={videoRef} mediaStream={mediaStream} />
+                                            {isObsMode ? (
+                                                <div className={styles.obsIngressInfo}>
+                                                    <div className={styles.obsBadge}>
+                                                        <Monitor size={16} />
+                                                        <span>OBS Studio Mode</span>
+                                                    </div>
+                                                    <p className={styles.obsHelpText}>
+                                                        Copy these details into your OBS Studio settings (Settings {'>'} Stream {'>'} Custom)
+                                                    </p>
+                                                    <div className={styles.ingressField}>
+                                                        <label>Server URL</label>
+                                                        <div className={styles.copyRow}>
+                                                            <code>{ingressDetails?.url}</code>
+                                                            <button onClick={() => {
+                                                                navigator.clipboard.writeText(ingressDetails?.url || '');
+                                                                toast.success('Copied URL');
+                                                            }}><Copy size={16} /></button>
+                                                        </div>
+                                                    </div>
+                                                    <div className={styles.ingressField}>
+                                                        <label>Stream Key</label>
+                                                        <div className={styles.copyRow}>
+                                                            <input 
+                                                                type="password" 
+                                                                readOnly 
+                                                                value={ingressDetails?.streamKey || ''} 
+                                                            />
+                                                            <button onClick={() => {
+                                                                navigator.clipboard.writeText(ingressDetails?.streamKey || '');
+                                                                toast.success('Copied Stream Key');
+                                                            }}><Copy size={16} /></button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <LocalVideoPreview streamType={streamType} videoRef={videoRef} mediaStream={mediaStream} />
+                                            )}
                                         </div>
                                     )}
                                     <RoomAudioRenderer />
@@ -581,8 +615,8 @@ export default function ScholarLiveStudio() {
                                     <div className={styles.inputGroup}>
                                         <label>Associated Series (Optional)</label>
                                         <div className={styles.seriesSelectorRow}>
-                                            <select 
-                                                value={selectedSeriesId} 
+                                            <select
+                                                value={selectedSeriesId}
                                                 onChange={(e) => setSelectedSeriesId(e.target.value)}
                                                 className={styles.seriesSelect}
                                             >
@@ -591,7 +625,7 @@ export default function ScholarLiveStudio() {
                                                     <option key={s.id} value={s.id}>{s.title}</option>
                                                 ))}
                                             </select>
-                                            <button 
+                                            <button
                                                 className={styles.createSeriesBtn}
                                                 onClick={() => setIsCreatingSeries(true)}
                                             >
@@ -602,16 +636,16 @@ export default function ScholarLiveStudio() {
 
                                     {isCreatingSeries && (
                                         <div className={styles.createSeriesForm}>
-                                            <input 
-                                                type="text" 
-                                                placeholder="Series Title" 
+                                            <input
+                                                type="text"
+                                                placeholder="Series Title"
                                                 value={newSeriesData.title}
-                                                onChange={e => setNewSeriesData({...newSeriesData, title: e.target.value})}
+                                                onChange={e => setNewSeriesData({ ...newSeriesData, title: e.target.value })}
                                             />
-                                            <textarea 
-                                                placeholder="Series Description" 
+                                            <textarea
+                                                placeholder="Series Description"
                                                 value={newSeriesData.description}
-                                                onChange={e => setNewSeriesData({...newSeriesData, description: e.target.value})}
+                                                onChange={e => setNewSeriesData({ ...newSeriesData, description: e.target.value })}
                                             />
                                             <div className={styles.formActions}>
                                                 <button onClick={async () => {

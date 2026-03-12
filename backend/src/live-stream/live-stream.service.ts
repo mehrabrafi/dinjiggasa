@@ -4,6 +4,9 @@ import {
   AccessToken, 
   RoomServiceClient, 
   EgressClient, 
+  IngressClient,
+  IngressInput,
+  CreateIngressOptions,
   EncodedFileOutput, 
   S3Upload, 
   EncodingOptionsPreset 
@@ -36,8 +39,12 @@ export class LiveStreamService {
   private roomService: RoomServiceClient;
   // LiveKit EgressClient for recording streams
   private egressClient: EgressClient;
+  // LiveKit IngressClient for OBS streams
+  private ingressClient: IngressClient;
   // Map scholarId -> egressId to stop recording
   private roomEgress: Map<string, string> = new Map();
+  // Map scholarId -> ingressId
+  private roomIngress: Map<string, string> = new Map();
 
   constructor(private prisma: PrismaService) {
     const lkHost =
@@ -48,6 +55,7 @@ export class LiveStreamService {
       'secretsecretsecretsecretsecretsecretsecret';
     this.roomService = new RoomServiceClient(lkHost, apiKey, apiSecret);
     this.egressClient = new EgressClient(lkHost, apiKey, apiSecret);
+    this.ingressClient = new IngressClient(lkHost, apiKey, apiSecret);
   }
 
   /** Mark a scholar as live */
@@ -368,5 +376,34 @@ export class LiveStreamService {
   /** Clear all raised hands for a room (when stream ends) */
   clearRaisedHands(roomName: string) {
     this.raisedHands.delete(roomName);
+  }
+
+  /** Create/Get an Ingress for OBS streaming */
+  async createIngress(scholarId: string, roomName: string) {
+    // Try to find existing ingress for this room/scholar to avoid duplicates
+    const ingresses = await this.ingressClient.listIngress({ roomName });
+    if (ingresses.length > 0) {
+      return {
+        url: ingresses[0].url,
+        streamKey: ingresses[0].streamKey,
+      };
+    }
+
+    const ingress = await this.ingressClient.createIngress(
+      IngressInput.RTMP_INPUT,
+      {
+        name: `scholar-${scholarId}`,
+        roomName: roomName,
+        participantIdentity: scholarId,
+        participantName: 'Scholar (OBS)',
+      }
+    );
+
+    this.roomIngress.set(scholarId, ingress.ingressId);
+
+    return {
+      url: ingress.url,
+      streamKey: ingress.streamKey,
+    };
   }
 }

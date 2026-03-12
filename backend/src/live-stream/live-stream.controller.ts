@@ -46,10 +46,15 @@ export class LiveStreamController {
   /** GET /api/v1/live/token — get a LiveKit access token for the scholar */
   @Get('token')
   @UseGuards(JwtAuthGuard)
-  async getToken(@Req() req: any) {
-    const scholarId = req.user.id || req.user.sub;
+  async getToken(@Req() req: any, @Query('isBrowserManager') isBrowserManager?: string) {
+    let scholarId = req.user.id || req.user.sub;
     const userName = req.user.name || 'Scholar';
-    // When going live, the scholar is the room owner and publisher
+    
+    // If scholar is using OBS, the browser joins as a "manager" to avoid identity conflict
+    if (isBrowserManager === 'true') {
+      scholarId = `${scholarId}-manager`;
+    }
+
     return {
       token: await this.liveStreamService.generateToken(
         scholarId,
@@ -234,5 +239,14 @@ export class LiveStreamController {
         scholarId,
       },
     });
+  }
+
+  /** POST /api/v1/live/ingress — create/get OBS stream keys */
+  @Post('ingress')
+  @UseGuards(JwtAuthGuard)
+  async getIngress(@Req() req: any) {
+    const scholarId = req.user.id || req.user.sub;
+    const roomName = `http-${scholarId}`;
+    return this.liveStreamService.createIngress(scholarId, roomName);
   }
 }

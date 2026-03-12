@@ -486,6 +486,37 @@
     color: white;
 }
 
+.typeToggle {
+    display: flex;
+    gap: 0.75rem;
+    background: #f1f5f9;
+    padding: 0.4rem;
+    border-radius: 12px;
+}
+
+.toggleBtn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.6rem;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 0.85rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.toggleBtnActive {
+    background: white;
+    color: #10b981;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
 .videoStreamContainer {
     width: 600px;
     height: 337.5px; /* 16:9 ratio */
@@ -503,6 +534,89 @@
     height: 100%;
     object-fit: cover;
     transform: scaleX(-1); /* Mirror camera */
+}
+
+/* OBS Ingress Info Card */
+.obsIngressInfo {
+    width: 100%;
+    height: 100%;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: #1e293b;
+    color: white;
+    text-align: left;
+}
+
+.obsBadge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #10b981;
+    color: white;
+    padding: 0.4rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    width: fit-content;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+}
+
+.obsHelpText {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+.ingressField {
+    margin-bottom: 1rem;
+}
+
+.ingressField label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #64748b;
+    margin-bottom: 0.25rem;
+}
+
+.copyRow {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.copyRow code,
+.copyRow input {
+    flex: 1;
+    background: #0f172a;
+    border: 1px solid #334155;
+    padding: 0.6rem 0.75rem;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: #34d399;
+}
+
+.copyRow button {
+    background: #334155;
+    color: white;
+    border: none;
+    width: 38px;
+    height: 38px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.copyRow button:hover {
+    background: #475569;
 }
 
 /* Series Selection & Creation */
