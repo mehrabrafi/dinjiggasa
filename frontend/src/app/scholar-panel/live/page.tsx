@@ -390,10 +390,10 @@ export default function ScholarLiveStudio() {
                             deviceId: undefined,
                         },
                         publishDefaults: {
-                            simulcast: true,
+                            simulcast: false, // Disable for scholar to force high quality encoding
                             videoCodec: 'h264',
                             videoEncoding: {
-                                maxBitrate: 6_000_000,
+                                maxBitrate: 4_000_000, // Balanced 4Mbps for 1080p stability
                                 maxFramerate: 30,
                             },
                         }
