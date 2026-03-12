@@ -247,6 +247,6 @@ export class LiveStreamController {
   @UseGuards(JwtAuthGuard)
   async getIngress(@Req() req: any, @Body() body: { streamType?: string }) {
     const scholarId = req.user.id || req.user.sub;
-    return this.liveStreamService.createIngress(scholarId, scholarId, body.streamType);
+    return this.liveStreamService.createIngress(scholarId, scholarId, body?.streamType);
   }
 }
