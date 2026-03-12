@@ -103,7 +103,7 @@ export class LiveStreamService {
         }),
         {
           layout: 'grid',
-          encodingOptions: streamType === 'video' ? EncodingOptionsPreset.H264_720P_30 : undefined,
+          encodingOptions: streamType === 'video' ? EncodingOptionsPreset.H264_1080P_30 : undefined,
           audioOnly: streamType !== 'video',
           videoOnly: false,
         }
