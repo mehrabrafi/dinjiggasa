@@ -386,14 +386,14 @@ export default function ScholarLiveStudio() {
                     options={{ 
                         disconnectOnPageLeave: false,
                         videoCaptureDefaults: {
-                            resolution: { width: 1920, height: 1080, frameRate: 30 },
+                            resolution: { width: 1280, height: 720, frameRate: 30 },
                             deviceId: undefined,
                         },
                         publishDefaults: {
-                            simulcast: false, // Disable for scholar to force high quality encoding
+                            simulcast: false, 
                             videoCodec: 'h264',
                             videoEncoding: {
-                                maxBitrate: 4_000_000, // Balanced 4Mbps for 1080p stability
+                                maxBitrate: 5_000_000, // 5Mbps for 720p is ultra-high quality
                                 maxFramerate: 30,
                             },
                         }
