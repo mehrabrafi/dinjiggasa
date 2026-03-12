@@ -261,12 +261,18 @@ export class LiveStreamController {
   /** POST /api/v1/live/webhook — LiveKit webhook to auto-detect disconnections */
   @Post('webhook')
   async handleWebhook(
-    @Body() body: string,
+    @Req() req: any,
+    @Body() body: any,
     @Headers('Authorization') authHeader: string,
   ) {
     try {
+      // Use rawBody buffer if available, otherwise fallback to reconstructed body
+      const rawStringBody = req.rawBody 
+        ? req.rawBody.toString('utf8') 
+        : (typeof body === 'string' ? body : JSON.stringify(body));
+
       const event = await this.webhookReceiver.receive(
-        typeof body === 'string' ? body : JSON.stringify(body),
+        rawStringBody,
         authHeader,
       );
 
