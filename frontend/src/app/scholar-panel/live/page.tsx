@@ -385,17 +385,17 @@ export default function ScholarLiveStudio() {
                     connect={true}
                     options={{ 
                         disconnectOnPageLeave: false,
-                        videoCaptureDefaults: {
-                            resolution: { width: 1280, height: 720, frameRate: 30 },
-                            deviceId: undefined,
-                        },
                         publishDefaults: {
                             simulcast: false, 
-                            videoCodec: 'h264',
+                            videoCodec: 'vp9', // Superior to H264 for crispness
                             videoEncoding: {
-                                maxBitrate: 5_000_000, // 5Mbps for 720p is ultra-high quality
+                                maxBitrate: 4_500_000, 
                                 maxFramerate: 30,
                             },
+                        },
+                        videoCaptureDefaults: {
+                            resolution: { width: 1280, height: 720, frameRate: 30 },
+                            facingMode: 'user',
                         }
                     }}
                 >
