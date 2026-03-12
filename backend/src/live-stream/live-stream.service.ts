@@ -380,30 +380,44 @@ export class LiveStreamService {
 
   /** Create/Get an Ingress for OBS streaming */
   async createIngress(scholarId: string, roomName: string) {
+    console.log(`[LiveStream] Requesting ingress for scholar ${scholarId} in room ${roomName}`);
+    
     // Try to find existing ingress for this room/scholar to avoid duplicates
     const ingresses = await this.ingressClient.listIngress({ roomName });
+    
+    let ingressData;
     if (ingresses.length > 0) {
-      return {
+      console.log(`[LiveStream] Found existing ingress ${ingresses[0].ingressId}`);
+      ingressData = {
         url: ingresses[0].url,
         streamKey: ingresses[0].streamKey,
       };
+    } else {
+      console.log(`[LiveStream] Creating new ingress...`);
+      const ingress = await this.ingressClient.createIngress(
+        IngressInput.RTMP_INPUT,
+        {
+          name: `scholar-${scholarId}`,
+          roomName: roomName,
+          participantIdentity: scholarId,
+          participantName: 'Scholar (OBS)',
+        }
+      );
+      this.roomIngress.set(scholarId, ingress.ingressId);
+      ingressData = {
+        url: ingress.url,
+        streamKey: ingress.streamKey,
+      };
     }
 
-    const ingress = await this.ingressClient.createIngress(
-      IngressInput.RTMP_INPUT,
-      {
-        name: `scholar-${scholarId}`,
-        roomName: roomName,
-        participantIdentity: scholarId,
-        participantName: 'Scholar (OBS)',
-      }
-    );
+    // Fallback logic: if Server URL is empty, construct it from LIVEKIT_URL
+    if (!ingressData.url) {
+      const lkUrl = process.env.LIVEKIT_URL || 'wss://livekit.deenjiggasa.info';
+      const host = lkUrl.replace('wss://', '').replace('ws://', '');
+      ingressData.url = `rtmp://${host}:1935/x`;
+      console.log(`[LiveStream] LiveKit returned empty URL, using fallback: ${ingressData.url}`);
+    }
 
-    this.roomIngress.set(scholarId, ingress.ingressId);
-
-    return {
-      url: ingress.url,
-      streamKey: ingress.streamKey,
-    };
+    return ingressData;
   }
 }
