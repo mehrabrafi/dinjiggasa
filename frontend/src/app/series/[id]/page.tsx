@@ -201,12 +201,22 @@ export default function SeriesDetailPage() {
                                 <h3 className={styles.nowPlayingTitle}>{activeSession.title}</h3>
                                 <p className={styles.nowPlayingScholar}>by {series.scholar.name}</p>
                             </div>
-                            <audio 
-                                src={activeSession.audioUrl || ''} 
-                                controls 
-                                autoPlay 
-                                className={styles.customAudio} 
-                            />
+                            {activeSession.audioUrl ? (
+                                <audio 
+                                    src={activeSession.audioUrl} 
+                                    controls 
+                                    autoPlay 
+                                    className={styles.customAudio}
+                                    onError={(e) => {
+                                        console.error("Audio error:", e);
+                                        // e.target.error usually contains error details
+                                    }}
+                                />
+                            ) : (
+                                <div style={{ padding: '1rem', color: '#ef4444', textAlign: 'center' }}>
+                                    Recording unavailable. Egress may still be uploading or failed.
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
