@@ -682,6 +682,26 @@ export default function ScholarLiveStudio() {
                                             </button>
                                         </div>
                                     </div>
+
+                                    {streamType === 'video' && (
+                                        <div className={styles.streamTypeSelector}>
+                                            <label>Streaming Source</label>
+                                            <div className={styles.typeButtons}>
+                                                <button 
+                                                    className={`${styles.typeBtn} ${!isObsMode ? styles.activeType : ''}`}
+                                                    onClick={() => setIsObsMode(false)}
+                                                >
+                                                    <Globe size={16} /> Browser (Direct)
+                                                </button>
+                                                <button 
+                                                    className={`${styles.typeBtn} ${isObsMode ? styles.activeType : ''}`}
+                                                    onClick={() => setIsObsMode(true)}
+                                                >
+                                                    <Monitor size={16} /> OBS Studio
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className={styles.scholarInfo}>
