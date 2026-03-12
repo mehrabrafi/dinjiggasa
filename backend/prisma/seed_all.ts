@@ -283,17 +283,17 @@ async function main() {
             description: 'Understanding how to calculate Zakat on stocks, crypto, and business assets.',
             thumbnailUrl: '/assets/images/mock/fiqh.png',
             viewCount: 1200,
-            type: 'VIDEO',
+            audioUrl: 'https://download.quranicaudio.com/quran/mishaari_raashid_al_3afaasee/001.mp3',
             scholarId: seededScholars[0].id, // Dr. Ahmed Al-Falahi
             createdAt: new Date(Date.now() - 24 * 60000), // 24m ago
         },
         {
             id: 'live-spirituality-1',
             title: 'The Art of Gratitude (Shukr)',
-            description: 'Finding inner peace through the continuous remembrance of Allah’s blessings.',
+            description: 'Finding inner peace through the continuous remembrance of Allah\'s blessings.',
             thumbnailUrl: '/assets/images/mock/spirituality.png',
             viewCount: 842,
-            type: 'VIDEO',
+            audioUrl: 'https://download.quranicaudio.com/quran/mishaari_raashid_al_3afaasee/002.mp3',
             scholarId: seededScholars[1].id, // Sheikh Yusuf Rahman
             createdAt: new Date(Date.now() - 10 * 60000), // 10m ago
         },
@@ -301,9 +301,9 @@ async function main() {
             id: 'live-audio-1',
             title: 'Open Q&A: Family & Social Issues',
             description: 'Live community session addressing daily challenges and social interactions.',
-            thumbnailUrl: null, // Audio only might not have a thumbnail in the card top, or use a placeholder
+            thumbnailUrl: null,
             viewCount: 2100,
-            type: 'AUDIO',
+            audioUrl: 'https://download.quranicaudio.com/quran/mishaari_raashid_al_3afaasee/003.mp3',
             scholarId: seededScholars[2].id, // Ustadha Amina Zafar
             createdAt: new Date(Date.now() - 45 * 60000), // 45m ago
         }
@@ -325,7 +325,7 @@ async function main() {
             thumbnailUrl: '/assets/images/mock/recent1.png',
             viewCount: 4500,
             duration: 2535, // 42:15
-            type: 'VIDEO',
+            audioUrl: 'https://download.quranicaudio.com/quran/mishaari_raashid_al_3afaasee/036.mp3',
             scholarId: seededScholars[5].id, // Ustadha Sarah Karim
             createdAt: new Date(Date.now() - 2 * 24 * 60 * 60000), // 2 days ago
         },
@@ -335,7 +335,7 @@ async function main() {
             thumbnailUrl: '/assets/images/mock/recent2.png',
             viewCount: 5800,
             duration: 1510, // 25:10
-            type: 'AUDIO',
+            audioUrl: 'https://download.quranicaudio.com/quran/mishaari_raashid_al_3afaasee/055.mp3',
             scholarId: seededScholars[7].id, // Sheikh Khalid Mansour
             createdAt: new Date(Date.now() - 14 * 24 * 60 * 60000), // 2 weeks ago
         }
