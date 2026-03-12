@@ -7,19 +7,27 @@ import {
   UseGuards,
   Body,
   Query,
+  Headers,
 } from '@nestjs/common';
 import { LiveStreamService } from './live-stream.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UploadService } from '../upload/upload.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { WebhookReceiver } from 'livekit-server-sdk';
 
 @Controller('live')
 export class LiveStreamController {
+  private webhookReceiver: WebhookReceiver;
+
   constructor(
     private readonly liveStreamService: LiveStreamService,
     private readonly uploadService: UploadService,
     private readonly prisma: PrismaService,
-  ) {}
+  ) {
+    const apiKey = process.env.LIVEKIT_API_KEY || 'devkey';
+    const apiSecret = process.env.LIVEKIT_API_SECRET || 'secretsecretsecretsecretsecretsecretsecret';
+    this.webhookReceiver = new WebhookReceiver(apiKey, apiSecret);
+  }
 
   /** GET /api/v1/live/scholars — returns all currently live scholars */
   @Get('scholars')
@@ -248,5 +256,75 @@ export class LiveStreamController {
   async getIngress(@Req() req: any, @Body() body: { streamType?: string }) {
     const scholarId = req.user.id || req.user.sub;
     return this.liveStreamService.createIngress(scholarId, scholarId, body?.streamType);
+  }
+
+  /** POST /api/v1/live/webhook — LiveKit webhook to auto-detect disconnections */
+  @Post('webhook')
+  async handleWebhook(
+    @Body() body: string,
+    @Headers('Authorization') authHeader: string,
+  ) {
+    try {
+      const event = await this.webhookReceiver.receive(
+        typeof body === 'string' ? body : JSON.stringify(body),
+        authHeader,
+      );
+
+      console.log(`[LiveKit Webhook] Event: ${event.event}`, {
+        room: event.room?.name,
+        participant: event.participant?.identity,
+      });
+
+      // When a room finishes (everyone left) → mark scholar offline
+      if (event.event === 'room_finished' && event.room?.name) {
+        const scholarId = event.room.name; // room name = scholarId
+        if (this.liveStreamService.isLive(scholarId)) {
+          console.log(`[LiveKit Webhook] Room finished → marking ${scholarId} offline`);
+          await this.liveStreamService.goOffline(scholarId);
+          this.liveStreamService.clearRaisedHands(scholarId);
+        }
+      }
+
+      // When the scholar (publisher) leaves the room → mark offline
+      if (event.event === 'participant_left' && event.room?.name && event.participant?.identity) {
+        const scholarId = event.room.name;
+        const participantId = event.participant.identity;
+        // Only mark offline if the scholar themselves disconnected (not a viewer)
+        if (participantId === scholarId || participantId === `${scholarId}-manager`) {
+          if (this.liveStreamService.isLive(scholarId)) {
+            console.log(`[LiveKit Webhook] Scholar left room → marking ${scholarId} offline`);
+            await this.liveStreamService.goOffline(scholarId);
+            this.liveStreamService.clearRaisedHands(scholarId);
+          }
+        }
+      }
+
+      // When ingress ends (OBS stopped streaming)
+      if (event.event === 'ingress_ended' && event.ingressInfo?.roomName) {
+        const scholarId = event.ingressInfo.roomName;
+        if (this.liveStreamService.isLive(scholarId)) {
+          console.log(`[LiveKit Webhook] Ingress ended → marking ${scholarId} offline`);
+          await this.liveStreamService.goOffline(scholarId);
+          this.liveStreamService.clearRaisedHands(scholarId);
+        }
+      }
+
+      return { received: true };
+    } catch (err) {
+      console.error('[LiveKit Webhook] Error processing webhook:', err);
+      return { received: false, error: err.message };
+    }
+  }
+
+  /** POST /api/v1/live/force-offline/:scholarId — manually force a scholar offline (admin use) */
+  @Post('force-offline/:scholarId')
+  async forceOffline(@Param('scholarId') scholarId: string) {
+    if (this.liveStreamService.isLive(scholarId)) {
+      await this.liveStreamService.goOffline(scholarId);
+      this.liveStreamService.clearRaisedHands(scholarId);
+      console.log(`[LiveStream] Force-offline: ${scholarId}`);
+      return { success: true, message: `Scholar ${scholarId} forced offline` };
+    }
+    return { success: false, message: 'Scholar was not live' };
   }
 }
