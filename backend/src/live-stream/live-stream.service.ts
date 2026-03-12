@@ -84,13 +84,52 @@ export class LiveStreamService {
         emptyTimeout: 10 * 60,
         maxParticipants: 100,
       });
+
+      // Save session in DB (audioUrl will be updated after egress completes)
+      const session = await this.prisma.liveSession.create({
+        data: {
+          scholarId,
+          title: title || 'Live Session',
+          description,
+          audioUrl: null, // Will be set when egress finishes
+          seriesId: seriesId || null,
+        }
+      });
+      this.scholarToSession.set(scholarId, session.id);
+      console.log(`[LiveStream] Session created: ${session.id}, waiting for audio track to start egress`);
+
+      // Update series episode count
+      if (seriesId) {
+        await this.prisma.series.update({
+          where: { id: seriesId },
+          data: { episodeCount: { increment: 1 } }
+        });
+      }
       
+    } catch (err) {
+      console.error(`[LiveStream] Failed to create room/session for ${scholarId}:`, err);
+    }
+  }
+
+  /**
+   * Start Track Composite Egress when the scholar publishes their audio track.
+   * Called from the webhook handler when a 'track_published' event is received.
+   * Track Composite Egress captures audio directly from the media pipeline
+   * (no headless Chrome), producing clean, gap-free recordings.
+   */
+  async startEgressForTrack(roomName: string, audioTrackId: string) {
+    // Only start egress if the scholar is live and doesn't already have an egress running
+    if (!this.isLive(roomName) || this.roomEgress.has(roomName)) {
+      return;
+    }
+
+    try {
       const timestamp = Date.now();
-      const fileName = `live-recordings/${scholarId}-${timestamp}.ogg`;
+      const fileName = `live-recordings/${roomName}-${timestamp}.ogg`;
       const bucketName = process.env.R2_BUCKET_NAME || 'deenjiggasa';
-      
-      const egressInfo = await this.egressClient.startRoomCompositeEgress(
-        scholarId,
+
+      const egressInfo = await this.egressClient.startTrackCompositeEgress(
+        roomName,
         new EncodedFileOutput({
           fileType: EncodedFileType.OGG,
           filepath: fileName,
@@ -108,37 +147,14 @@ export class LiveStreamService {
           },
         }),
         {
-          layout: 'grid',
-          audioOnly: true,
-          videoOnly: false,
+          audioTrackId,
         }
       );
-      
-      this.roomEgress.set(scholarId, egressInfo.egressId);
-      
-      // Save session in DB (audioUrl will be updated after egress completes)
-      const session = await this.prisma.liveSession.create({
-        data: {
-          scholarId,
-          title: title || 'Live Session',
-          description,
-          audioUrl: null, // Will be set when egress finishes
-          seriesId: seriesId || null,
-        }
-      });
-      this.scholarToSession.set(scholarId, session.id);
-      console.log(`[LiveStream] Egress started: ${egressInfo.egressId}, session: ${session.id}, target file: ${fileName}`);
 
-      // Update series episode count
-      if (seriesId) {
-        await this.prisma.series.update({
-          where: { id: seriesId },
-          data: { episodeCount: { increment: 1 } }
-        });
-      }
-      
+      this.roomEgress.set(roomName, egressInfo.egressId);
+      console.log(`[LiveStream] Track Composite Egress started: ${egressInfo.egressId} for track ${audioTrackId} in room ${roomName}`);
     } catch (err) {
-      console.error(`[LiveStream] Failed to start egress for ${scholarId}:`, err);
+      console.error(`[LiveStream] Failed to start track egress for ${roomName}:`, err);
     }
   }
 
