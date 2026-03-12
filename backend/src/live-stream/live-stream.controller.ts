@@ -195,6 +195,17 @@ export class LiveStreamController {
     });
   }
 
+  /** GET /api/v1/live/series/my — returns series owned by authenticated scholar */
+  @Get('series/my')
+  @UseGuards(JwtAuthGuard)
+  async getMySeries(@Req() req: any) {
+    const scholarId = req.user.id || req.user.sub;
+    return this.prisma.series.findMany({
+      where: { scholarId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   /** GET /api/v1/live/series/:id — returns a specific series with its sessions */
   @Get('series/:id')
   async getSeriesById(@Param('id') id: string) {
@@ -206,17 +217,6 @@ export class LiveStreamController {
           orderBy: { createdAt: 'asc' },
         },
       },
-    });
-  }
-
-  /** GET /api/v1/live/series/my — returns series owned by authenticated scholar */
-  @Get('series/my')
-  @UseGuards(JwtAuthGuard)
-  async getMySeries(@Req() req: any) {
-    const scholarId = req.user.id || req.user.sub;
-    return this.prisma.series.findMany({
-      where: { scholarId },
-      orderBy: { createdAt: 'desc' },
     });
   }
 

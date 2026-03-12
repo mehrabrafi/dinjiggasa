@@ -587,7 +587,7 @@ export default function ScholarLiveStudio() {
                                                 className={styles.seriesSelect}
                                             >
                                                 <option value="">No Series (Standalone Session)</option>
-                                                {mySeries.map(s => (
+                                                {Array.isArray(mySeries) && mySeries.map(s => (
                                                     <option key={s.id} value={s.id}>{s.title}</option>
                                                 ))}
                                             </select>
