@@ -9,6 +9,7 @@ import {
   EncodingOptionsPreset,
   TrackSource
 } from 'livekit-server-sdk';
+import { EncodedFileType } from '@livekit/protocol';
 export interface LiveScholarInfo {
   scholarId: string;
   clientId: string;
@@ -38,6 +39,8 @@ export class LiveStreamService {
   private egressClient: EgressClient;
   // Map scholarId -> egressId to stop recording
   private roomEgress: Map<string, string> = new Map();
+  // Map scholarId -> liveSessionId to update audioUrl after egress completes
+  private scholarToSession: Map<string, string> = new Map();
 
   constructor(private prisma: PrismaService) {
     const lkUrl = process.env.LIVEKIT_URL || 'https://livekit.deenjiggasa.info';
@@ -82,15 +85,16 @@ export class LiveStreamService {
         maxParticipants: 100,
       });
       
-      const fileExt = 'mp4';
       const timestamp = Date.now();
-      const fileName = `live-recordings/${scholarId}-${timestamp}.${fileExt}`;
+      const fileName = `live-recordings/${scholarId}-${timestamp}.ogg`;
       const bucketName = process.env.R2_BUCKET_NAME || 'deenjiggasa';
       
       const egressInfo = await this.egressClient.startRoomCompositeEgress(
         scholarId,
         new EncodedFileOutput({
+          fileType: EncodedFileType.OGG,
           filepath: fileName,
+          disableManifest: true,
           output: {
             case: 's3',
             value: new S3Upload({
@@ -99,6 +103,7 @@ export class LiveStreamService {
               region: 'auto',
               endpoint: process.env.R2_ENDPOINT,
               bucket: bucketName,
+              forcePathStyle: true,
             }),
           },
         }),
@@ -111,18 +116,18 @@ export class LiveStreamService {
       
       this.roomEgress.set(scholarId, egressInfo.egressId);
       
-      const publicUrl = process.env.R2_PUBLIC_URL || 'https://media.deenjiggasa.info';
-      
-      // Save session in DB
-      await this.prisma.liveSession.create({
+      // Save session in DB (audioUrl will be updated after egress completes)
+      const session = await this.prisma.liveSession.create({
         data: {
           scholarId,
           title: title || 'Live Session',
           description,
-          audioUrl: `${publicUrl}/${fileName}`,
+          audioUrl: null, // Will be set when egress finishes
           seriesId: seriesId || null,
         }
       });
+      this.scholarToSession.set(scholarId, session.id);
+      console.log(`[LiveStream] Egress started: ${egressInfo.egressId}, session: ${session.id}, target file: ${fileName}`);
 
       // Update series episode count
       if (seriesId) {
@@ -148,7 +153,9 @@ export class LiveStreamService {
     const egressId = this.roomEgress.get(scholarId);
     if (egressId) {
       try {
-        await this.egressClient.stopEgress(egressId);
+        const egressResult = await this.egressClient.stopEgress(egressId);
+        // Update DB with actual recorded file URL
+        await this.updateSessionAudioUrl(scholarId, egressResult);
       } catch (e) {
         console.error(`[LiveStream] could not stop egress:`, e);
       }
@@ -168,7 +175,8 @@ export class LiveStreamService {
       const egressId = this.roomEgress.get(scholarId);
       if (egressId) {
         try {
-          await this.egressClient.stopEgress(egressId);
+          const egressResult = await this.egressClient.stopEgress(egressId);
+          await this.updateSessionAudioUrl(scholarId, egressResult);
         } catch (e) {
           console.error(`[LiveStream] could not stop egress:`, e);
         }
@@ -178,6 +186,47 @@ export class LiveStreamService {
       console.log(
         `[LiveStream] Scholar ${scholarId} went OFFLINE (client disconnected)`,
       );
+    }
+  }
+
+  /** Update the liveSession audioUrl from the egress result */
+  private async updateSessionAudioUrl(scholarId: string, egressResult: any) {
+    try {
+      const sessionId = this.scholarToSession.get(scholarId);
+      if (!sessionId) {
+        console.warn(`[LiveStream] No session found for scholar ${scholarId}, cannot update audioUrl`);
+        return;
+      }
+
+      // Get the actual filename from egress result
+      let actualFilename: string | null = null;
+      
+      // Check file_results first (newer API)
+      if (egressResult.fileResults && egressResult.fileResults.length > 0) {
+        actualFilename = egressResult.fileResults[0].filename;
+      }
+      // Fallback to legacy file result
+      else if (egressResult.file?.filename) {
+        actualFilename = egressResult.file.filename;
+      }
+
+      if (actualFilename) {
+        const publicUrl = process.env.R2_PUBLIC_URL || 'https://media.deenjiggasa.info';
+        const audioUrl = `${publicUrl}/${actualFilename}`;
+        
+        await this.prisma.liveSession.update({
+          where: { id: sessionId },
+          data: { audioUrl },
+        });
+        console.log(`[LiveStream] Updated session ${sessionId} audioUrl to: ${audioUrl}`);
+      } else {
+        console.warn(`[LiveStream] No filename found in egress result for ${scholarId}`);
+        console.log(`[LiveStream] Egress result:`, JSON.stringify(egressResult, null, 2));
+      }
+      
+      this.scholarToSession.delete(scholarId);
+    } catch (err) {
+      console.error(`[LiveStream] Failed to update session audioUrl:`, err);
     }
   }
 

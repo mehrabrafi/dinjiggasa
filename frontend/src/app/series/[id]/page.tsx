@@ -202,31 +202,18 @@ export default function SeriesDetailPage() {
                                 <p className={styles.nowPlayingScholar}>by {series.scholar.name}</p>
                             </div>
                             {activeSession.audioUrl ? (
-                                activeSession.audioUrl.endsWith('.mp4') ? (
-                                    <video 
-                                        src={activeSession.audioUrl} 
-                                        controls 
-                                        autoPlay 
-                                        className={styles.customAudio}
-                                        style={{ objectFit: 'cover' }}
-                                        onError={(e) => {
-                                            console.error("Video error:", e);
-                                        }}
-                                    />
-                                ) : (
-                                    <audio 
-                                        src={activeSession.audioUrl} 
-                                        controls 
-                                        autoPlay 
-                                        className={styles.customAudio}
-                                        onError={(e) => {
-                                            console.error("Audio error:", e);
-                                        }}
-                                    />
-                                )
+                                <audio 
+                                    src={activeSession.audioUrl} 
+                                    controls 
+                                    autoPlay 
+                                    className={styles.customAudio}
+                                    onError={(e) => {
+                                        console.error("Audio playback error:", e);
+                                    }}
+                                />
                             ) : (
-                                <div style={{ padding: '1rem', color: '#ef4444', textAlign: 'center' }}>
-                                    Recording unavailable. Egress may still be uploading or failed.
+                                <div style={{ padding: '1rem', color: '#f59e0b', textAlign: 'center' }}>
+                                    ⏳ Recording is being processed. Please check back shortly.
                                 </div>
                             )}
                         </div>
