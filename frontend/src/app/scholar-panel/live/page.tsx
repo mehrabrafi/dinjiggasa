@@ -480,7 +480,8 @@ export default function ScholarLiveStudio() {
                                             )}
                                         </div>
                                     )}
-                                    <RoomAudioRenderer />
+                                    {/* Mute the background audio renderer when using OBS to prevent audio feedback loops */}
+                                    {!isObsMode && <RoomAudioRenderer />}
                                 </div>
 
                                 <div className={styles.sessionInfo}>
