@@ -41,6 +41,8 @@ export class LiveStreamService {
   private roomEgress: Map<string, string> = new Map();
   // Map scholarId -> liveSessionId to update audioUrl after egress completes
   private scholarToSession: Map<string, string> = new Map();
+  // Map scholarId -> predicted recording filename for egress
+  private scholarToFileName: Map<string, string> = new Map();
 
   constructor(private prisma: PrismaService) {
     const lkUrl = process.env.LIVEKIT_URL || 'https://livekit.deenjiggasa.info';
@@ -84,19 +86,27 @@ export class LiveStreamService {
         emptyTimeout: 10 * 60,
         maxParticipants: 100,
       });
+      // Generate the recording filename now so audioUrl is available instantly
+      const timestamp = Date.now();
+      const fileName = `live-recordings/${scholarId}-${timestamp}.ogg`;
+      const publicUrl = process.env.R2_PUBLIC_URL || 'https://media.deenjiggasa.info';
+      const audioUrl = `${publicUrl}/${fileName}`;
 
-      // Save session in DB (audioUrl will be updated after egress completes)
+      // Store filename for egress to use when the audio track is published
+      this.scholarToFileName.set(scholarId, fileName);
+
+      // Save session in DB with audioUrl set immediately
       const session = await this.prisma.liveSession.create({
         data: {
           scholarId,
           title: title || 'Live Session',
           description,
-          audioUrl: null, // Will be set when egress finishes
+          audioUrl,
           seriesId: seriesId || null,
         }
       });
       this.scholarToSession.set(scholarId, session.id);
-      console.log(`[LiveStream] Session created: ${session.id}, waiting for audio track to start egress`);
+      console.log(`[LiveStream] Session created: ${session.id}, audioUrl: ${audioUrl}`);
 
       // Update series episode count
       if (seriesId) {
@@ -124,8 +134,12 @@ export class LiveStreamService {
     }
 
     try {
-      const timestamp = Date.now();
-      const fileName = `live-recordings/${roomName}-${timestamp}.ogg`;
+      // Use the filename that was pre-generated in goLive()
+      const fileName = this.scholarToFileName.get(roomName);
+      if (!fileName) {
+        console.warn(`[LiveStream] No pre-generated filename for ${roomName}, skipping egress`);
+        return;
+      }
       const bucketName = process.env.R2_BUCKET_NAME || 'deenjiggasa';
 
       const egressInfo = await this.egressClient.startTrackCompositeEgress(
@@ -177,6 +191,7 @@ export class LiveStreamService {
       }
       this.roomEgress.delete(scholarId);
     }
+    this.scholarToFileName.delete(scholarId);
     
     console.log(`[LiveStream] Scholar ${scholarId} went OFFLINE`);
   }
