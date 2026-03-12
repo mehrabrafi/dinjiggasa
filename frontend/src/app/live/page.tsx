@@ -221,6 +221,10 @@ function DashboardView() {
                 <div className={styles.cardThumbWrapper}>
                   {session.thumbnailUrl ? (
                     <img src={session.thumbnailUrl} className={styles.cardThumb} alt={session.title} />
+                  ) : session.streamType === 'video' ? (
+                     <div className={styles.audioVisual} style={{ background: '#0f172a' }}>
+                        <Video size={40} color="#3b82f6" />
+                     </div>
                   ) : (
                     <div className={styles.audioVisual}>
                       <Activity size={40} color="#10b981" />
