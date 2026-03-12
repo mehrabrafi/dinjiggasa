@@ -239,11 +239,23 @@ function DashboardView() {
                   <div className={styles.scholarNameSmall}>{session.name}</div>
                   <div className={styles.cardFooterMeta}>
                     <div className={styles.viewerAvatars}>
-                      <img src="https://i.pravatar.cc/50?img=1" className={styles.avatarMini} />
-                      <img src="https://i.pravatar.cc/50?img=2" className={styles.avatarMini} />
-                      <span className={styles.moreViewers}>+5</span>
+                      <img src={`https://ui-avatars.com/api/?name=${session.name}&background=random`} className={styles.avatarMini} />
+                      {session.viewerCount > 1 && (
+                        <span className={styles.moreViewers}>+{Math.floor(session.viewerCount / 2)}</span>
+                      )}
                     </div>
-                    <span className={styles.timeAgo}>Started 24m ago</span>
+                    <span className={styles.timeAgo}>
+                      {session.startedAt ? (
+                        (() => {
+                          const seconds = Math.floor((new Date().getTime() - new Date(session.startedAt).getTime()) / 1000);
+                          let interval = seconds / 3600;
+                          if (interval > 1) return Math.floor(interval) + "h ago";
+                          interval = seconds / 60;
+                          if (interval > 1) return Math.floor(interval) + "m ago";
+                          return Math.floor(seconds) + "s ago";
+                        })()
+                      ) : 'Live now'}
+                    </span>
                   </div>
                 </div>
               </Link>
@@ -307,7 +319,7 @@ function DashboardView() {
                   <div className={styles.recentMeta}>
                     <span>{new Date(record.createdAt).toLocaleDateString()}</span>
                     <div className={styles.recentViews}>
-                      <Eye size={12} /> {((record.viewCount || 200) / 1000).toFixed(1)}k
+                      <Eye size={12} /> {record.viewCount ? (record.viewCount > 999 ? (record.viewCount / 1000).toFixed(1) + 'k' : record.viewCount) : '0'}
                     </div>
                   </div>
                 </div>

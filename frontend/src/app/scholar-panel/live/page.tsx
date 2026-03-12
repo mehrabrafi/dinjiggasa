@@ -432,7 +432,8 @@ export default function ScholarLiveStudio() {
                                     ) : (
                                         <div className={styles.videoStreamContainer}>
                                             {isObsMode ? (
-                                                <div className={styles.obsIngressInfo}>
+                                                <div className={styles.obsIngressInfo} style={{ position: 'relative' }}>
+                                                    <ScholarRemoteVideoPreview />
                                                     <div className={styles.obsBadge}>
                                                         <Monitor size={16} />
                                                         <span>OBS Studio Mode</span>
@@ -834,5 +835,29 @@ function LocalVideoPreview({ streamType, videoRef, mediaStream }: { streamType: 
                 }
             }}
         />
+    );
+}
+
+function ScholarRemoteVideoPreview() {
+    const tracks = useTracks([
+        { source: Track.Source.Camera, withPlaceholder: false },
+        { source: Track.Source.ScreenShare, withPlaceholder: false },
+        { source: Track.Source.Unknown, withPlaceholder: false }
+    ]);
+    const videoTrack = tracks.find(t => 
+        t.publication && (
+            t.publication.kind === Track.Kind.Video || 
+            t.source === Track.Source.Camera || 
+            t.source === Track.Source.ScreenShare
+        )
+    );
+
+    if (!videoTrack) return null;
+
+    return (
+        <div style={{ position: 'absolute', top: 16, right: 16, width: '200px', height: '112px', borderRadius: '8px', overflow: 'hidden', border: '2px solid #10b981', zIndex: 10, background: '#000' }}>
+            <VideoTrack trackRef={videoTrack as any} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.7)', color: 'white', fontSize: '11px', padding: '4px', textAlign: 'center' }}>OBS Live Preview</div>
+        </div>
     );
 }

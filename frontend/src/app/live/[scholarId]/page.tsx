@@ -98,7 +98,14 @@ function RemoteVideoFeed() {
     ]);
     const [quality, setQuality] = useState<VideoQuality>(VideoQuality.HIGH);
 
-    const videoTrack = tracks.find(t => t.publication);
+    // Ensure we only grab a VIDEO track. OBS Ingress might send Audio as Unknown source, which would crash the VideoTrack component or stay blank.
+    const videoTrack = tracks.find(t => 
+        t.publication && (
+            t.publication.kind === Track.Kind.Video || 
+            t.source === Track.Source.Camera || 
+            t.source === Track.Source.ScreenShare
+        )
+    );
 
     if (!videoTrack) {
         return (
