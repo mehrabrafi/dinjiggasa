@@ -92,6 +92,151 @@ interface LiveSession {
 
 
 
+import { Share2, Star, Users, MessageCircleQuestion, Heart, ExternalLink, ChevronRight, RotateCcw, RotateCw, Pause, CheckCircle2, MessageSquare } from 'lucide-react';
+
+function LivePlayerContent({ 
+    connecting, error, scholar, liveInfo, isPlaying, canvasRef, startAudioVisualizer, listenerCount, pastSessions, setActiveSession
+}: any) {
+    const remoteTracks = useTracks([{ source: Track.Source.Microphone, withPlaceholder: false }], { onlySubscribed: true });
+    
+    useEffect(() => {
+        const audioTrack = remoteTracks.find(t => (t as any).track?.kind === 'audio');
+        if ((audioTrack as any)?.track?.mediaStream) {
+            startAudioVisualizer((audioTrack as any).track.mediaStream);
+        }
+    }, [remoteTracks, startAudioVisualizer]);
+
+    return (
+        <>
+            {/* Player Card */}
+            <div className={styles.playerCard}>
+                {(connecting || !isPlaying) && (
+                    <div className={styles.connectingOverlay}>
+                        <div className={styles.spinner}></div>
+                        <p>{connecting ? 'Connecting to stream...' : 'Waiting for scholar to start...'}</p>
+                    </div>
+                )}
+                {error && (
+                    <div className={styles.errorOverlay}>
+                        <AlertCircle size={40} className={styles.errorIcon} />
+                        <p>{error}</p>
+                        <button onClick={() => window.location.reload()} className={styles.retryBtn}>
+                            Retry
+                        </button>
+                    </div>
+                )}
+
+                <div className={styles.albumArtWrapper}>
+                    <img 
+                        src={scholar?.avatar || '/assets/images/mock/seerah.png'} 
+                        alt={scholar?.name} 
+                        className={styles.albumArt} 
+                    />
+                    <div className={styles.liveBadge}>
+                        <div className={styles.liveDot}></div>
+                        LIVE
+                    </div>
+                </div>
+
+                <h1 className={styles.streamTitle}>
+                    {liveInfo?.title || 'Understanding the Wisdom of Ramadan'}
+                </h1>
+                <p className={styles.streamSubtitle}>
+                    Audio Q&A with {scholar?.name || 'Scholar Name'}
+                </p>
+
+                <div className={styles.visualizerWrapper}>
+                    <canvas
+                        ref={canvasRef}
+                        width={400}
+                        height={80}
+                        className={styles.audioCanvas}
+                    />
+                    <RoomAudioRenderer />
+                </div>
+
+                <div className={styles.playerControls}>
+                    <button className={styles.controlBtn}><RotateCcw size={24} /></button>
+                    <button className={styles.playPauseBtn}>
+                        {isPlaying ? <Pause size={32} fill="white" /> : <Play size={32} fill="white" style={{ marginLeft: 4 }} />}
+                    </button>
+                    <button className={styles.controlBtn}><RotateCw size={24} /></button>
+                </div>
+            </div>
+
+            {/* Scholar Card */}
+            {scholar && (
+                <div className={styles.scholarCard}>
+                    <img 
+                        src={scholar.avatar || `https://ui-avatars.com/api/?name=${scholar.name}&background=006D5B&color=fff`} 
+                        alt={scholar.name} 
+                        className={styles.scholarAvatar} 
+                    />
+                    <div className={styles.scholarInfo}>
+                        <div className={styles.scholarHeader}>
+                            <h3 className={styles.scholarName}>{scholar.name}</h3>
+                            <CheckCircle2 size={16} className={styles.verifiedBadge} />
+                        </div>
+                        <p className={styles.scholarTagline}>{scholar.specialization || 'Islamic Jurisprudence & Ethics Expert'}</p>
+                        <p className={styles.scholarBio}>
+                            {scholar.bio || 'Specializing in the intersection of traditional Islamic law and modern financial systems.'}
+                        </p>
+                    </div>
+                    <div className={styles.scholarActions}>
+                        <button className={styles.followBtn}>Follow Scholar</button>
+                        <button className={styles.profileBtn}>View Profile</button>
+                        <div className={styles.shareBtn}><Share2 size={20} /></div>
+                    </div>
+                </div>
+            )}
+
+            {/* Stats Grid */}
+            <div className={styles.statsGrid}>
+                <div className={styles.statBox}>
+                    <span className={styles.statLabel}>Listeners</span>
+                    <span className={styles.statVal}>{listenerCount.toLocaleString()}</span>
+                </div>
+                <div className={styles.statBox}>
+                    <span className={styles.statLabel}>Duration</span>
+                    <span className={styles.statVal}>45:22</span>
+                </div>
+                <div className={styles.statBox}>
+                    <span className={styles.statLabel}>Questions</span>
+                    <span className={styles.statVal}>82</span>
+                </div>
+                <div className={styles.statBox}>
+                    <span className={styles.statLabel}>Rating</span>
+                    <div className={`${styles.statVal} ${styles.ratingVal}`}>
+                        <Star size={20} fill="#f59e0b" /> 4.9
+                    </div>
+                </div>
+            </div>
+
+            {/* Past Sessions */}
+            {pastSessions.length > 0 && (
+                <div className={styles.pastSessionsContainer} style={{ background: 'transparent', boxShadow: 'none', border: 'none' }}>
+                    <h2 className={styles.pastSessionsTitle}>
+                        <Clock size={20} /> Past Live Sessions
+                    </h2>
+                    <div className={styles.sessionList}>
+                        {pastSessions.slice(0, 3).map((session: any) => (
+                            <div key={session.id} className={styles.sessionItem}>
+                                <div className={styles.sessionHeader}>
+                                    <span className={styles.sessionName}>{session.title}</span>
+                                    <span className={styles.sessionDate}>{new Date(session.createdAt).toLocaleDateString()}</span>
+                                </div>
+                                <button className={styles.playPastBtn} onClick={() => setActiveSession(session)}>
+                                    <Play size={18} fill="currentColor" /> Play Recording
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </>
+    );
+}
+
 export default function LiveViewer() {
     const { scholarId } = useParams();
     const lkServerUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://livekit.deenjiggasa.info';
@@ -107,6 +252,7 @@ export default function LiveViewer() {
     const [liveInfo, setLiveInfo] = useState<{ title?: string; description?: string } | null>(null);
     const [scholar, setScholar] = useState<any>(null);
     const [activeSession, setActiveSession] = useState<LiveSession | null>(null);
+    const [listenerCount, setListenerCount] = useState(0);
     const { user } = useAuthStore();
 
     // Fetch view token
@@ -128,6 +274,7 @@ export default function LiveViewer() {
                         title: statusData.title,
                         description: statusData.description,
                     });
+                    setListenerCount(statusData.viewerCount || 0);
                 }
 
                 setConnecting(false);
@@ -148,6 +295,18 @@ export default function LiveViewer() {
         };
         fetchToken();
         fetchScholar();
+
+        // Poll for listener count
+        const interval = setInterval(async () => {
+            try {
+                const { data } = await api.get(`/live/status/${scholarId}`);
+                if (data.isLive) {
+                    setListenerCount(data.viewerCount || 0);
+                }
+            } catch (e) {}
+        }, 5000);
+
+        return () => clearInterval(interval);
     }, [scholarId]);
 
     // Raise Hand handler
@@ -191,7 +350,7 @@ export default function LiveViewer() {
         const audioContext = new AudioContext();
         const source = audioContext.createMediaStreamSource(stream);
         const analyser = audioContext.createAnalyser();
-        analyser.fftSize = 256;
+        analyser.fftSize = 64; // Smaller for cleaner bars
         source.connect(analyser);
 
         const draw = () => {
@@ -206,27 +365,26 @@ export default function LiveViewer() {
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            const barWidth = (canvas.width / bufferLength) * 2.5;
-            let x = 0;
+            const barWidth = 6;
+            const barGap = 4;
+            const totalWidth = bufferLength * (barWidth + barGap);
+            let x = (canvas.width - totalWidth) / 2;
 
             for (let i = 0; i < bufferLength; i++) {
-                const barHeight = (dataArray[i] / 255) * canvas.height * 0.85;
-                const hue = (i / bufferLength) * 120 + 140;
-                ctx.fillStyle = `hsla(${hue}, 80%, 55%, 0.9)`;
-                const radius = Math.min(barWidth / 2, 4);
-
-                const y = canvas.height - barHeight;
+                const barHeight = (dataArray[i] / 255) * canvas.height;
+                
+                // Teal gradient as per mockup
+                ctx.fillStyle = i % 2 === 0 ? '#10b981' : '#14b8a6';
+                
+                // Centered bars
+                const y = (canvas.height - barHeight) / 2;
+                
+                // Rounded rectangles
                 ctx.beginPath();
-                ctx.moveTo(x + radius, y);
-                ctx.lineTo(x + barWidth - radius, y);
-                ctx.quadraticCurveTo(x + barWidth, y, x + barWidth, y + radius);
-                ctx.lineTo(x + barWidth, canvas.height);
-                ctx.lineTo(x, canvas.height);
-                ctx.lineTo(x, y + radius);
-                ctx.quadraticCurveTo(x, y, x + radius, y);
+                ctx.roundRect(x, y, barWidth, barHeight, 4);
                 ctx.fill();
 
-                x += barWidth + 1;
+                x += barWidth + barGap;
             }
 
             animationRef.current = requestAnimationFrame(draw);
@@ -238,184 +396,64 @@ export default function LiveViewer() {
     return (
         <DashboardLayout>
             <div className={styles.container}>
-                <h1 className={styles.title}>
-                    {liveInfo?.title || '🎙️ Live Audio Session'}
-                </h1>
-                {liveInfo?.description && (
-                    <p className={styles.streamDescription}>
-                        {liveInfo.description}
-                    </p>
-                )}
+                <LiveKitRoom
+                    video={false}
+                    audio={false}
+                    token={lkToken || undefined}
+                    serverUrl={lkServerUrl}
+                    connect={!!lkToken}
+                    onDisconnected={() => setIsPlaying(false)}
+                    onConnected={() => setIsPlaying(true)}
+                >
+                    <div className={styles.mainLayout}>
+                        {/* Left Column */}
+                        <div className={styles.leftCol}>
+                            <LivePlayerContent 
+                                connecting={connecting}
+                                error={error}
+                                scholar={scholar}
+                                liveInfo={liveInfo}
+                                isPlaying={isPlaying}
+                                canvasRef={canvasRef}
+                                startAudioVisualizer={startAudioVisualizer}
+                                listenerCount={listenerCount}
+                                pastSessions={pastSessions}
+                                setActiveSession={setActiveSession}
+                            />
+                        </div>
 
-                {lkToken ? (
-                    <LiveKitRoom
-                        video={false}
-                        audio={false}
-                        token={lkToken}
-                        serverUrl={lkServerUrl}
-                        connect={true}
-                        onDisconnected={() => setIsPlaying(false)}
-                        onConnected={() => setIsPlaying(true)}
-                    >
-                        <div className={styles.mainLayout}>
-                            <div className={styles.leftCol}>
-                                <div className={styles.audioContainer}>
-                                    {connecting && (
-                                        <div className={styles.connectingOverlay}>
-                                            <div className={styles.spinner}></div>
-                                            <p>Connecting to audio stream...</p>
-                                        </div>
-                                    )}
-                                    {error && (
-                                        <div className={styles.errorOverlay}>
-                                            <AlertCircle size={40} className={styles.errorIcon} />
-                                            <p>{error}</p>
-                                            <button onClick={() => window.location.reload()} className={styles.retryBtn}>
-                                                Retry Connection
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    <div className={styles.audioVisualizer}>
-                                        <div className={styles.audioIconWrapper}>
-                                            <Headphones size={56} />
-                                        </div>
-                                        <canvas
-                                            ref={canvasRef}
-                                            width={600}
-                                            height={200}
-                                            className={styles.audioCanvas}
-                                        />
-                                        <RoomAudioRenderer />
-                                        <p className={styles.audioLabel}>
-                                            {isPlaying ? '🎙️ Audio Stream — Playing' : `Waiting for stream...`}
-                                        </p>
-                                    </div>
+                        {/* Right Column / Sidebar */}
+                        <div className={styles.sidebar}>
+                            <div className={styles.sidebarHeader}>
+                                <div className={styles.sidebarTitle}>
+                                    <MessageSquare size={20} /> Live Interaction
                                 </div>
-
-                                {/* Raise Hand / Speaker Controls */}
-                                <ViewerInteraction
-                                    handRaised={handRaised}
-                                    handleRaiseHand={handleRaiseHand}
-                                    setHandRaised={setHandRaised}
-                                />
-
-                                <div className={styles.streamInfo}>
-                                    <p>🎙️ Audio-only stream — Pro Real-time Audio powered by LiveKit</p>
-                                </div>
-
-                                {pastSessions.length > 0 && (
-                                    <div className={styles.pastSessionsContainer}>
-                                        <h2 className={styles.pastSessionsTitle}>
-                                            <Clock size={20} /> Past Live Sessions
-                                        </h2>
-                                        <div className={styles.sessionList}>
-                                            {pastSessions.map((session) => (
-                                                <div key={session.id} className={styles.sessionItem}>
-                                                    <div className={styles.sessionHeader}>
-                                                        <span className={styles.sessionName}>{session.title || 'Live Session'}</span>
-                                                        <span className={styles.sessionDate}>
-                                                            {new Date(session.createdAt).toLocaleDateString()}
-                                                        </span>
-                                                    </div>
-                                                    <button 
-                                                        className={styles.playPastBtn}
-                                                        onClick={() => setActiveSession(session)}
-                                                    >
-                                                        <Play size={18} fill="currentColor" /> Play Recording
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
+                                <div className={styles.realTimeBadge}>REAL-TIME</div>
                             </div>
 
-                            <div className={styles.rightCol}>
+                            <div className={styles.sidebarContent}>
                                 <LiveChat
                                     scholarId={scholarId as string}
                                     userName={user?.name || `Viewer-${Math.floor(Math.random() * 1000)}`}
                                     userId={user?.id || `anon-${Math.floor(Math.random() * 10000)}`}
                                 />
                             </div>
-                        </div>
-                    </LiveKitRoom>
-                ) : (
-                    <div className={styles.mainLayout}>
-                        <div className={styles.leftCol}>
-                            <div className={styles.audioContainer}>
-                                {connecting && (
-                                    <div className={styles.connectingOverlay}>
-                                        <div className={styles.spinner}></div>
-                                        <p>Connecting to audio stream...</p>
-                                    </div>
-                                )}
-                                {error && (
-                                    <div className={styles.errorOverlay}>
-                                        <AlertCircle size={40} className={styles.errorIcon} />
-                                        <p>{error}</p>
-                                        <button onClick={() => window.location.reload()} className={styles.retryBtn}>
-                                            Retry Connection
-                                        </button>
-                                    </div>
-                                )}
 
-                                <div className={styles.audioVisualizer}>
-                                    <div className={styles.audioIconWrapper}>
-                                        <Headphones size={56} />
+                            <div className={styles.sidebarFooter}>
+                                <button className={styles.askBtn}>
+                                    <MessageCircleQuestion size={20} /> Ask a Question
+                                </button>
+                                <div className={styles.supportBox}>
+                                    <div className={styles.supportText}>
+                                        <h4>Support DinJiggasa</h4>
+                                        <p>Keep our streams free and accessible.</p>
                                     </div>
-                                    <canvas
-                                        ref={canvasRef}
-                                        width={600}
-                                        height={200}
-                                        className={styles.audioCanvas}
-                                    />
-                                    <p className={styles.audioLabel}>
-                                        Waiting for audio stream...
-                                    </p>
+                                    <button className={styles.donateBtn}>Donate</button>
                                 </div>
                             </div>
-
-                            <div className={styles.streamInfo}>
-                                <p>🎙️ Audio-only stream — Pro Real-time Audio powered by LiveKit</p>
-                            </div>
-
-                            {pastSessions.length > 0 && (
-                                <div className={styles.pastSessionsContainer}>
-                                    <h2 className={styles.pastSessionsTitle}>
-                                        <Clock size={20} /> Past Live Sessions
-                                    </h2>
-                                    <div className={styles.sessionList}>
-                                        {pastSessions.map((session) => (
-                                            <div key={session.id} className={styles.sessionItem}>
-                                                <div className={styles.sessionHeader}>
-                                                    <span className={styles.sessionName}>{session.title || 'Live Session'}</span>
-                                                    <span className={styles.sessionDate}>
-                                                        {new Date(session.createdAt).toLocaleDateString()}
-                                                    </span>
-                                                </div>
-                                                <button 
-                                                    className={styles.playPastBtn}
-                                                    onClick={() => setActiveSession(session)}
-                                                >
-                                                    <Play size={18} fill="currentColor" /> Play Recording
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className={styles.rightCol}>
-                            <LiveChat
-                                scholarId={scholarId as string}
-                                userName={user?.name || `Viewer-${Math.floor(Math.random() * 1000)}`}
-                                userId={user?.id || `anon-${Math.floor(Math.random() * 10000)}`}
-                            />
                         </div>
                     </div>
-                )}
+                </LiveKitRoom>
 
                 <AnimatePresence>
                     {activeSession && scholar && (
@@ -424,7 +462,7 @@ export default function LiveViewer() {
                                 id: activeSession.id,
                                 title: activeSession.title,
                                 audioUrl: activeSession.audioUrl,
-                                duration: null, // We can calculate this or fetch it
+                                duration: null,
                                 createdAt: activeSession.createdAt
                             }}
                             scholar={{

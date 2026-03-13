@@ -20,13 +20,11 @@ import { useLiveKitRoom } from '@livekit/components-react';
 function ChatInterface({ scholarId, userName, userId, isScholar }: LiveChatProps) {
     const { send, chatMessages, isSending } = useChat();
     const participants = useParticipants();
-    const viewerCount = Math.max(0, participants.length - 1); // Exclude the scholar
     const isConnected = useConnectionState() === ConnectionState.Connected;
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const [newMessage, setNewMessage] = useState('');
-    const [isAnonymous, setIsAnonymous] = useState(false);
 
     // Auto-scroll to bottom when new messages arrive
     const scrollToBottom = useCallback(() => {
@@ -41,16 +39,11 @@ function ChatInterface({ scholarId, userName, userId, isScholar }: LiveChatProps
         if (!newMessage.trim() || !isConnected) return;
 
         try {
-            // Include metadata so we can render scholar/anonymous tags correctly
             const metadata = JSON.stringify({
                 isScholar,
-                senderName: isAnonymous ? 'Anonymous Viewer' : userName,
-                senderId: isAnonymous ? `anon-${Date.now()}` : userId
+                senderName: userName,
+                senderId: userId
             });
-
-            // Send actual message, appending metadata string so we can parse it on receive
-            // Note: In a real app we'd attach metadata properly to the track/participant, 
-            // but useChat primarily sends the string. We'll prefix metadata for custom decoding
             const payload = `[META:${metadata}]${newMessage.trim()}`;
             await send(payload);
             setNewMessage('');
@@ -72,7 +65,6 @@ function ChatInterface({ scholarId, userName, userId, isScholar }: LiveChatProps
         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
-    // Helper to decode messages with our custom metadata
     const decodeMessage = (msg: LiveKitChatMessage) => {
         const str = msg.message;
         const metaMatch = str.match(/^\[META:(.*?)\](.*)$/);
@@ -86,36 +78,23 @@ function ChatInterface({ scholarId, userName, userId, isScholar }: LiveChatProps
                     senderName: meta.senderName,
                     senderId: meta.senderId
                 };
-            } catch (e) {
-                // Fallback if parse fails
-            }
+            } catch (e) {}
         }
-
-        // Fallback for standard messages (like from LiveKit dashboard)
         return {
             text: str,
             isScholar: false,
-            senderName: 'Anonymous',
-            senderId: 'unknown'
+            senderName: (msg as any).from?.name || (msg as any).participant?.name || 'Anonymous',
+            senderId: (msg as any).from?.identity || (msg as any).participant?.identity || 'unknown'
         };
     };
 
     return (
-        <div className={styles.chatContainer}>
-            {/* Chat Header */}
-            <div className={styles.chatHeader}>
-                <div className={styles.chatTitleRow}>
-                    <MessageCircle size={18} className={styles.chatIcon} />
-                    <span className={styles.chatTitle}>Live Chat</span>
-                    <div className={styles.statusDotHeader}></div>
-                </div>
-            </div>
-
+        <div className={styles.chatWrapper}>
             {/* Connection Status */}
             {!isConnected && (
                 <div className={styles.connectionStatus}>
                     <div className={styles.miniSpinner}></div>
-                    Connecting to chat...
+                    Connecting...
                 </div>
             )}
 
@@ -124,76 +103,53 @@ function ChatInterface({ scholarId, userName, userId, isScholar }: LiveChatProps
                 {chatMessages.length === 0 && (
                     <div className={styles.emptyChat}>
                         <MessageCircle size={32} />
-                        <p>No messages yet. Be the first to say something!</p>
+                        <p>No messages yet.</p>
                     </div>
                 )}
-                {chatMessages.map((msg) => {
+                {chatMessages.map((msg, idx) => {
                     const decoded = decodeMessage(msg);
+                    const isVip = idx % 3 === 0; // Mock VIP logic for visual appeal as in mockup
                     return (
-                        <div
-                            key={msg.id}
-                            className={`${styles.messageItem} ${decoded.senderId === 'system'
-                                ? styles.systemMessage
-                                : ''
-                                }`}
-                        >
-                            {decoded.senderId === 'system' ? (
-                                <span className={styles.systemText}>{decoded.text}</span>
-                            ) : (
-                                <div className={styles.messageContentWrapper}>
-                                    <div className={styles.avatar}>
-                                        {decoded.senderName.charAt(0)}
-                                    </div>
-                                    <div className={styles.messageBody}>
-                                        <div className={styles.senderName}>{decoded.senderName}</div>
-                                        <div className={`${styles.messageBubble} ${decoded.isScholar ? styles.isScholarBubble : ''}`}>
-                                            {decoded.text}
-                                        </div>
-                                        <div className={styles.messageTime}>{formatTime(msg.timestamp)}</div>
-                                    </div>
+                        <div key={msg.id} className={styles.messageItem}>
+                            <div className={styles.messageContentWrapper}>
+                                <div className={styles.avatar}>
+                                    <img 
+                                        src={`https://ui-avatars.com/api/?name=${decoded.senderName}&background=f1f5f9&color=64748b&bold=true`} 
+                                        alt={decoded.senderName} 
+                                    />
                                 </div>
-                            )}
+                                <div className={styles.messageBody}>
+                                    <div className={styles.senderHeader}>
+                                        <span className={styles.senderName}>{decoded.senderName}</span>
+                                        {isVip && <span className={styles.vipBadge}>VIP</span>}
+                                    </div>
+                                    <div className={styles.messageBubble}>
+                                        {decoded.text}
+                                    </div>
+                                    <div className={styles.messageTime}>{formatTime(msg.timestamp)}</div>
+                                </div>
+                            </div>
                         </div>
                     );
                 })}
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* Input */}
-            <div className={styles.inputArea}>
-                {!isScholar && (
-                    <div className={styles.anonymousToggle}>
-                        <label>
-                            <input
-                                type="checkbox"
-                                checked={isAnonymous}
-                                onChange={(e) => setIsAnonymous(e.target.checked)}
-                                disabled={!isConnected}
-                            />
-                            <span>Ask Anonymously</span>
-                        </label>
-                    </div>
-                )}
-                <div className={styles.inputContainer}>
-                    <input
-                        ref={inputRef}
-                        type="text"
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyDown={handleKeyPress}
-                        placeholder={isScholar ? "Reply to viewers..." : (isAnonymous ? "Ask anonymously..." : "Type your message...")}
-                        className={styles.chatInput}
-                        disabled={!isConnected || isSending}
-                        maxLength={500}
-                    />
-                    <button
-                        onClick={sendMessage}
-                        className={styles.sendBtn}
-                        disabled={!newMessage.trim() || !isConnected || isSending}
-                    >
-                        <Send size={18} />
-                    </button>
-                </div>
+            {/* Input Container (Floating at bottom of sidebar) */}
+            <div className={styles.miniInputContainer}>
+                <input
+                    ref={inputRef}
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                    placeholder="Send a message..."
+                    className={styles.chatInput}
+                    disabled={!isConnected || isSending}
+                />
+                <button onClick={sendMessage} className={styles.sendBtn} disabled={!newMessage.trim() || !isConnected}>
+                    <Send size={16} />
+                </button>
             </div>
         </div>
     );
@@ -205,45 +161,18 @@ export default function LiveChat(props: LiveChatProps) {
         if (roomContext) {
             return <ChatInterface {...props} />;
         }
-    } catch (e) {
-        // Fallthrough if it fails for any reason
-    }
+    } catch (e) {}
 
-    // If we're not inside a LiveKitRoom context yet (e.g., token loading), 
-    // render a disabled chat UI
     return (
-        <div className={styles.chatContainer}>
-            <div className={styles.chatHeader}>
-                <div className={styles.chatTitleRow}>
-                    <MessageCircle size={18} className={styles.chatIcon} />
-                    <span className={styles.chatTitle}>Live Chat</span>
-                    <div className={styles.statusDotHeader}></div>
-                </div>
-            </div>
-
+        <div className={styles.chatWrapper}>
             <div className={styles.connectionStatus}>
                 <div className={styles.miniSpinner}></div>
-                Waiting for live stream to start...
+                Connecting to stream...
             </div>
-
             <div className={styles.messagesContainer}>
                 <div className={styles.emptyChat}>
                     <MessageCircle size={32} />
-                    <p>Chat will be available once the live stream starts.</p>
-                </div>
-            </div>
-
-            <div className={styles.inputArea}>
-                <div className={styles.inputContainer}>
-                    <input
-                        type="text"
-                        placeholder="Waiting for connection..."
-                        className={styles.chatInput}
-                        disabled={true}
-                    />
-                    <button className={styles.sendBtn} disabled={true}>
-                        <Send size={18} />
-                    </button>
+                    <p>Connecting to live chat...</p>
                 </div>
             </div>
         </div>
