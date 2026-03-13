@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Headphones, Clock, AlertCircle, Hand, Mic, MicOff } from 'lucide-react';
+import { Headphones, Clock, AlertCircle, Hand, Mic, MicOff, Play } from 'lucide-react';
 import styles from './viewer.module.css';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuthStore } from '@/store/auth.store';
@@ -16,6 +16,8 @@ import {
     useTracks
 } from '@livekit/components-react';
 import { Track } from 'livekit-client';
+import { AnimatePresence } from 'framer-motion';
+import AudioPlayer from '@/components/shared/AudioPlayer/AudioPlayer';
 import '@livekit/components-styles';
 
 function ViewerInteraction({
@@ -103,6 +105,8 @@ export default function LiveViewer() {
     const [viewerIdentity, setViewerIdentity] = useState<string>('');
     const [handRaised, setHandRaised] = useState(false);
     const [liveInfo, setLiveInfo] = useState<{ title?: string; description?: string } | null>(null);
+    const [scholar, setScholar] = useState<any>(null);
+    const [activeSession, setActiveSession] = useState<LiveSession | null>(null);
     const { user } = useAuthStore();
 
     // Fetch view token
@@ -133,7 +137,17 @@ export default function LiveViewer() {
                 setConnecting(false);
             }
         };
+        const fetchScholar = async () => {
+            if (!scholarId) return;
+            try {
+                const { data } = await api.get(`/scholars/${scholarId}`);
+                setScholar(data);
+            } catch (err) {
+                console.warn('Failed to fetch scholar info:', err);
+            }
+        };
         fetchToken();
+        fetchScholar();
     }, [scholarId]);
 
     // Raise Hand handler
@@ -304,7 +318,12 @@ export default function LiveViewer() {
                                                             {new Date(session.createdAt).toLocaleDateString()}
                                                         </span>
                                                     </div>
-                                                    <audio controls src={session.audioUrl} className={styles.audioPlayer} preload="none" />
+                                                    <button 
+                                                        className={styles.playPastBtn}
+                                                        onClick={() => setActiveSession(session)}
+                                                    >
+                                                        <Play size={18} fill="currentColor" /> Play Recording
+                                                    </button>
                                                 </div>
                                             ))}
                                         </div>
@@ -375,7 +394,12 @@ export default function LiveViewer() {
                                                         {new Date(session.createdAt).toLocaleDateString()}
                                                     </span>
                                                 </div>
-                                                <audio controls src={session.audioUrl} className={styles.audioPlayer} preload="none" />
+                                                <button 
+                                                    className={styles.playPastBtn}
+                                                    onClick={() => setActiveSession(session)}
+                                                >
+                                                    <Play size={18} fill="currentColor" /> Play Recording
+                                                </button>
                                             </div>
                                         ))}
                                     </div>
@@ -392,6 +416,33 @@ export default function LiveViewer() {
                         </div>
                     </div>
                 )}
+
+                <AnimatePresence>
+                    {activeSession && scholar && (
+                        <AudioPlayer 
+                            session={{
+                                id: activeSession.id,
+                                title: activeSession.title,
+                                audioUrl: activeSession.audioUrl,
+                                duration: null, // We can calculate this or fetch it
+                                createdAt: activeSession.createdAt
+                            }}
+                            scholar={{
+                                id: scholar.id,
+                                name: scholar.name,
+                                avatar: scholar.avatar
+                            }}
+                            relatedSessions={pastSessions.filter(s => s.id !== activeSession.id).map(s => ({
+                                id: s.id,
+                                title: s.title,
+                                audioUrl: s.audioUrl,
+                                duration: null,
+                                createdAt: s.createdAt
+                            }))}
+                            onClose={() => setActiveSession(null)}
+                        />
+                    )}
+                </AnimatePresence>
             </div>
         </DashboardLayout>
     );

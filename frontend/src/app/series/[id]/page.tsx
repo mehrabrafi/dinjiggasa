@@ -12,8 +12,10 @@ import {
     X,
     CheckCircle2
 } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 import api from '@/lib/axios';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import AudioPlayer from '@/components/shared/AudioPlayer/AudioPlayer';
 import styles from '../series-detail.module.css';
 
 interface Session {
@@ -183,43 +185,20 @@ export default function SeriesDetailPage() {
             </div>
 
             {/* Global Player Overlay */}
-            {activeSession && (
-                <div className={styles.playerOverlay}>
-                    <div className={styles.playerContainer}>
-                        <button 
-                            className={styles.closePlayer}
-                            onClick={() => setActiveSession(null)}
-                        >
-                            <X size={24} />
-                        </button>
-
-                        <div className={styles.audioPlayerWrapper}>
-                            <div className={styles.nowPlayingIcon}>
-                                <Volume2 size={40} />
-                            </div>
-                            <div className={styles.nowPlayingInfo}>
-                                <h3 className={styles.nowPlayingTitle}>{activeSession.title}</h3>
-                                <p className={styles.nowPlayingScholar}>by {series.scholar.name}</p>
-                            </div>
-                            {activeSession.audioUrl ? (
-                                <audio 
-                                    src={activeSession.audioUrl} 
-                                    controls 
-                                    autoPlay 
-                                    className={styles.customAudio}
-                                    onError={(e) => {
-                                        console.error("Audio playback error:", e);
-                                    }}
-                                />
-                            ) : (
-                                <div style={{ padding: '1rem', color: '#f59e0b', textAlign: 'center' }}>
-                                    ⏳ Recording is being processed. Please check back shortly.
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
+            <AnimatePresence>
+                {activeSession && series && (
+                    <AudioPlayer 
+                        session={activeSession}
+                        scholar={{
+                            id: series.scholar.id,
+                            name: series.scholar.name,
+                            avatar: series.scholar.avatar
+                        }}
+                        relatedSessions={series.sessions.filter(s => s.id !== activeSession.id)}
+                        onClose={() => setActiveSession(null)}
+                    />
+                )}
+            </AnimatePresence>
         </DashboardLayout>
     );
 }

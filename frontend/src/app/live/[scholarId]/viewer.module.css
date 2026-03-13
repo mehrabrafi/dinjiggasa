@@ -347,6 +347,26 @@
 .micToggleWrapper {
     margin-top: 0.5rem;
 }
+.playPastBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #f1f5f9;
+    color: #475569;
+    border: none;
+    padding: 0.625rem 1rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: fit-content;
+}
+
+.playPastBtn:hover {
+    background: #10b981;
+    color: white;
+}
 
 /* LiveKit default TrackToggle overrides */
 .lkTrackToggle {
