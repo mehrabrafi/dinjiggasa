@@ -17,6 +17,7 @@ export interface LiveScholarInfo {
   viewerCount: number;
   title?: string;
   description?: string;
+  category?: string;
 }
 
 export interface RaisedHandInfo {
@@ -83,6 +84,7 @@ export class LiveStreamService {
     title?: string,
     description?: string,
     seriesId?: string,
+    category?: string,
   ) {
     this.liveScholars.set(scholarId, {
       scholarId,
@@ -91,6 +93,7 @@ export class LiveStreamService {
       viewerCount: 0,
       title,
       description,
+      category,
     });
     this.clientToScholar.set(clientId, scholarId);
     console.log(
@@ -119,6 +122,7 @@ export class LiveStreamService {
           description,
           audioUrl,
           seriesId: seriesId || null,
+          category: category || null,
         }
       });
       this.scholarToSession.set(scholarId, session.id);
@@ -341,6 +345,7 @@ export class LiveStreamService {
         viewerCount: liveInfo?.viewerCount || 0,
         title: liveInfo?.title,
         description: liveInfo?.description,
+        category: liveInfo?.category,
         streamType: 'audio',
       };
     });

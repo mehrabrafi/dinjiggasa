@@ -96,7 +96,7 @@ export class LiveStreamController {
   @UseGuards(JwtAuthGuard)
   goLive(
     @Req() req: any,
-    @Body() body: { title?: string; description?: string; seriesId?: string },
+    @Body() body: { title?: string; description?: string; seriesId?: string; category?: string },
   ) {
     const scholarId = req.user.id || req.user.sub;
     this.liveStreamService.goLive(
@@ -105,6 +105,7 @@ export class LiveStreamController {
       body.title,
       body.description,
       body.seriesId,
+      body.category,
     );
     return { success: true };
   }

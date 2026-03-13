@@ -239,6 +239,8 @@ model LiveSession {
   seriesId   String?
   series     Series?  @relation(fields: [seriesId], references: [id])
 
+  category     String?  // Standalone session category (e.g. Fiqh, Hadith)
+
   createdAt  DateTime @default(now())
 }
 

@@ -889,6 +889,55 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
+.categorySelectorRow {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    width: 100%;
+}
+
+.createCategoryInput {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.createCategoryInput input {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    border: 2px solid #10b981;
+    background: white;
+}
+
+.addCategoryBtn {
+    background: #10b981;
+    color: white;
+    border: none;
+    width: 42px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cancelCategoryBtn {
+    background: #f1f5f9;
+    color: #64748b;
+    border: none;
+    width: 42px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.addCategoryBtn:hover {
+    background: #059669;
+}
+
 .modeBtnActive .modeLabel {
     color: #065f46;
 }

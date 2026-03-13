@@ -68,6 +68,10 @@ export default function ScholarLiveStudio() {
     const [isCreatingSeries, setIsCreatingSeries] = useState(false);
     const [newSeriesData, setNewSeriesData] = useState({ title: '', description: '', category: 'General' });
     const [setupPhase, setSetupPhase] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState<string>('');
+    const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+    const [newCategory, setNewCategory] = useState('');
+    const [availableCategories, setAvailableCategories] = useState<string[]>(['Fiqh', 'Hadith', 'Tafsir', 'History', 'Contemporary']);
     const { user } = useAuthStore();
     const scholarId = user?.id || '12345';
 
@@ -142,6 +146,10 @@ export default function ScholarLiveStudio() {
             try {
                 const { data } = await api.get('/live/series/my');
                 setMySeries(data);
+                
+                // Extract unique categories from series to populate suggestions
+                const seriesCats = data.map((s: any) => s.category).filter((c: any) => c);
+                setAvailableCategories(prev => Array.from(new Set([...prev, ...seriesCats])));
             } catch (err) {
                 console.warn('[LiveStream] Could not fetch series:', err);
             }
@@ -256,6 +264,7 @@ export default function ScholarLiveStudio() {
                     title: streamTitle,
                     description: streamDescription,
                     seriesId: selectedSeriesId || null,
+                    category: selectedCategory || null,
                 });
             } catch (e) {
                 console.warn('[LiveStream] Could not notify backend go-live:', e);
@@ -561,7 +570,14 @@ export default function ScholarLiveStudio() {
                                             <div className={styles.seriesSelectorRow}>
                                                 <select
                                                     value={selectedSeriesId}
-                                                    onChange={(e) => setSelectedSeriesId(e.target.value)}
+                                                    onChange={(e) => {
+                                                        const id = e.target.value;
+                                                        setSelectedSeriesId(id);
+                                                        if (id) {
+                                                            const series = mySeries.find(s => s.id === id);
+                                                            if (series?.category) setSelectedCategory(series.category);
+                                                        }
+                                                    }}
                                                     className={styles.seriesSelect}
                                                 >
                                                     <option value="">Standalone Session (No Series)</option>
@@ -575,6 +591,61 @@ export default function ScholarLiveStudio() {
                                                 >
                                                     + New Series
                                                 </button>
+                                            </div>
+                                        </div>
+
+                                        <div className={styles.inputGroup}>
+                                            <label>Stream Category {!selectedSeriesId && <span style={{ color: '#ef4444' }}>*</span>}</label>
+                                            <div className={styles.categorySelectorRow}>
+                                                {isCreatingCategory ? (
+                                                    <div className={styles.createCategoryInput}>
+                                                        <input 
+                                                            type="text" 
+                                                            placeholder="Enter new category..." 
+                                                            value={newCategory}
+                                                            onChange={(e) => setNewCategory(e.target.value)}
+                                                            autoFocus
+                                                        />
+                                                        <button 
+                                                            onClick={() => {
+                                                                if (newCategory.trim()) {
+                                                                    setAvailableCategories(prev => Array.from(new Set([...prev, newCategory.trim()])));
+                                                                    setSelectedCategory(newCategory.trim());
+                                                                    setIsCreatingCategory(false);
+                                                                    setNewCategory('');
+                                                                }
+                                                            }}
+                                                            className={styles.addCategoryBtn}
+                                                        >
+                                                            <Check size={16} />
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => setIsCreatingCategory(false)}
+                                                            className={styles.cancelCategoryBtn}
+                                                        >
+                                                            <X size={16} />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <select
+                                                            value={selectedCategory}
+                                                            onChange={(e) => setSelectedCategory(e.target.value)}
+                                                            className={styles.seriesSelect}
+                                                        >
+                                                            <option value="">Select Category</option>
+                                                            {availableCategories.map(cat => (
+                                                                <option key={cat} value={cat}>{cat}</option>
+                                                            ))}
+                                                        </select>
+                                                        <button
+                                                            className={styles.createSeriesBtn}
+                                                            onClick={() => setIsCreatingCategory(true)}
+                                                        >
+                                                            + New Category
+                                                        </button>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
 
@@ -623,6 +694,8 @@ export default function ScholarLiveStudio() {
                                                 onClick={startStreaming} 
                                                 className={styles.startBtnLarge} 
                                                 title="Start streaming now"
+                                                disabled={!selectedSeriesId && !selectedCategory}
+                                                style={{ opacity: (!selectedSeriesId && !selectedCategory) ? 0.5 : 1 }}
                                             >
                                                 <Play size={28} fill="white" />
                                                 <span className={styles.startBtnText}>START NOW</span>
