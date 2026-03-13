@@ -1,6 +1,6 @@
 "use client"
 
-import { PlayCircle, Bell, MessageSquare, ArrowUp, ArrowDown, TrendingUp, GraduationCap, Share, CheckCircle2, Heart, BarChart3, HelpCircle, Activity, Flag, Eye, Video, Headphones } from "lucide-react"
+import { PlayCircle, Bell, MessageSquare, ArrowUp, ArrowDown, TrendingUp, GraduationCap, Share, CheckCircle2, Heart, BarChart3, HelpCircle, Activity, Flag, Eye, Video, Headphones, Play } from "lucide-react"
 import Link from "next/link"
 import React, { Suspense, useEffect, useState } from "react"
 import { useSearchParams, useRouter as useNextRouter } from "next/navigation"
@@ -11,6 +11,8 @@ import ReportModal from "@/components/modals/ReportModal"
 import { useAuthStore } from "@/store/auth.store"
 import LandingView from "@/components/landing/LandingView"
 import toast from "react-hot-toast"
+import { AnimatePresence } from 'framer-motion'
+import AudioPlayer from '@/components/shared/AudioPlayer/AudioPlayer'
 
 export default function LiveListPage() {
   return (
@@ -58,6 +60,7 @@ function DashboardView() {
   const [series, setSeries] = useState<any[]>([])
   const [activeTopic, setActiveTopic] = useState('All Topics')
   const topics = ['All Topics', 'Fiqh', 'Hadith', 'Spirituality', 'Contemporary Issues', 'History', 'Tafsir']
+  const [activeSession, setActiveSession] = useState<any>(null)
 
   // Report Modal State
   const [reportModal, setReportModal] = useState({
@@ -267,9 +270,9 @@ function DashboardView() {
           )}
         </div>
 
-        {/* Section 2: Featured Series */}
+        {/* Section 2: Latest Series */}
         <div className={styles.sectionHeader} style={{ marginTop: '2.5rem' }}>
-          <h2 className={styles.sectionTitle}>Featured Series</h2>
+          <h2 className={styles.sectionTitle}>Latest Series</h2>
           <Link href="/series" className={styles.seeAllLink}>See All</Link>
         </div>
 
@@ -303,7 +306,12 @@ function DashboardView() {
         <div className={styles.recentGrid}>
           {sessions.past.length > 0 ? (
             sessions.past.map((record) => (
-              <div key={record.id} className={styles.recentCard}>
+              <div 
+                key={record.id} 
+                className={styles.recentCard} 
+                onClick={() => setActiveSession(record)}
+                style={{ cursor: 'pointer' }}
+              >
                 <div className={styles.recentThumbWrapper}>
                   <img src={record.thumbnailUrl || '/assets/images/mock/recent2.png'} className={styles.cardThumb} alt={record.title} />
                   <div className={styles.durationBadge}>
@@ -311,6 +319,9 @@ function DashboardView() {
                   </div>
                   <div className={styles.typeIcon}>
                     <Headphones size={14} />
+                  </div>
+                  <div className={styles.playOverlay}>
+                    <Play size={32} fill="white" />
                   </div>
                 </div>
                 <div className={styles.recentDetails}>
@@ -439,6 +450,32 @@ function DashboardView() {
           <div className={styles.footerCopy}>© 2026 DinJiggasa Inc.</div>
         </footer>
       </aside>
+      <AnimatePresence>
+        {activeSession && (
+          <AudioPlayer 
+            session={{
+              id: activeSession.id,
+              title: activeSession.title,
+              audioUrl: activeSession.audioUrl || activeSession.recordingUrl,
+              duration: activeSession.duration || null,
+              createdAt: activeSession.createdAt
+            }}
+            scholar={{
+              id: activeSession.scholar?.id || '',
+              name: activeSession.scholar?.name || 'Unknown Scholar',
+              avatar: activeSession.scholar?.avatar || null
+            }}
+            relatedSessions={sessions.past.filter(s => s.id !== activeSession.id).map(s => ({
+              id: s.id,
+              title: s.title,
+              audioUrl: s.audioUrl || s.recordingUrl,
+              duration: s.duration || null,
+              createdAt: s.createdAt
+            }))}
+            onClose={() => setActiveSession(null)}
+          />
+        )}
+      </AnimatePresence>
     </DashboardLayout>
   )
 }
