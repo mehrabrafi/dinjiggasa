@@ -279,7 +279,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </header>
 
             {/* Main Content */}
-            <div className={`${styles.mainContainer} ${pathname.startsWith('/live/') && pathname.split('/').length === 3 ? styles.mainContainerStream : ''}`}>
+            <div className={`${styles.mainContainer} ${(pathname.startsWith('/live/') && pathname.split('/').length === 3) || pathname === '/series' || pathname === '/recorded' || pathname === '/scholars' || pathname === '/topics' ? styles.mainContainerStream : ''}`}>
                 
                 {children}
             </div>
