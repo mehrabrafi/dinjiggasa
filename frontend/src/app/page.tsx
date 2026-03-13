@@ -1,6 +1,6 @@
 "use client"
 
-import { PlayCircle, Bell, MessageSquare, ArrowUp, ArrowDown, TrendingUp, GraduationCap, Share, CheckCircle2, Heart, BarChart3, HelpCircle, Activity, Flag } from "lucide-react"
+import { PlayCircle, Bell, MessageSquare, ArrowUp, ArrowDown, TrendingUp, GraduationCap, Share, CheckCircle2, Heart, BarChart3, HelpCircle, Activity, Flag, Book, Shield, Compass, Hash, Users, Headphones } from "lucide-react"
 import Link from "next/link"
 import React, { Suspense, useEffect, useState } from "react"
 import { useSearchParams, useRouter as useNextRouter } from "next/navigation"
@@ -63,6 +63,9 @@ function DashboardView() {
     questionId: '',
     title: ''
   })
+
+  const [activeTopic, setActiveTopic] = useState('All Topics')
+  const topics = ['All Topics', 'Fiqh', 'Hadith', 'Spirituality', 'Contemporary Issues', 'History', 'Tafsir']
 
   const openReportModal = (questionId: string, title: string) => {
     setReportModal({
@@ -183,8 +186,79 @@ function DashboardView() {
 
   return (
     <DashboardLayout>
+      {/* Left Sidebar: Explore & Discovery */}
+      <aside className={styles.leftSidebarHome}>
+        <div className={styles.widget}>
+          <h3 className={styles.widgetTitle}>
+            <Compass size={18} color="#006D5B" /> Discover
+          </h3>
+          <div className={styles.topicSidebarList}>
+            <Link href="/topics/fiqh" className={styles.topicSidebarItem}>
+              <div className={styles.topicIconWrapper} style={{ backgroundColor: '#eef2ff', color: '#6366f1' }}>
+                <Shield size={16} />
+              </div>
+              <span>Islamic Law (Fiqh)</span>
+            </Link>
+            <Link href="/topics/hadith" className={styles.topicSidebarItem}>
+              <div className={styles.topicIconWrapper} style={{ backgroundColor: '#fff7ed', color: '#f97316' }}>
+                <Book size={16} />
+              </div>
+              <span>Hadith Studies</span>
+            </Link>
+            <Link href="/topics/spirituality" className={styles.topicSidebarItem}>
+              <div className={styles.topicIconWrapper} style={{ backgroundColor: '#f0fdf4', color: '#22c55e' }}>
+                <Heart size={16} />
+              </div>
+              <span>Spirituality</span>
+            </Link>
+            <Link href="/topics/history" className={styles.topicSidebarItem}>
+              <div className={styles.topicIconWrapper} style={{ backgroundColor: '#faf5ff', color: '#a855f7' }}>
+                <GraduationCap size={16} />
+              </div>
+              <span>Islamic History</span>
+            </Link>
+          </div>
+        </div>
+
+        <div className={styles.widget}>
+          <h3 className={styles.widgetTitle}>
+            <TrendingUp size={18} color="#006D5B" /> Quick Links
+          </h3>
+          <div className={styles.quickLinksGrid}>
+             <Link href="/live" className={styles.quickLinkItem}>
+                <Headphones size={18} />
+                <span>Live Audio</span>
+             </Link>
+             <Link href="/scholars" className={styles.quickLinkItem}>
+                <Users size={18} />
+                <span>Our Scholars</span>
+             </Link>
+             <Link href="/series" className={styles.quickLinkItem}>
+                <Hash size={18} />
+                <span>Knowledge Series</span>
+             </Link>
+             <Link href="/settings" className={styles.quickLinkItem}>
+                <Activity size={18} />
+                <span>My Progress</span>
+             </Link>
+          </div>
+        </div>
+      </aside>
+
       {/* Feed Column */}
       <main className={styles.feedContent}>
+        {/* Topic Pills Bar */}
+        <div className={styles.topicsBar}>
+          {topics.map((topic) => (
+            <button 
+              key={topic} 
+              className={`${styles.topicPill} ${activeTopic === topic ? styles.topicPillActive : ''}`}
+              onClick={() => setActiveTopic(topic)}
+            >
+              {topic}
+            </button>
+          ))}
+        </div>
 
         {/* Dynamic Carousel */}
         <div className={styles.carouselContainer}>
@@ -227,7 +301,10 @@ function DashboardView() {
         ) : questions.filter((q: any) => q.answers && q.answers.length > 0).length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No answered questions available right now.</div>
         ) : (
-          questions.filter((q: any) => q.answers && q.answers.length > 0).map((question) => {
+          questions
+            .filter((q: any) => q.answers && q.answers.length > 0)
+            .filter((q: any) => activeTopic === 'All Topics' || q.tags?.some((t: any) => t.name === activeTopic))
+            .map((question) => {
             const upvotes = question.ratings?.filter((r: any) => r.value === 1).length || 0
             const downvotes = question.ratings?.filter((r: any) => r.value === -1).length || 0
             const voteScore = upvotes - downvotes
