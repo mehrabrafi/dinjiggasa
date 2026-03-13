@@ -154,13 +154,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
 
                 <div className={styles.headerCenter}>
+                    {/* Centered Navigation for Desktop */}
+                    <nav className={styles.headerNav}>
+                        <Link href="/" className={`${styles.headerNavLink} ${pathname === '/' ? styles.headerNavLinkActive : ''}`}>Home</Link>
+                        <Link href="/live" className={`${styles.headerNavLink} ${pathname.startsWith('/live') ? styles.headerNavLinkActive : ''}`}>Streams</Link>
+                        <Link href="/scholars" className={`${styles.headerNavLink} ${pathname === '/scholars' ? styles.headerNavLinkActive : ''}`}>Scholars</Link>
+                    </nav>
+
                     <div className={searchStyles.searchWrapper} ref={searchWrapperRef}>
                         <div className={styles.searchBar}>
                             <Search size={18} color="#9ca3af" />
                             <input
                                 ref={searchInputRef}
                                 type="text"
-                                placeholder="Search questions, topics, or scholars..."
+                                placeholder="Search questions..."
                                 className={styles.searchInput}
                                 value={searchQuery}
                                 onChange={handleSearchChange}
@@ -259,10 +266,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </header>
 
             {/* Main Content */}
-            <div className={styles.mainContainer}>
-                {/* Left Sidebar */}
-                <aside className={styles.leftSidebar}>
-                    <nav className={styles.sidebarNav}>
+            <div className={`${styles.mainContainer} ${pathname.startsWith('/live/') && pathname.split('/').length === 3 ? styles.mainContainerStream : ''}`}>
+                {/* Left Sidebar - Hidden on Stream Page */}
+                {!(pathname.startsWith('/live/') && pathname.split('/').length === 3) && (
+                    <aside className={styles.leftSidebar}>
+                        <nav className={styles.sidebarNav}>
 
 
                         <div className={styles.sidebarSection}>
@@ -298,8 +306,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                     {/* Removed hardcoded Daily Hadith widget */}
 
-                </aside>
-
+                    </aside>
+                )}
+                
                 {children}
             </div>
 

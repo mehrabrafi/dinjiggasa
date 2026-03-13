@@ -1,16 +1,16 @@
 .container {
-    padding: 2rem;
-    max-width: 1400px;
-    margin: 0 auto;
-    background-color: #f8fafc;
-    min-height: 100vh;
+    padding: 0;
+    max-width: 100%;
+    background-color: transparent;
+    min-height: auto;
 }
 
 .mainLayout {
     display: grid;
     grid-template-columns: 1fr 380px;
-    gap: 2rem;
+    gap: 3rem;
     align-items: start;
+    margin: 0 auto;
 }
 
 @media (max-width: 1024px) {
@@ -282,10 +282,13 @@
     background: white;
     border-radius: 24px;
     padding: 1.5rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 8rem);
+    height: calc(100vh - 120px);
+    position: sticky;
+    top: 100px;
+    border: 1px solid #f1f5f9;
 }
 
 .sidebarHeader {
@@ -324,8 +327,8 @@
     background: #006D5B;
     color: white;
     border: none;
-    padding: 1rem;
-    border-radius: 16px;
+    padding: 0.875rem;
+    border-radius: 12px;
     font-weight: 700;
     display: flex;
     align-items: center;
@@ -333,6 +336,13 @@
     gap: 0.5rem;
     margin-bottom: 1rem;
     cursor: pointer;
+    font-size: 0.95rem;
+    transition: transform 0.2s;
+}
+
+.askBtn:hover {
+    transform: translateY(-2px);
+    background: #005a4b;
 }
 
 .sidebarFooter {

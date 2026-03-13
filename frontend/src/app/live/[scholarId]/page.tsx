@@ -139,10 +139,10 @@ function LivePlayerContent({
                 </div>
 
                 <h1 className={styles.streamTitle}>
-                    {liveInfo?.title || 'Understanding the Wisdom of Ramadan'}
+                    {liveInfo?.title || 'Modern Ethics in Digital Finance'}
                 </h1>
                 <p className={styles.streamSubtitle}>
-                    Audio Q&A with {scholar?.name || 'Scholar Name'}
+                    Audio Q&A with {scholar?.name || 'Sheikh Abdullah Al-Mansur'}
                 </p>
 
                 <div className={styles.visualizerWrapper}>
@@ -183,8 +183,6 @@ function LivePlayerContent({
                         </p>
                     </div>
                     <div className={styles.scholarActions}>
-                        <button className={styles.followBtn}>Follow Scholar</button>
-                        <button className={styles.profileBtn}>View Profile</button>
                         <div className={styles.shareBtn}><Share2 size={20} /></div>
                     </div>
                 </div>
@@ -426,7 +424,7 @@ export default function LiveViewer() {
                         <div className={styles.sidebar}>
                             <div className={styles.sidebarHeader}>
                                 <div className={styles.sidebarTitle}>
-                                    <MessageSquare size={20} /> Live Interaction
+                                    <MessageSquare size={18} fill="#006D5B" color="#006D5B" /> Live Interaction
                                 </div>
                                 <div className={styles.realTimeBadge}>REAL-TIME</div>
                             </div>

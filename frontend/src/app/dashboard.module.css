@@ -58,13 +58,54 @@
 
 .headerCenter {
     flex: 1;
-    max-width: 500px;
+    max-width: 800px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2.5rem;
 }
 
 @media (max-width: 768px) {
     .headerCenter {
         display: none;
     }
+}
+
+.headerNav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    margin-right: 2rem;
+}
+
+.headerNavLink {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--muted-foreground, #64748b);
+    text-decoration: none;
+    transition: color 0.2s;
+    position: relative;
+    padding: 0.5rem 0;
+}
+
+.headerNavLink:hover {
+    color: var(--primary);
+}
+
+.headerNavLinkActive {
+    color: var(--primary);
+}
+
+.headerNavLinkActive::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: var(--primary);
+    border-radius: 2px;
 }
 
 .searchBar {
@@ -182,6 +223,18 @@
         padding: 1rem 0.75rem;
         gap: 1rem;
         padding-bottom: 5rem;
+    }
+}
+
+.mainContainerStream {
+    max-width: 1400px;
+    padding: 2rem 4rem;
+    display: block; /* No flexbox to avoid sidebar spacing */
+}
+
+@media (max-width: 1024px) {
+    .mainContainerStream {
+        padding: 1rem;
     }
 }
 
