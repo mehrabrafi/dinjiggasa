@@ -54,6 +54,26 @@ export class LiveStreamService {
       
     this.roomService = new RoomServiceClient(lkHost, apiKey, apiSecret);
     this.egressClient = new EgressClient(lkHost, apiKey, apiSecret);
+
+    // Run cleanup every 10 minutes to prune stale in-memory sessions
+    setInterval(() => this.cleanupStaleSessions(), 10 * 60 * 1000);
+  }
+
+  /** Prune sessions that no longer have a physical room in LiveKit */
+  private async cleanupStaleSessions() {
+    try {
+      const rooms = await this.roomService.listRooms();
+      const activeRoomNames = new Set(rooms.map(r => r.name));
+      
+      for (const scholarId of this.liveScholars.keys()) {
+        if (!activeRoomNames.has(scholarId)) {
+          console.log(`[LiveStream] Pruning stale session for scholar: ${scholarId}`);
+          await this.goOffline(scholarId);
+        }
+      }
+    } catch (err) {
+      console.error('[LiveStream] Cleanup failed:', err);
+    }
   }
 
   /** Mark a scholar as live */

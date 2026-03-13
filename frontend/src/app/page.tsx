@@ -55,6 +55,8 @@ function DashboardView() {
   const [stats, setStats] = useState<any>(null)
   const [topScholars, setTopScholars] = useState<any[]>([])
 
+  const [liveSessions, setLiveSessions] = useState<any[]>([])
+
   // Report Modal State
   const [reportModal, setReportModal] = useState({
     isOpen: false,
@@ -108,16 +110,28 @@ function DashboardView() {
         console.error("Failed to fetch top scholars", error)
       }
     }
+    
+    const fetchLive = async () => {
+      try {
+        const res = await api.get('/live/overview')
+        setLiveSessions(res.data.live || [])
+      } catch (e) {
+        console.error("Failed to fetch live", e)
+      }
+    }
 
     fetchFeed()
     fetchStats()
     fetchTopScholars()
+    fetchLive()
 
     // Poll for stats every 5 seconds for "live" feel
     const statsInterval = setInterval(fetchStats, 5000)
+    const liveInterval = setInterval(fetchLive, 10000)
 
     return () => {
       clearInterval(statsInterval)
+      clearInterval(liveInterval)
     }
   }, [])
 
@@ -172,54 +186,39 @@ function DashboardView() {
       {/* Feed Column */}
       <main className={styles.feedContent}>
 
-        {/* Card 1 - Live Carousel */}
+        {/* Dynamic Carousel */}
         <div className={styles.carouselContainer}>
-          {/* Slide 1 */}
-          <div className={`${styles.card} ${styles.liveCard} ${styles.carouselItem}`}>
-            <div className={styles.liveBadge}>LIVE SESSION</div>
-            <h2 className={styles.liveTitle}>Mastering Quranic Arabic</h2>
-            <p className={styles.liveSubtitle}>Join Sheikh Omar Suleiman for an exclusive live deep-dive into the linguistic miracles of Juz Amma...</p>
-            <button className={styles.listenButton}>
-              <PlayCircle size={18} /> Listen Now
-            </button>
-            <div className={styles.carouselDots}>
-              <div className={`${styles.dot} ${styles.dotActive}`}></div>
-              <div className={styles.dot}></div>
-              <div className={styles.dot}></div>
+          {liveSessions.length > 0 ? (
+            liveSessions.map((session, idx) => (
+              <div key={session.id} className={`${styles.card} ${styles.liveCard} ${styles.carouselItem}`}>
+                <div className={styles.liveBadge}>LIVE NOW</div>
+                <h2 className={styles.liveTitle}>{session.title || "Live Discussion"}</h2>
+                <p className={styles.liveSubtitle}>Join {session.name} for an interactive audio session on {session.specialization || "Islamic topics"}.</p>
+                <Link href={`/live/${session.id}`}>
+                  <button className={styles.listenButton}>
+                    <PlayCircle size={18} /> Join Live
+                  </button>
+                </Link>
+                <div className={styles.carouselDots}>
+                  {liveSessions.map((_, i) => (
+                    <div key={i} className={`${styles.dot} ${idx === i ? styles.dotActive : ''}`}></div>
+                  ))}
+                </div>
+              </div>
+            ))
+          ) : (
+            /* Fallback banner when nothing is live */
+            <div className={`${styles.card} ${styles.liveCard} ${styles.carouselItem}`} style={{ background: 'linear-gradient(135deg, #006D5B 0%, #004d40 100%)' }}>
+              <div className={styles.liveBadge} style={{ background: 'rgba(255,255,255,0.2)' }}>FEEDBACK</div>
+              <h2 className={styles.liveTitle}>Welcome to DinJiggasa</h2>
+              <p className={styles.liveSubtitle}>Ask questions to verified scholars and join live audio discussions. No scholars are currently live, but you can explore past recordings.</p>
+              <Link href="/live">
+                <button className={styles.listenButton} style={{ background: 'white', color: '#006D5B' }}>
+                  Explore Live TV
+                </button>
+              </Link>
             </div>
-          </div>
-
-          {/* ... Slides 2 and 3 omitted for brevity in this replacement but assumed to be present ... */}
-          {/* Let's keep them all for full UI experience */}
-          {/* Slide 2 */}
-          <div className={`${styles.card} ${styles.liveCard} ${styles.carouselItem}`} style={{ backgroundImage: "linear-gradient(to right, rgba(0,0,0,0.8), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1588775005893-6629cb8c156f?q=80&w=1000&auto=format&fit=crop')" }}>
-            <div className={styles.liveBadge} style={{ backgroundColor: '#FF5C5C' }}>UPCOMING</div>
-            <h2 className={styles.liveTitle}>Fiqh of Finance</h2>
-            <p className={styles.liveSubtitle}>Dr. Yasin Malik explains the complexities of modern Zakat calculation in this upcoming detailed workshop...</p>
-            <button className={styles.listenButton}>
-              <Bell size={18} /> Set Reminder
-            </button>
-            <div className={styles.carouselDots}>
-              <div className={styles.dot}></div>
-              <div className={`${styles.dot} ${styles.dotActive}`}></div>
-              <div className={styles.dot}></div>
-            </div>
-          </div>
-
-          {/* Slide 3 */}
-          <div className={`${styles.card} ${styles.liveCard} ${styles.carouselItem}`} style={{ backgroundImage: "linear-gradient(to right, rgba(0,0,0,0.8), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1564683214965-3619addd900d?q=80&w=1000&auto=format&fit=crop')" }}>
-            <div className={styles.liveBadge} style={{ backgroundColor: '#3b82f6' }}>Q&A</div>
-            <h2 className={styles.liveTitle}>Ask Me Anything: Youth Issues</h2>
-            <p className={styles.liveSubtitle}>Open session with various scholars addressing contemporary challenges faced by Muslim youth...</p>
-            <button className={styles.listenButton}>
-              <MessageSquare size={18} /> Join Session
-            </button>
-            <div className={styles.carouselDots}>
-              <div className={styles.dot}></div>
-              <div className={styles.dot}></div>
-              <div className={`${styles.dot} ${styles.dotActive}`}></div>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Dynamic Questions Feed */}
