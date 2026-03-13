@@ -58,11 +58,11 @@
 
 .headerCenter {
     flex: 1;
-    max-width: 800px;
+    max-width: 900px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 2.5rem;
+    gap: 2rem;
 }
 
 @media (max-width: 768px) {
@@ -135,9 +135,35 @@
 .headerRight {
     display: flex;
     align-items: center;
-    gap: 1.5rem;
-    width: 350px;
+    gap: 1.25rem;
+    width: 400px;
     justify-content: flex-end;
+}
+
+.headerIconGroup {
+    display: flex;
+    align-items: center;
+    gap: 1.125rem;
+}
+
+.headerIconWrapper {
+    color: var(--muted-foreground, #64748b);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    padding: 4px;
+    border-radius: 8px;
+}
+
+.headerIconWrapper:hover {
+    color: var(--primary);
+    background-color: rgba(0, 109, 91, 0.05);
+}
+
+.headerIconActive {
+    color: var(--primary);
+    background-color: rgba(0, 109, 91, 0.08);
 }
 
 @media (max-width: 768px) {
@@ -209,12 +235,13 @@
 
 .mainContainer {
     display: flex;
-    flex: 1;
+    justify-content: center;
     max-width: 1280px;
     margin: 0 auto;
     width: 100%;
-    padding: 1.5rem;
-    gap: 2rem;
+    padding: 2rem 1.5rem;
+    gap: 3rem;
+    align-items: flex-start;
 }
 
 @media (max-width: 768px) {
@@ -239,17 +266,7 @@
 }
 
 .leftSidebar {
-    width: 200px;
-    flex-shrink: 0;
-    position: sticky;
-    top: calc(64px + 1.5rem);
-    height: max-content;
-}
-
-@media (max-width: 768px) {
-    .leftSidebar {
-        display: none;
-    }
+    display: none;
 }
 
 .navItem {

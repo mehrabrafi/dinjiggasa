@@ -156,9 +156,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <div className={styles.headerCenter}>
                     {/* Centered Navigation for Desktop */}
                     <nav className={styles.headerNav}>
-                        <Link href="/" className={`${styles.headerNavLink} ${pathname === '/' ? styles.headerNavLinkActive : ''}`}>Home</Link>
-                        <Link href="/live" className={`${styles.headerNavLink} ${pathname.startsWith('/live') ? styles.headerNavLinkActive : ''}`}>Streams</Link>
-                        <Link href="/scholars" className={`${styles.headerNavLink} ${pathname === '/scholars' ? styles.headerNavLinkActive : ''}`}>Scholars</Link>
+                        {mainNav.map((item) => (
+                            <Link 
+                                key={item.name} 
+                                href={item.href} 
+                                className={`${styles.headerNavLink} ${pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href)) ? styles.headerNavLinkActive : ''}`}
+                            >
+                                {item.name}
+                            </Link>
+                        ))}
                     </nav>
 
                     <div className={searchStyles.searchWrapper} ref={searchWrapperRef}>
@@ -235,9 +241,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <div className={styles.headerRight}>
                     {mounted && isAuthenticated && (
                         <div className={styles.headerIconGroup}>
-                            <Link href="/notifications" style={{ display: 'flex', alignItems: 'center', color: 'inherit' }}>
-                                <Bell size={22} className={styles.headerIcon} />
-                            </Link>
+                            {personalNav.filter(item => item.name !== 'Settings').map((item) => (
+                                <Link 
+                                    key={item.name} 
+                                    href={item.href} 
+                                    className={`${styles.headerIconWrapper} ${pathname === item.href ? styles.headerIconActive : ''}`}
+                                    title={item.name}
+                                >
+                                    {item.icon}
+                                </Link>
+                            ))}
                         </div>
                     )}
                     {(!mounted || (user?.role !== 'SCHOLAR' && user?.role !== 'ADMIN')) && (
@@ -267,47 +280,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             {/* Main Content */}
             <div className={`${styles.mainContainer} ${pathname.startsWith('/live/') && pathname.split('/').length === 3 ? styles.mainContainerStream : ''}`}>
-                {/* Left Sidebar - Hidden on Stream Page */}
-                {!(pathname.startsWith('/live/') && pathname.split('/').length === 3) && (
-                    <aside className={styles.leftSidebar}>
-                        <nav className={styles.sidebarNav}>
-
-
-                        <div className={styles.sidebarSection}>
-                            <span className={styles.sectionTitle}>Main Navigation</span>
-                            {mainNav.map((item) => (
-                                <Link key={item.name} href={item.href} style={{ textDecoration: 'none' }}>
-                                    <div className={`${styles.navItem} ${pathname === item.href ? styles.navItemActive : ''}`}>
-                                        {item.icon} {item.name}
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
-
-                        {mounted && isAuthenticated && (
-                            <div className={styles.sidebarSection}>
-                                <span className={styles.sectionTitle}>Your Activity</span>
-                                {personalNav.map((item) => (
-                                    <Link key={item.name} href={item.href} style={{ textDecoration: 'none' }}>
-                                        <div className={`${styles.navItem} ${pathname === item.href ? styles.navItemActive : ''}`}>
-                                            {item.icon} {item.name}
-                                        </div>
-                                    </Link>
-                                ))}
-                            </div>
-                        )}
-
-                        <div className={styles.sidebarSection}>
-                            <span className={styles.sectionTitle}>Support</span>
-                            <div className={styles.navItem}><HelpCircle size={18} /> Help Center</div>
-                        </div>
-
-                    </nav>
-
-                    {/* Removed hardcoded Daily Hadith widget */}
-
-                    </aside>
-                )}
                 
                 {children}
             </div>
