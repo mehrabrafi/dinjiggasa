@@ -13,7 +13,8 @@ import {
     RoomAudioRenderer,
     useLocalParticipant,
     TrackToggle,
-    useTracks
+    useTracks,
+    useRoomContext
 } from '@livekit/components-react';
 import { Track } from 'livekit-client';
 import { AnimatePresence } from 'framer-motion';
@@ -98,10 +99,35 @@ import { Share2, Star, Users, MessageCircleQuestion, Heart, ExternalLink, Chevro
 function LivePlayerContent({ 
     connecting, error, scholar, liveInfo, isPlaying, listenerCount, pastSessions, setActiveSession
 }: any) {
-    const remoteTracks = useTracks([{ source: Track.Source.Microphone, withPlaceholder: false }], { onlySubscribed: true });
+    const room = useRoomContext();
+    const [localIsPlaying, setLocalIsPlaying] = useState(false);
+    const remoteTracks = useTracks([
+        { source: Track.Source.Microphone, withPlaceholder: false },
+        { source: Track.Source.Unknown, withPlaceholder: false }
+    ], { onlySubscribed: true });
     
     const audioTrack = remoteTracks.find(t => (t as any).track?.kind === 'audio');
     const audioStream = (audioTrack as any)?.track?.mediaStream || null;
+
+    const handleTogglePlay = async () => {
+        if (!room) return;
+        
+        if (!localIsPlaying) {
+            try {
+                await room.startAudio();
+                setLocalIsPlaying(true);
+            } catch (err) {
+                console.error('Failed to start audio:', err);
+            }
+        } else {
+            setLocalIsPlaying(false);
+        }
+    };
+
+    // Auto-sync local state if disconnected
+    useEffect(() => {
+        if (!isPlaying) setLocalIsPlaying(false);
+    }, [isPlaying]);
 
     return (
         <>
@@ -111,6 +137,14 @@ function LivePlayerContent({
                     <div className={styles.connectingOverlay}>
                         <div className={styles.spinner}></div>
                         <p>{connecting ? 'Connecting to stream...' : 'Waiting for scholar to start...'}</p>
+                    </div>
+                )}
+                {isPlaying && !localIsPlaying && (
+                    <div className={styles.connectingOverlay} style={{ background: 'rgba(0,0,0,0.6)', cursor: 'pointer' }} onClick={handleTogglePlay}>
+                        <div className={styles.playIconCircle}>
+                            <Play size={40} fill="white" style={{ marginLeft: 5 }} />
+                        </div>
+                        <p style={{ fontWeight: 600, fontSize: '1.1rem' }}>Click to Listen</p>
                     </div>
                 )}
                 {error && (
@@ -149,9 +183,19 @@ function LivePlayerContent({
 
                 <div className={styles.playerControls}>
                     <button className={styles.controlBtn}><RotateCcw size={24} /></button>
-                    <button className={styles.playPauseBtn}>
-                        {isPlaying ? <Pause size={32} fill="white" /> : <Play size={32} fill="white" style={{ marginLeft: 4 }} />}
-                    </button>
+                    {!localIsPlaying && isPlaying ? (
+                        <button 
+                            className={styles.playPauseBtn} 
+                            onClick={handleTogglePlay}
+                            style={{ background: '#10b981', boxShadow: '0 0 20px rgba(16, 185, 129, 0.4)' }}
+                        >
+                            <Play size={32} fill="white" style={{ marginLeft: 4 }} />
+                        </button>
+                    ) : (
+                        <button className={styles.playPauseBtn} onClick={handleTogglePlay}>
+                            {localIsPlaying ? <Pause size={32} fill="white" /> : <Play size={32} fill="white" style={{ marginLeft: 4 }} />}
+                        </button>
+                    )}
                     <button className={styles.controlBtn}><RotateCw size={24} /></button>
                 </div>
             </div>

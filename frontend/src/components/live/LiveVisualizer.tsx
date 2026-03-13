@@ -17,6 +17,19 @@ const LiveVisualizer: React.FC<LiveVisualizerProps> = ({ stream }) => {
         if (!stream) return;
 
         const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        
+        // Ensure AudioContext resumes on user interaction (needed for browser autoplays)
+        if (audioContext.state === 'suspended') {
+            const resume = () => {
+                audioContext.resume();
+                console.log('[LiveVisualizer] AudioContext resumed');
+                window.removeEventListener('mousedown', resume);
+                window.removeEventListener('keydown', resume);
+            };
+            window.addEventListener('mousedown', resume);
+            window.addEventListener('keydown', resume);
+        }
+
         const source = audioContext.createMediaStreamSource(stream);
         const analyser = audioContext.createAnalyser();
         analyser.fftSize = 256;
@@ -137,6 +150,8 @@ const LiveVisualizer: React.FC<LiveVisualizerProps> = ({ stream }) => {
             if (audioContext && audioContext.state !== 'closed') {
                 audioContext.close();
             }
+            window.removeEventListener('mousedown', () => {});
+            window.removeEventListener('keydown', () => {});
         };
     }, [stream]);
 
