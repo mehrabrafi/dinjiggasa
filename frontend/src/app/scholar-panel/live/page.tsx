@@ -67,6 +67,7 @@ export default function ScholarLiveStudio() {
     const [selectedSeriesId, setSelectedSeriesId] = useState<string>('');
     const [isCreatingSeries, setIsCreatingSeries] = useState(false);
     const [newSeriesData, setNewSeriesData] = useState({ title: '', description: '', category: 'General' });
+    const [setupPhase, setSetupPhase] = useState(false);
     const { user } = useAuthStore();
     const scholarId = user?.id || '12345';
 
@@ -268,6 +269,7 @@ export default function ScholarLiveStudio() {
     const stopStreaming = useCallback(async () => {
         setLkToken(null);
         setIsStreaming(false);
+        setSetupPhase(false);
         setStatus('Ready to start');
         if (timerRef.current) {
             clearInterval(timerRef.current);
@@ -512,106 +514,122 @@ export default function ScholarLiveStudio() {
                             </div>
 
                             <div className={styles.sessionInfo}>
-                                <div className={styles.streamConfig}>
-                                    <div className={styles.configGrid}>
-                                        <div className={styles.inputGroup}>
-                                            <label>Stream Title</label>
-                                            <input
-                                                type="text"
-                                                value={streamTitle}
-                                                onChange={(e) => setStreamTitle(e.target.value)}
-                                                placeholder="Enter a descriptive title..."
-                                                className={styles.titleInput}
-                                            />
-                                        </div>
-                                        
-                                        <div className={styles.inputGroup}>
-                                            <label>Description (Optional)</label>
-                                            <textarea
-                                                value={streamDescription}
-                                                onChange={(e) => setStreamDescription(e.target.value)}
-                                                placeholder="What will you discuss today?"
-                                                className={styles.descInput}
-                                            />
-                                        </div>
+                                {!setupPhase ? (
+                                    <div className={styles.onboardingIntro}>
+                                        <h2 className={styles.onboardingMainTitle}>Ready to help the community?</h2>
+                                        <p className={styles.onboardingDescription}>Click below to set up your session and go live.</p>
+                                        <button 
+                                            onClick={() => setSetupPhase(true)} 
+                                            className={styles.onboardingGoLiveBtn}
+                                        >
+                                            <PlayCircle size={24} />
+                                            <span>GO LIVE</span>
+                                        </button>
                                     </div>
+                                ) : (
+                                    <div className={styles.streamConfig}>
+                                        <div className={styles.onboardingHeader}>
+                                            <h3 className={styles.onboardingTitle}>Setup Your Session</h3>
+                                            <p className={styles.onboardingDesc}>Provide a title and series for your live discussion.</p>
+                                        </div>
 
-                                    <div className={styles.inputGroup}>
-                                        <label>Associated Series</label>
-                                        <div className={styles.seriesSelectorRow}>
-                                            <select
-                                                value={selectedSeriesId}
-                                                onChange={(e) => setSelectedSeriesId(e.target.value)}
-                                                className={styles.seriesSelect}
+                                        <div className={styles.configGrid}>
+                                            <div className={styles.inputGroup}>
+                                                <label>Stream Title</label>
+                                                <input
+                                                    type="text"
+                                                    value={streamTitle}
+                                                    onChange={(e) => setStreamTitle(e.target.value)}
+                                                    placeholder="Enter a descriptive title..."
+                                                    className={styles.titleInput}
+                                                />
+                                            </div>
+                                            
+                                            <div className={styles.inputGroup}>
+                                                <label>Description (Optional)</label>
+                                                <textarea
+                                                    value={streamDescription}
+                                                    onChange={(e) => setStreamDescription(e.target.value)}
+                                                    placeholder="What will you discuss today?"
+                                                    className={styles.descInput}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className={styles.inputGroup}>
+                                            <label>Associated Series</label>
+                                            <div className={styles.seriesSelectorRow}>
+                                                <select
+                                                    value={selectedSeriesId}
+                                                    onChange={(e) => setSelectedSeriesId(e.target.value)}
+                                                    className={styles.seriesSelect}
+                                                >
+                                                    <option value="">Standalone Session (No Series)</option>
+                                                    {Array.isArray(mySeries) && mySeries.map(s => (
+                                                        <option key={s.id} value={s.id}>{s.title}</option>
+                                                    ))}
+                                                </select>
+                                                <button
+                                                    className={styles.createSeriesBtn}
+                                                    onClick={() => setIsCreatingSeries(true)}
+                                                >
+                                                    + New Series
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {isCreatingSeries && (
+                                            <div className={styles.createSeriesForm}>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Series Title"
+                                                    value={newSeriesData.title}
+                                                    onChange={e => setNewSeriesData({ ...newSeriesData, title: e.target.value })}
+                                                />
+                                                <textarea
+                                                    placeholder="Series Description"
+                                                    value={newSeriesData.description}
+                                                    onChange={e => setNewSeriesData({ ...newSeriesData, description: e.target.value })}
+                                                />
+                                                <div className={styles.formActions}>
+                                                    <button onClick={async () => {
+                                                        if (!newSeriesData.title) return;
+                                                        try {
+                                                            const { data } = await api.post('/live/series', newSeriesData);
+                                                            setMySeries([data, ...mySeries]);
+                                                            setSelectedSeriesId(data.id);
+                                                            setIsCreatingSeries(false);
+                                                            setNewSeriesData({ title: '', description: '', category: 'General' });
+                                                            toast.success('Series created successfully');
+                                                        } catch (e) {
+                                                            toast.error('Failed to create series');
+                                                        }
+                                                    }}>Create Series</button>
+                                                    <button onClick={() => setIsCreatingSeries(false)} className={styles.cancelBtn}>Cancel</button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className={styles.setupDivider}></div>
+
+                                        <div className={styles.onboardingActions}>
+                                            <button 
+                                                onClick={() => setSetupPhase(false)} 
+                                                className={styles.onboardingBackBtn}
                                             >
-                                                <option value="">Standalone Session (No Series)</option>
-                                                {Array.isArray(mySeries) && mySeries.map(s => (
-                                                    <option key={s.id} value={s.id}>{s.title}</option>
-                                                ))}
-                                            </select>
-                                            <button
-                                                className={styles.createSeriesBtn}
-                                                onClick={() => setIsCreatingSeries(true)}
+                                                Back
+                                            </button>
+                                            <button 
+                                                onClick={startStreaming} 
+                                                className={styles.startBtnLarge} 
+                                                title="Start streaming now"
                                             >
-                                                + New Series
+                                                <Play size={28} fill="white" />
+                                                <span className={styles.startBtnText}>START NOW</span>
                                             </button>
                                         </div>
                                     </div>
-
-                                    {isCreatingSeries && (
-                                        <div className={styles.createSeriesForm}>
-                                            <input
-                                                type="text"
-                                                placeholder="Series Title"
-                                                value={newSeriesData.title}
-                                                onChange={e => setNewSeriesData({ ...newSeriesData, title: e.target.value })}
-                                            />
-                                            <textarea
-                                                placeholder="Series Description"
-                                                value={newSeriesData.description}
-                                                onChange={e => setNewSeriesData({ ...newSeriesData, description: e.target.value })}
-                                            />
-                                            <div className={styles.formActions}>
-                                                <button onClick={async () => {
-                                                    if (!newSeriesData.title) return;
-                                                    try {
-                                                        const { data } = await api.post('/live/series', newSeriesData);
-                                                        setMySeries([data, ...mySeries]);
-                                                        setSelectedSeriesId(data.id);
-                                                        setIsCreatingSeries(false);
-                                                        setNewSeriesData({ title: '', description: '', category: 'General' });
-                                                        toast.success('Series created successfully');
-                                                    } catch (e) {
-                                                        toast.error('Failed to create series');
-                                                    }
-                                                }}>Create Series</button>
-                                                <button onClick={() => setIsCreatingSeries(false)} className={styles.cancelBtn}>Cancel</button>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                        <div className={styles.setupDivider}></div>
-                                </div>
-
-                                <div className={styles.scholarInfo}>
-                                    <span className={styles.scholarName}>{user?.name || 'Scholar Name'}</span>
-                                    <CheckCircle2 size={16} className={styles.verifiedIcon} />
-                                </div>
-                            </div>
-
-                            <div className={styles.controlsSection}>
-                                <button onClick={toggleAudio} className={styles.roundControlBtn} title={isAudioMuted ? "Unmute mic" : "Mute mic"}>
-                                    {isAudioMuted ? <MicOff size={24} /> : <Mic size={24} />}
-                                </button>
-
-                                <button onClick={startStreaming} className={styles.startBtnLarge} title="Start streaming now">
-                                    <Play size={32} fill="white" />
-                                    <span className={styles.startBtnText}>GO LIVE</span>
-                                </button>
-
-                                <button className={styles.roundControlBtn}>
-                                    <Volume2 size={24} />
-                                </button>
+                                )}
                             </div>
                         </div>
                     </div>

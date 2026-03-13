@@ -798,6 +798,97 @@
     color: #64748b;
 }
 
+/* ===== Onboarding Flow ===== */
+.onboardingIntro {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    animation: fadeIn 0.4s ease-out;
+}
+
+.onboardingMainTitle {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+}
+
+.onboardingDescription {
+    color: #64748b;
+    font-size: 1rem;
+    max-width: 400px;
+    margin: 0;
+}
+
+.onboardingGoLiveBtn {
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 1rem 2.5rem;
+    border-radius: 9999px;
+    font-size: 1rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
+}
+
+.onboardingGoLiveBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 20px -5px rgba(16, 185, 129, 0.4);
+    background: #059669;
+}
+
+.onboardingHeader {
+    text-align: left;
+    margin-bottom: 2rem;
+    width: 100%;
+}
+
+.onboardingTitle {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+}
+
+.onboardingDesc {
+    font-size: 0.95rem;
+    color: #64748b;
+}
+
+.onboardingActions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    width: 100%;
+    margin-top: 2rem;
+}
+
+.onboardingBackBtn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.onboardingBackBtn:hover {
+    color: #64748b;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 .modeBtnActive .modeLabel {
     color: #065f46;
 }
