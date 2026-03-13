@@ -18,6 +18,7 @@ import {
 import { Track } from 'livekit-client';
 import { AnimatePresence } from 'framer-motion';
 import AudioPlayer from '@/components/shared/AudioPlayer/AudioPlayer';
+import LiveVisualizer from '@/components/live/LiveVisualizer';
 import '@livekit/components-styles';
 
 function ViewerInteraction({
@@ -95,16 +96,12 @@ interface LiveSession {
 import { Share2, Star, Users, MessageCircleQuestion, Heart, ExternalLink, ChevronRight, RotateCcw, RotateCw, Pause, CheckCircle2, MessageSquare } from 'lucide-react';
 
 function LivePlayerContent({ 
-    connecting, error, scholar, liveInfo, isPlaying, canvasRef, startAudioVisualizer, listenerCount, pastSessions, setActiveSession
+    connecting, error, scholar, liveInfo, isPlaying, listenerCount, pastSessions, setActiveSession
 }: any) {
     const remoteTracks = useTracks([{ source: Track.Source.Microphone, withPlaceholder: false }], { onlySubscribed: true });
     
-    useEffect(() => {
-        const audioTrack = remoteTracks.find(t => (t as any).track?.kind === 'audio');
-        if ((audioTrack as any)?.track?.mediaStream) {
-            startAudioVisualizer((audioTrack as any).track.mediaStream);
-        }
-    }, [remoteTracks, startAudioVisualizer]);
+    const audioTrack = remoteTracks.find(t => (t as any).track?.kind === 'audio');
+    const audioStream = (audioTrack as any)?.track?.mediaStream || null;
 
     return (
         <>
@@ -146,12 +143,7 @@ function LivePlayerContent({
                 </p>
 
                 <div className={styles.visualizerWrapper}>
-                    <canvas
-                        ref={canvasRef}
-                        width={400}
-                        height={80}
-                        className={styles.audioCanvas}
-                    />
+                    <LiveVisualizer stream={audioStream} />
                     <RoomAudioRenderer />
                 </div>
 
@@ -238,8 +230,6 @@ function LivePlayerContent({
 export default function LiveViewer() {
     const { scholarId } = useParams();
     const lkServerUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://livekit.deenjiggasa.info';
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const animationRef = useRef<number>(0);
     const [lkToken, setLkToken] = useState<string | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -343,54 +333,6 @@ export default function LiveViewer() {
         fetchSessions();
     }, [scholarId]);
 
-    // Audio visualizer
-    const startAudioVisualizer = (stream: MediaStream) => {
-        const audioContext = new AudioContext();
-        const source = audioContext.createMediaStreamSource(stream);
-        const analyser = audioContext.createAnalyser();
-        analyser.fftSize = 64; // Smaller for cleaner bars
-        source.connect(analyser);
-
-        const draw = () => {
-            if (!canvasRef.current) return;
-            const canvas = canvasRef.current;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return;
-
-            const bufferLength = analyser.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
-            analyser.getByteFrequencyData(dataArray);
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            const barWidth = 6;
-            const barGap = 4;
-            const totalWidth = bufferLength * (barWidth + barGap);
-            let x = (canvas.width - totalWidth) / 2;
-
-            for (let i = 0; i < bufferLength; i++) {
-                const barHeight = (dataArray[i] / 255) * canvas.height;
-                
-                // Teal gradient as per mockup
-                ctx.fillStyle = i % 2 === 0 ? '#10b981' : '#14b8a6';
-                
-                // Centered bars
-                const y = (canvas.height - barHeight) / 2;
-                
-                // Rounded rectangles
-                ctx.beginPath();
-                ctx.roundRect(x, y, barWidth, barHeight, 4);
-                ctx.fill();
-
-                x += barWidth + barGap;
-            }
-
-            animationRef.current = requestAnimationFrame(draw);
-        };
-
-        draw();
-    };
-
     return (
         <DashboardLayout>
             <div className={styles.container}>
@@ -412,8 +354,6 @@ export default function LiveViewer() {
                                 scholar={scholar}
                                 liveInfo={liveInfo}
                                 isPlaying={isPlaying}
-                                canvasRef={canvasRef}
-                                startAudioVisualizer={startAudioVisualizer}
                                 listenerCount={listenerCount}
                                 pastSessions={pastSessions}
                                 setActiveSession={setActiveSession}
