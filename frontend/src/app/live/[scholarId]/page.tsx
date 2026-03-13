@@ -128,7 +128,7 @@ function LivePlayerContent({
 
                 <div className={styles.albumArtWrapper}>
                     <img 
-                        src={scholar?.avatar || '/assets/images/mock/seerah.png'} 
+                        src={scholar?.avatar || (scholar?.name ? `https://ui-avatars.com/api/?name=${encodeURIComponent(scholar.name)}&background=006D5B&color=fff&size=512` : '/assets/images/mock/seerah.png')} 
                         alt={scholar?.name} 
                         className={styles.albumArt} 
                     />
