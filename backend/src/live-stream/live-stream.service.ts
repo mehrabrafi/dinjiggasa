@@ -340,6 +340,7 @@ export class LiveStreamService {
       const liveInfo = this.liveScholars.get(scholar.id);
       return {
         ...scholar,
+        scholarId: scholar.id,
         isLive: true,
         startedAt: liveInfo?.startedAt,
         viewerCount: liveInfo?.viewerCount || 0,

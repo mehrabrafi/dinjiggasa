@@ -220,7 +220,7 @@ function DashboardView() {
         <div className={styles.horizontalScroll}>
           {sessions.live.length > 0 ? (
             sessions.live.map((session) => (
-              <Link href={`/live/${session.scholarId}`} key={session.id} className={styles.liveSessionCard} style={{ textDecoration: 'none' }}>
+              <Link href={`/live/${session.id}`} key={session.id} className={styles.liveSessionCard} style={{ textDecoration: 'none' }}>
                 <div className={styles.cardThumbWrapper}>
                   {session.thumbnailUrl ? (
                     <img src={session.thumbnailUrl} className={styles.cardThumb} alt={session.title} />
