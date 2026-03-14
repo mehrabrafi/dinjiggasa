@@ -106,21 +106,49 @@ function LivePlayerContent({
         { source: Track.Source.Unknown, withPlaceholder: false }
     ], { onlySubscribed: true });
     
+    useEffect(() => {
+        console.log('[LiveDebug] Remote tracks updated:', remoteTracks.length);
+        remoteTracks.forEach((t, i) => {
+            console.log(`[LiveDebug] Track ${i}:`, {
+                source: t.source,
+                kind: (t as any).track?.kind,
+                isSubscribed: t.publication?.isSubscribed,
+                trackSid: t.publication?.trackSid
+            });
+        });
+    }, [remoteTracks]);
+
     const audioTrack = remoteTracks.find(t => (t as any).track?.kind === 'audio');
     const audioStream = (audioTrack as any)?.track?.mediaStream || null;
 
+    useEffect(() => {
+        if (audioStream) {
+            console.log('[LiveDebug] Audio stream detected and ready');
+        } else if (isPlaying) {
+            console.warn('[LiveDebug] Playing state is true but no audio stream found yet');
+        }
+    }, [audioStream, isPlaying]);
+
     const handleTogglePlay = async () => {
-        if (!room) return;
+        if (!room) {
+            console.error('[LiveDebug] Room context not found');
+            return;
+        }
         
+        console.log('[LiveDebug] Toggle play initiated, current state:', { localIsPlaying, isPlaying });
+
         if (!localIsPlaying) {
             try {
+                console.log('[LiveDebug] Attempting to start audio context...');
                 await room.startAudio();
                 setLocalIsPlaying(true);
+                console.log('[LiveDebug] Audio context started successfully');
             } catch (err) {
-                console.error('Failed to start audio:', err);
+                console.error('[LiveDebug] Failed to start audio:', err);
             }
         } else {
             setLocalIsPlaying(false);
+            console.log('[LiveDebug] Audio paused locally');
         }
     };
 
@@ -386,8 +414,14 @@ export default function LiveViewer() {
                     token={lkToken || undefined}
                     serverUrl={lkServerUrl}
                     connect={!!lkToken}
-                    onDisconnected={() => setIsPlaying(false)}
-                    onConnected={() => setIsPlaying(true)}
+                    onDisconnected={() => {
+                        console.log('[LiveDebug] Disconnected from LiveKit Room');
+                        setIsPlaying(false);
+                    }}
+                    onConnected={() => {
+                        console.log('[LiveDebug] Connected to LiveKit Room successfully');
+                        setIsPlaying(true);
+                    }}
                 >
                     <div className={styles.mainLayout}>
                         {/* Left Column */}
