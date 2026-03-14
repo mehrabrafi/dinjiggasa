@@ -384,6 +384,7 @@ export class LiveStreamService {
     const at = new AccessToken(apiKey, apiSecret, {
       identity: identity || participantName,
       name: participantName,
+      ttl: '2h',
     });
 
     at.addGrant({

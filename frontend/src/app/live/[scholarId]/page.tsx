@@ -290,7 +290,7 @@ export default function LiveViewer() {
     // Fetch view token
     useEffect(() => {
         const fetchToken = async () => {
-            if (!scholarId) return;
+            if (!scholarId || scholarId === 'undefined') return;
             try {
                 setConnecting(true);
                 const identity = user?.id || `anon-${Math.floor(Math.random() * 10000)}`;
