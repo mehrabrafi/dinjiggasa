@@ -38,6 +38,11 @@ export class ScholarsService {
         officeHours: true,
         isVerified: true,
         reputation: true,
+        _count: {
+          select: {
+            answers: true,
+          },
+        },
       } as any,
     });
   }

@@ -26,10 +26,12 @@ function ViewerInteraction({
     handRaised,
     handleRaiseHand,
     setHandRaised,
+    scholarId,
 }: {
     handRaised: boolean;
     handleRaiseHand: () => void;
     setHandRaised: (val: boolean) => void;
+    scholarId: string;
 }) {
     const { localParticipant } = useLocalParticipant();
     const canPublish = localParticipant?.permissions?.canPublish;
@@ -46,6 +48,17 @@ function ViewerInteraction({
         }
     }, [canPublish, handRaised, setHandRaised, localParticipant]);
 
+    const handleLeaveStage = async () => {
+        try {
+            await api.post('/live/revoke-publish', {
+                roomName: scholarId,
+                participantIdentity: localParticipant.identity,
+            });
+        } catch (err) {
+            console.error('Failed to leave stage:', err);
+        }
+    };
+
     if (canPublish) {
         return (
             <div className={styles.speakerControlsContainer}>
@@ -54,13 +67,19 @@ function ViewerInteraction({
                     <span className={styles.speakerTitle}>You are a Speaker</span>
                 </div>
                 <p className={styles.speakerHint}>
-                    The scholar approved your request. Your microphone was turned on automatically! You can toggle it below.
+                    The scholar approved your request. Your voice is now live!
                 </p>
-                <div className={styles.micToggleWrapper}>
+                <div className={styles.micToggleWrapper} style={{ gap: '1rem' }}>
                     <TrackToggle
                         source={Track.Source.Microphone}
                         className={styles.lkTrackToggle}
                     />
+                    <button 
+                        onClick={handleLeaveStage}
+                        className={styles.leaveStageBtn}
+                    >
+                        Leave Stage
+                    </button>
                 </div>
             </div>
         );
@@ -97,7 +116,8 @@ interface LiveSession {
 import { Share2, Star, Users, MessageCircleQuestion, Heart, ExternalLink, ChevronRight, RotateCcw, RotateCw, Pause, CheckCircle2, MessageSquare } from 'lucide-react';
 
 function LivePlayerContent({ 
-    connecting, error, scholar, liveInfo, isPlaying, listenerCount, pastSessions, setActiveSession
+    connecting, error, scholar, liveInfo, isPlaying, listenerCount,
+    handRaised, handleRaiseHand, setHandRaised, scholarId
 }: any) {
     const room = useRoomContext();
     const [localIsPlaying, setLocalIsPlaying] = useState(false);
@@ -152,10 +172,40 @@ function LivePlayerContent({
         }
     };
 
-    // Auto-sync local state if disconnected
+    const [elapsedTime, setElapsedTime] = useState('00:00');
+
+    // Calculate elapsed time from startedAt
     useEffect(() => {
-        if (!isPlaying) setLocalIsPlaying(false);
-    }, [isPlaying]);
+        if (!liveInfo?.startedAt) {
+            setElapsedTime('00:00');
+            return;
+        }
+
+        const timer = setInterval(() => {
+            const start = new Date(liveInfo.startedAt).getTime();
+            const now = new Date().getTime();
+            const diff = Math.floor((now - start) / 1000);
+            
+            if (diff < 0) {
+                setElapsedTime('00:00');
+                return;
+            }
+
+            const hrs = Math.floor(diff / 3600);
+            const mins = Math.floor((diff % 3600) / 60);
+            const secs = diff % 60;
+
+            const timeStr = [
+                hrs > 0 ? hrs.toString().padStart(2, '0') : null,
+                mins.toString().padStart(2, '0'),
+                secs.toString().padStart(2, '0')
+            ].filter(Boolean).join(':');
+
+            setElapsedTime(timeStr);
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [liveInfo?.startedAt]);
 
     return (
         <>
@@ -198,10 +248,10 @@ function LivePlayerContent({
                 </div>
 
                 <h1 className={styles.streamTitle}>
-                    {liveInfo?.title || 'Modern Ethics in Digital Finance'}
+                    {liveInfo?.title || 'Untitled Session'}
                 </h1>
                 <p className={styles.streamSubtitle}>
-                    Audio Q&A with {scholar?.name || 'Sheikh Abdullah Al-Mansur'}
+                    Audio Q&A with {scholar?.name || 'Scholar'}
                 </p>
 
                 <div className={styles.visualizerWrapper}>
@@ -226,6 +276,13 @@ function LivePlayerContent({
                     )}
                     <button className={styles.controlBtn}><RotateCw size={24} /></button>
                 </div>
+
+                <ViewerInteraction 
+                    handRaised={handRaised}
+                    handleRaiseHand={handleRaiseHand}
+                    setHandRaised={setHandRaised}
+                    scholarId={scholarId}
+                />
             </div>
 
             {/* Scholar Card */}
@@ -260,41 +317,24 @@ function LivePlayerContent({
                 </div>
                 <div className={styles.statBox}>
                     <span className={styles.statLabel}>Duration</span>
-                    <span className={styles.statVal}>45:22</span>
+                    <span className={styles.statVal}>{elapsedTime}</span>
                 </div>
-                <div className={styles.statBox}>
-                    <span className={styles.statLabel}>Questions</span>
-                    <span className={styles.statVal}>82</span>
-                </div>
-                <div className={styles.statBox}>
-                    <span className={styles.statLabel}>Rating</span>
-                    <div className={`${styles.statVal} ${styles.ratingVal}`}>
-                        <Star size={20} fill="#f59e0b" /> 4.9
+                {scholar?.reputation !== undefined && (
+                    <div className={styles.statBox}>
+                        <span className={styles.statLabel}>Reputation</span>
+                        <div className={`${styles.statVal} ${styles.ratingVal}`}>
+                            <Star size={20} fill="#f59e0b" /> {scholar.reputation.toFixed(1)}
+                        </div>
                     </div>
-                </div>
+                )}
+                {scholar?._count?.answers !== undefined && (
+                    <div className={styles.statBox}>
+                        <span className={styles.statLabel}>Total Answers</span>
+                        <span className={styles.statVal}>{scholar._count.answers}</span>
+                    </div>
+                )}
             </div>
 
-            {/* Past Sessions */}
-            {pastSessions.length > 0 && (
-                <div className={styles.pastSessionsContainer} style={{ background: 'transparent', boxShadow: 'none', border: 'none' }}>
-                    <h2 className={styles.pastSessionsTitle}>
-                        <Clock size={20} /> Past Live Sessions
-                    </h2>
-                    <div className={styles.sessionList}>
-                        {pastSessions.slice(0, 3).map((session: any) => (
-                            <div key={session.id} className={styles.sessionItem}>
-                                <div className={styles.sessionHeader}>
-                                    <span className={styles.sessionName}>{session.title}</span>
-                                    <span className={styles.sessionDate}>{new Date(session.createdAt).toLocaleDateString()}</span>
-                                </div>
-                                <button className={styles.playPastBtn} onClick={() => setActiveSession(session)}>
-                                    <Play size={18} fill="currentColor" /> Play Recording
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
         </>
     );
 }
@@ -309,7 +349,7 @@ export default function LiveViewer() {
     const [pastSessions, setPastSessions] = useState<LiveSession[]>([]);
     const [viewerIdentity, setViewerIdentity] = useState<string>('');
     const [handRaised, setHandRaised] = useState(false);
-    const [liveInfo, setLiveInfo] = useState<{ title?: string; description?: string } | null>(null);
+    const [liveInfo, setLiveInfo] = useState<{ title?: string; description?: string; startedAt?: string } | null>(null);
     const [scholar, setScholar] = useState<any>(null);
     const [activeSession, setActiveSession] = useState<LiveSession | null>(null);
     const [listenerCount, setListenerCount] = useState(0);
@@ -333,6 +373,7 @@ export default function LiveViewer() {
                     setLiveInfo({
                         title: statusData.title,
                         description: statusData.description,
+                        startedAt: statusData.startedAt,
                     });
                     setListenerCount(statusData.viewerCount || 0);
                 }
@@ -433,8 +474,10 @@ export default function LiveViewer() {
                                 liveInfo={liveInfo}
                                 isPlaying={isPlaying}
                                 listenerCount={listenerCount}
-                                pastSessions={pastSessions}
-                                setActiveSession={setActiveSession}
+                                handRaised={handRaised}
+                                handleRaiseHand={handleRaiseHand}
+                                setHandRaised={setHandRaised}
+                                scholarId={scholarId as string}
                             />
                         </div>
 

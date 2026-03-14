@@ -47,6 +47,49 @@ function RecordingStarter() {
     return null;
 }
 
+/** Component to manage and display active remote speakers */
+function SpeakerList({ scholarId }: { scholarId: string }) {
+    const tracks = useTracks([{ source: Track.Source.Microphone, withPlaceholder: false }], { onlySubscribed: true });
+    
+    // Filter out the local scholar (they are already shown in the main card)
+    const remoteSpeakers = tracks.filter(t => !t.participant.isLocal);
+
+    const handleRevoke = async (participantIdentity: string) => {
+        try {
+            await api.post('/live/revoke-publish', {
+                roomName: scholarId,
+                participantIdentity,
+            });
+            toast.success('Speaker permission revoked');
+        } catch (err) {
+            console.error('Failed to revoke speaker:', err);
+            toast.error('Failed to revoke permission');
+        }
+    };
+
+    if (remoteSpeakers.length === 0) return null;
+
+    return (
+        <div className={styles.activeSpeakersSection}>
+            <h4 className={styles.activeSpeakersLabel}>
+                <Volume2 size={14} /> Active Speakers
+            </h4>
+            {remoteSpeakers.map((trackRef) => (
+                <div key={trackRef.participant.identity} className={styles.speakerItem}>
+                    <span className={styles.speakerName}>🎙️ {trackRef.participant.name || trackRef.participant.identity}</span>
+                    <button
+                        onClick={() => handleRevoke(trackRef.participant.identity)}
+                        className={styles.revokeBtn}
+                        title="Revoke speaking permission"
+                    >
+                        <MicOff size={14} /> Mute
+                    </button>
+                </div>
+            ))}
+        </div>
+    );
+}
+
 export default function ScholarLiveStudio() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationRef = useRef<number>(0);
@@ -84,7 +127,6 @@ export default function ScholarLiveStudio() {
         raisedAt: string;
     }
     const [raisedHands, setRaisedHands] = useState<RaisedHandInfo[]>([]);
-    const [activeSpeakers, setActiveSpeakers] = useState<{ identity: string, name: string }[]>([]);
 
     // Get the signalling URL for this scholar's stream (with ?direction=send for ingest)
     const getSignallingUrl = () => {
@@ -324,7 +366,8 @@ export default function ScholarLiveStudio() {
                 roomName: scholarId,
                 participantIdentity,
             });
-            setActiveSpeakers(prev => [...prev, { identity: participantIdentity, name: participantName }]);
+            // Speaker will automatically appear in SpeakerList via useTracks
+            toast.success(`${participantName} is now a speaker`);
             // Remove from raised hands locally
             setRaisedHands(prev => prev.filter(h => h.participantIdentity !== participantIdentity));
         } catch (err) {
@@ -345,18 +388,6 @@ export default function ScholarLiveStudio() {
         }
     };
 
-    // Revoke speaking permission
-    const handleRevoke = async (participantIdentity: string) => {
-        try {
-            await api.post('/live/revoke-publish', {
-                roomName: scholarId,
-                participantIdentity,
-            });
-            setActiveSpeakers(prev => prev.filter(s => s.identity !== participantIdentity));
-        } catch (err) {
-            console.error('Failed to revoke speaker:', err);
-        }
-    };
 
     return (
         <div className={styles.container}>
@@ -441,32 +472,14 @@ export default function ScholarLiveStudio() {
                             {isStreaming && (
                                 <div className={styles.raisedHandsPanel}>
                                     <h3 className={styles.raisedHandsTitle}>
-                                        <Hand size={18} /> Raised Hands ({raisedHands.length})
+                                        <Hand size={18} /> Audience Interaction
                                     </h3>
 
-                                    {/* Active Speakers */}
-                                    {activeSpeakers.length > 0 && (
-                                        <div className={styles.activeSpeakersSection}>
-                                            <h4 className={styles.activeSpeakersLabel}>
-                                                <Volume2 size={14} /> Active Speakers
-                                            </h4>
-                                            {activeSpeakers.map((speaker) => (
-                                                <div key={speaker.identity} className={styles.speakerItem}>
-                                                    <span className={styles.speakerName}>🎙️ {speaker.name}</span>
-                                                    <button
-                                                        onClick={() => handleRevoke(speaker.identity)}
-                                                        className={styles.revokeBtn}
-                                                        title="Revoke speaking permission"
-                                                    >
-                                                        <MicOff size={14} /> Mute
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
+                                    {/* Active Speakers (LiveKit real-time) */}
+                                    <SpeakerList scholarId={scholarId} />
 
                                     {/* Waiting List */}
-                                    {raisedHands.length === 0 && activeSpeakers.length === 0 && (
+                                    {raisedHands.length === 0 && (
                                         <p className={styles.noHandsText}>No one has raised their hand yet.</p>
                                     )}
                                     {raisedHands.map((hand) => (
